@@ -1,0 +1,38 @@
+# Node
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite/React builds
+frontend/dist/
+dist/
+*.map
+
+# Electron artifacts
+**/electron/dist/
+win-unpacked/
+*.exe
+*.dll
+*.pak
+*.bin
+*.dylib
+*.icd
+
+# Electron-builder outputs
+dist/win-*/**
+dist/*.exe
+dist/*.msi
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+logs/
