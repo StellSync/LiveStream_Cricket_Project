@@ -6,8 +6,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB } from "./config/db.js";
 import tournamentRoutes from "./routes/tournamentRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
 import { errorHandler } from "./middleware/errorHandler.js";
-
+import playerRoutes from "./routes/playerRoutes.js";
+import matchRoutes from "./routes/matchRoutes.js";
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,6 +28,14 @@ await connectDB(MONGO_URI);
 
 // ---------- API ROUTES ----------
 app.use("/api/tournaments", tournamentRoutes);
+app.use("/api/team",teamRoutes);
+app.use("/api/players", playerRoutes);
+app.use("/api/matches", matchRoutes);
+
+
+
+
+
 
 // ---------- In-memory score (kept for demo; can later read from DB) ----------
 let score = {
