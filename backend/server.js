@@ -1,19 +1,33 @@
+// backend/server.js
+import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import { connectDB } from "./config/db.js";
+import tournamentRoutes from "./routes/tournamentRoutes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 // CORS + JSON
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-// ---------- In-memory match state ----------
+// ---------- DB ----------
+const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017";
+await connectDB(MONGO_URI);
+
+// ---------- API ROUTES ----------
+app.use("/api/tournaments", tournamentRoutes);
+
+// ---------- In-memory score (kept for demo; can later read from DB) ----------
 let score = {
   matchId: "demo-123",
   teamA: "Team A",
@@ -27,22 +41,19 @@ let score = {
   lastUpdated: new Date().toISOString(),
 };
 
-// ---------- SSE clients ----------
 const clients = new Set();
 function broadcast(data) {
   const payload = `data: ${JSON.stringify(data)}\n\n`;
   for (const res of clients) res.write(payload);
 }
 
-app.get("/api/score", (req, res) => {
-  res.json(score);
-});
+app.get("/api/score", (_req, res) => res.json(score));
 
 app.post("/api/score", (req, res) => {
   const body = req.body || {};
   score = {
     ...score,
-    ...Object.fromEntries(Object.entries(body).filter(([k, v]) => v !== undefined)),
+    ...Object.fromEntries(Object.entries(body).filter(([_, v]) => v !== undefined)),
     lastUpdated: new Date().toISOString(),
   };
   broadcast(score);
@@ -61,7 +72,7 @@ app.get("/sse", (req, res) => {
   req.on("close", () => clients.delete(res));
 });
 
-// ---------- OBS overlay (browser source) ----------
+// ---------- OBS overlay ----------
 app.get("/overlay", (_req, res) => {
   const html = `<!doctype html>
 <html>
@@ -113,7 +124,7 @@ app.get("/overlay", (_req, res) => {
   res.send(html);
 });
 
-// ---------- Serve React build in production (when Electron passes the path) ----------
+// ---------- Serve built React (when Electron passes path) ----------
 const distFromElectron = process.env.FRONTEND_DIST;
 if (distFromElectron) {
   console.log("Serving admin UI from:", distFromElectron);
@@ -123,7 +134,11 @@ if (distFromElectron) {
   });
 }
 
+// ---------- Errors ----------
+app.use(errorHandler);
+
+// ---------- Start ----------
 app.listen(PORT, () => {
-  console.log(`Scoreboard backend running on http://localhost:${PORT}`);
-  console.log(`Overlay for OBS at http://localhost:${PORT}/overlay`);
+  console.log(`Scoreboard backend → http://localhost:${PORT}`);
+  console.log(`Overlay for OBS → http://localhost:${PORT}/overlay`);
 });

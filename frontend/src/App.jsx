@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react'
 
 const field = (label, value, setValue, placeholder="") => (
@@ -25,11 +24,9 @@ export default function App() {
   const [live, setLive] = useState(null);
 
   useEffect(() => {
-    const es = new EventSource('/sse');
-    es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      setLive(data);
-    };
+    // SSE from backend on port 5000
+    const es = new EventSource('http://localhost:5000/sse');
+    es.onmessage = (e) => setLive(JSON.parse(e.data));
     return () => es.close();
   }, []);
 
@@ -44,7 +41,8 @@ export default function App() {
       overs,
       runRate
     };
-    await fetch('/api/score', {
+    // POST to backend on port 5000
+    await fetch('http://localhost:5000/api/score', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -54,18 +52,17 @@ export default function App() {
   return (
     <div style={{fontFamily:'system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif', padding:24, maxWidth:720, margin:'0 auto'}}>
       <h2 style={{margin:'6px 0 18px'}}>Scoreboard Admin (Demo)</h2>
-      <p style={{marginTop:0, color:'#555'}}>Update the score below. Your OBS overlay at <code>http://localhost:4000/overlay</code> will update instantly.</p>
+      <p style={{marginTop:0, color:'#555'}}>
+        Update below. Your OBS overlay at <code>http://localhost:5000/overlay</code> will update instantly.
+      </p>
 
       <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginTop:16}}>
         {field('Team A', teamA, setTeamA)}
         {field('Team B', teamB, setTeamB)}
-
         {field('Runs A', runsA, setRunsA)}
         {field('Wickets A', wicketsA, setWicketsA)}
-
         {field('Runs B', runsB, setRunsB)}
         {field('Wickets B', wicketsB, setWicketsB)}
-
         {field('Overs', overs, setOvers, 'e.g. 12.3')}
         {field('Run Rate', runRate, setRunRate, 'e.g. 7.65')}
       </div>
