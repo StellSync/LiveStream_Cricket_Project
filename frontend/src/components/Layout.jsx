@@ -1,4 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
+import Footer from "./Footer";
 
 export default function Layout({ children }) {
   return (
@@ -19,6 +20,7 @@ export default function Layout({ children }) {
           </button>
           <div className="collapse navbar-collapse" id="nav">
             <ul className="navbar-nav me-auto">
+              <li className="nav-item"><NavLink className="nav-link" to="/scoreboard">Scoreboard</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/tournaments">Tournaments</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/teams">Teams</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/players">Players</NavLink></li>
@@ -30,6 +32,7 @@ export default function Layout({ children }) {
       <main className="container my-4">
         {children}
       </main>
+      <Footer />
     </>
   );
 }
