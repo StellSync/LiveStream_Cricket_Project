@@ -3,8 +3,9 @@ import { Link, NavLink } from "react-router-dom";
 export default function Layout({ children }) {
   return (
     <>
+      {/* Full-width navbar */}
       <nav className="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div className="container">
+        <div className="container-fluid">
           <Link className="navbar-brand" to="/">Scoreboard Admin</Link>
           <button
             className="navbar-toggler"
@@ -15,7 +16,7 @@ export default function Layout({ children }) {
             aria-expanded="false"
             aria-label="Toggle navigation"
           >
-            <span className="navbar-toggler-icon"/>
+            <span className="navbar-toggler-icon" />
           </button>
           <div className="collapse navbar-collapse" id="nav">
             <ul className="navbar-nav me-auto">
@@ -27,7 +28,9 @@ export default function Layout({ children }) {
           </div>
         </div>
       </nav>
-      <main className="container my-4">
+
+      {/* Full-width page container; remove px with px-0 if you want truly edge-to-edge */}
+      <main className="container-fluid my-4 px-3 px-md-4">
         {children}
       </main>
     </>

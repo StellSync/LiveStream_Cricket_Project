@@ -10,6 +10,9 @@ import { rtdbPush, rtdbGet } from "../lib/rtdb.js"; // generic helpers
 // Backend model: { id, name, date, logo, place }
 const emptyForm = { name: "", date: "", place: "", logo: "", logoKey: "" };
 
+// fixed height (px) for the right card
+const LIST_PANEL_HEIGHT = 640;
+
 function initials(name = "") {
   return name
     .split(" ")
@@ -19,37 +22,22 @@ function initials(name = "") {
     .join("");
 }
 
-/**
- * Convert a File -> optimized DataURL (downscale + compress)
- * - Limits longest side to maxDim (default 256 px)
- * - Encodes as JPEG (quality 0.85)
- * - Returns { dataUrl, width, height }
- */
+/** file -> small JPEG dataURL */
 async function fileToOptimizedDataURL(file, maxDim = 256, quality = 0.85) {
-  // Create bitmap (faster than Image element, no layout)
   const bmp = await createImageBitmap(file);
-  const { width: w, height: h } = bmp;
-
-  const scale = Math.min(1, maxDim / Math.max(w, h));
-  const outW = Math.max(1, Math.round(w * scale));
-  const outH = Math.max(1, Math.round(h * scale));
-
+  const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+  const outW = Math.max(1, Math.round(bmp.width * scale));
+  const outH = Math.max(1, Math.round(bmp.height * scale));
   const canvas = document.createElement("canvas");
-  canvas.width = outW;
-  canvas.height = outH;
+  canvas.width = outW; canvas.height = outH;
   const ctx = canvas.getContext("2d");
   ctx.drawImage(bmp, 0, 0, outW, outH);
-
-  // JPEG for high compatibility. You could switch to "image/webp" if you prefer.
   const dataUrl = canvas.toDataURL("image/jpeg", quality);
   return { dataUrl, width: outW, height: outH };
 }
 
-/** Roughly estimate bytes of a base64 data URL (ignoring header) */
 function estimateDataUrlBytes(dataUrl) {
-  // data:[mime];base64,AAAA...
   const base64 = (dataUrl.split(",")[1] || "").trim();
-  // base64 -> bytes: ~ (length * 3) / 4, minus padding
   const len = base64.length;
   const padding = (base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0);
   return Math.floor((len * 3) / 4) - padding;
@@ -75,10 +63,7 @@ export default function TournamentsPage() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   function onChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -87,11 +72,7 @@ export default function TournamentsPage() {
 
   async function onSubmit(e) {
     e.preventDefault();
-
-    // Validate against new model
-    if (!form.name.trim()) return;
-    if (!form.date) return;
-    if (!form.place.trim()) return;
+    if (!form.name.trim() || !form.date || !form.place.trim()) return;
     if (!form.logo.trim()) {
       alert("Tournament logo is required.");
       return;
@@ -99,10 +80,10 @@ export default function TournamentsPage() {
 
     const payload = {
       name: form.name.trim(),
-      date: form.date,          // "YYYY-MM-DD"
+      date: form.date,
       place: form.place.trim(),
-      logo: form.logo.trim(),   // Optimized Data URL (or external URL)
-      ...(form.logoKey && { logoKey: form.logoKey }), // optional
+      logo: form.logo.trim(),
+      ...(form.logoKey && { logoKey: form.logoKey }),
     };
 
     if (editingId) await updateTournament(editingId, payload);
@@ -132,7 +113,6 @@ export default function TournamentsPage() {
     }
   }
 
-  /** Upload a small image to RTDB as Data URL and set form.logo */
   async function handleLogoFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -142,23 +122,13 @@ export default function TournamentsPage() {
         e.target.value = "";
         return;
       }
-
       setUploading(true);
-      setUploadPct(10); // start indicator early
+      setUploadPct(10);
 
-      // 1) Downscale + compress -> small DataURL
-      const { dataUrl, width, height } = await fileToOptimizedDataURL(
-        file,
-        256,   // max dimension
-        0.85   // JPEG quality
-      );
-
-      // 2) (Optional) Check size to avoid backend 100KB default limits
+      const { dataUrl, width, height } = await fileToOptimizedDataURL(file, 256, 0.85);
       const estBytes = estimateDataUrlBytes(dataUrl);
-      console.log("[TournamentsPage] optimized logo ~", estBytes, "bytes", { width, height });
-      // Soft-guard: warn if still > 300KB (should be rare with 256px JPEG)
       if (estBytes > 300 * 1024) {
-        if (!confirm("The optimized image is larger than 300KB. Continue?")) {
+        if (!confirm("Optimized image > 300KB. Continue?")) {
           setUploading(false);
           e.target.value = "";
           setUploadPct(0);
@@ -168,19 +138,16 @@ export default function TournamentsPage() {
 
       setUploadPct(60);
 
-      // 3) Save under /tournamentLogos with auto id (metadata + dataUrl)
       const logoObj = {
         name: file.name,
         mimeType: "image/jpeg",
         size: estBytes,
-        width,
-        height,
+        width, height,
         dataUrl,
         createdAt: Date.now(),
       };
       const key = await rtdbPush("/tournamentLogos", logoObj);
 
-      // 4) Put DataURL in form so preview/table render instantly; keep key
       setForm((prev) => ({ ...prev, logo: dataUrl, logoKey: key }));
       setPreviewOk(true);
 
@@ -197,7 +164,6 @@ export default function TournamentsPage() {
     }
   }
 
-  /** Optional: fetch back a saved logo by key (for demo/testing) */
   async function retrieveLogoByKey() {
     if (!form.logoKey) {
       alert("No saved logoKey on this form.");
@@ -214,6 +180,7 @@ export default function TournamentsPage() {
 
   return (
     <div className="row g-4">
+      {/* LEFT: form */}
       <div className="col-lg-5">
         <div className="card shadow-sm">
           <div className="card-body">
@@ -226,11 +193,8 @@ export default function TournamentsPage() {
               <div
                 className="rounded-circle d-flex align-items-center justify-content-center"
                 style={{
-                  width: 64,
-                  height: 64,
-                  background: "#f1f3f5",
-                  border: "1px solid #e9ecef",
-                  overflow: "hidden",
+                  width: 64, height: 64, background: "#f1f3f5",
+                  border: "1px solid #e9ecef", overflow: "hidden",
                 }}
               >
                 {form.logo && previewOk ? (
@@ -241,12 +205,6 @@ export default function TournamentsPage() {
                     height="64"
                     style={{ objectFit: "cover" }}
                     onError={() => setPreviewOk(false)}
-                    onLoad={(e) =>
-                      console.log(
-                        "[TournamentsPage] preview loaded:",
-                        e.currentTarget.src.slice(0, 40) + "..."
-                      )
-                    }
                   />
                 ) : (
                   <span className="fw-semibold text-muted">
@@ -255,7 +213,7 @@ export default function TournamentsPage() {
                 )}
               </div>
               <div className="small text-muted">
-                Upload a small PNG/JPG (we auto-shrink to 256px) or paste a URL below.
+                Upload a small PNG/JPG (auto-shrinks to 256px) or paste a URL below.
               </div>
             </div>
 
@@ -329,7 +287,7 @@ export default function TournamentsPage() {
                 )}
               </div>
 
-              {/* OR: paste a direct image URL */}
+              {/* OR: direct URL */}
               <div className="col-12">
                 <label className="form-label">Logo URL (optional)</label>
                 <div className="input-group">
@@ -378,103 +336,107 @@ export default function TournamentsPage() {
         </div>
       </div>
 
-      {/* List */}
+      {/* RIGHT: list with fixed-height scroll */}
       <div className="col-lg-7">
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <h5 className="card-title">Tournaments</h5>
-            {loading ? (
-              <div>Loading…</div>
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-striped align-middle">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Name</th>
-                      <th>Date</th>
-                      <th>Ground</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((t) => (
-                      <tr key={t.id}>
-                        <td>{t.id}</td>
-                        <td>
-                          <div className="d-flex align-items-center gap-2">
-                            <div
-                              className="rounded-circle d-flex align-items-center justify-content-center"
-                              style={{
-                                width: 28,
-                                height: 28,
-                                background: "#f1f3f5",
-                                border: "1px solid #e9ecef",
-                                overflow: "hidden",
-                              }}
-                            >
-                              {t.logo ? (
-                                <img
-                                  src={t.logo}
-                                  alt=""
-                                  width="28"
-                                  height="28"
-                                  style={{ objectFit: "cover" }}
-                                  onLoad={(e) =>
-                                    console.log("[TournamentsPage] row logo loaded:", {
-                                      id: t.id,
-                                      src: e.currentTarget.src.slice(0, 40) + "...",
-                                    })
-                                  }
-                                  onError={(e) => {
-                                    e.currentTarget.onerror = null;
-                                    e.currentTarget.style.display = "none";
-                                    console.warn("[TournamentsPage] row logo failed:", {
-                                      id: t.id,
-                                    });
-                                  }}
-                                />
-                              ) : (
-                                <small className="text-muted">
-                                  {initials(t.name) || "?"}
-                                </small>
-                              )}
-                            </div>
-                            <span className="fw-semibold">{t.name}</span>
-                          </div>
-                        </td>
-                        <td>{t.date?.slice(0, 10)}</td>
-                        <td className="text-truncate" style={{ maxWidth: 220 }}>
-                          {t.place}
-                        </td>
-                        <td className="text-end">
-                          <button
-                            className="btn btn-sm btn-outline-primary me-2"
-                            onClick={() => onEdit(t)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => onDelete(t.id)}
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {!items.length && (
+        <div className="card shadow-sm" style={{ height: LIST_PANEL_HEIGHT }}>
+          {/* make the body a flex column so inner area can scroll */}
+          <div className="card-body d-flex flex-column" style={{ minHeight: 0 }}>
+            <h5 className="card-title mb-3">Tournaments</h5>
+
+            {/* scrollable table area */}
+            <div style={{ overflow: "auto", minHeight: 0, flex: "1 1 auto" }}>
+              {loading ? (
+                <div className="py-5 text-center text-muted">Loading…</div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-striped align-middle mb-0">
+                    <thead
+                      style={{
+                        position: "sticky",
+                        top: 0,
+                        background: "white",
+                        zIndex: 1,
+                      }}
+                    >
                       <tr>
-                        <td colSpan="5" className="text-center py-4">
-                          No tournaments
-                        </td>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th>Ground</th>
+                        <th></th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody>
+                      {items.map((t) => (
+                        <tr key={t.id}>
+                          <td>{t.id}</td>
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              <div
+                                className="rounded-circle d-flex align-items-center justify-content-center"
+                                style={{
+                                  width: 28,
+                                  height: 28,
+                                  background: "#f1f3f5",
+                                  border: "1px solid #e9ecef",
+                                  overflow: "hidden",
+                                }}
+                              >
+                                {t.logo ? (
+                                  <img
+                                    src={t.logo}
+                                    alt=""
+                                    width="28"
+                                    height="28"
+                                    style={{ objectFit: "cover" }}
+                                    onError={(e) => {
+                                      e.currentTarget.onerror = null;
+                                      e.currentTarget.style.display = "none";
+                                    }}
+                                  />
+                                ) : (
+                                  <small className="text-muted">
+                                    {initials(t.name) || "?"}
+                                  </small>
+                                )}
+                              </div>
+                              <span className="fw-semibold">{t.name}</span>
+                            </div>
+                          </td>
+                          <td>{t.date?.slice(0, 10)}</td>
+                          <td className="text-truncate" style={{ maxWidth: 220 }}>
+                            {t.place}
+                          </td>
+                          <td className="text-end">
+                            <button
+                              className="btn btn-sm btn-outline-primary me-2"
+                              onClick={() => onEdit(t)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-sm btn-outline-danger"
+                              onClick={() => onDelete(t.id)}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {!items.length && (
+                        <tr>
+                          <td colSpan="5" className="text-center py-4">
+                            No tournaments
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
+          {/* optional footer could go here */}
         </div>
       </div>
     </div>
