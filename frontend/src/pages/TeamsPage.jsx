@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getTeams, createTeam, updateTeam, deleteTeam } from "../lib/api.js";
+import { saveLogoToRTDB, readLogoFromRTDB } from "../lib/rtdb";
 
-const emptyForm = { teamName: "", logo: "", contactNo: "", address: "" };
+const emptyForm = { teamName: "", logo: "", contactNo: "", address: "", logoKey: "" };
 
 function initials(name = "") {
   return name
@@ -20,6 +21,10 @@ export default function TeamsPage() {
   const [query, setQuery] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [previewOk, setPreviewOk] = useState(true);
+
+  // upload UI state (FileReader progress)
+  const [uploadPct, setUploadPct] = useState(0);
+  const [uploading, setUploading] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -44,9 +49,11 @@ export default function TeamsPage() {
 
     const payload = {
       teamName: form.teamName.trim(),
-      logo: form.logo.trim(),
+      logo: form.logo.trim(),           // Data URL string or external URL
       contactNo: form.contactNo.trim(),
       address: form.address.trim(),
+      // logoKey is optional to keep; your backend can ignore it if not needed
+      ...(form.logoKey && { logoKey: form.logoKey }),
     };
 
     if (editingId) await updateTeam(editingId, payload);
@@ -61,9 +68,10 @@ export default function TeamsPage() {
     setEditingId(t.id);
     setForm({
       teamName: t.teamName || "",
-      logo: t.logo || "",
+      logo: t.logo || "",           // could be a normal URL or a Data URL
       contactNo: t.contactNo || "",
       address: t.address || "",
+      logoKey: t.logoKey || "",     // if you saved keys earlier
     });
     setPreviewOk(true);
   }
@@ -73,6 +81,71 @@ export default function TeamsPage() {
       await deleteTeam(id);
       load();
     }
+  }
+
+  /** File → DataURL with progress, then save to RTDB and set form.logo */
+  async function handleLogoFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      if (!file.type.startsWith("image/")) {
+        alert("Only image files are allowed");
+        e.target.value = "";
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert("Max file size is 5MB");
+        e.target.value = "";
+        return;
+      }
+
+      setUploading(true);
+      setUploadPct(1);
+
+      const dataUrl = await readFileAsDataURL(file, (pct) => setUploadPct(pct));
+
+      // Save metadata + dataUrl in RTDB
+      const logoObj = {
+        name: file.name,
+        mimeType: file.type,
+        size: file.size,
+        dataUrl,              // <-- the actual image as data URL
+        createdAt: Date.now(),
+      };
+
+      const key = await saveLogoToRTDB(logoObj);
+
+      // Set the Data URL so preview/table work immediately; keep the key too
+      setForm((prev) => ({ ...prev, logo: dataUrl, logoKey: key }));
+      setPreviewOk(true);
+
+      setUploadPct(100);
+      setTimeout(() => setUploadPct(0), 1200);
+      console.log("[TeamsPage] logo stored at /logos/" + key);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Upload failed");
+      setUploadPct(0);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  /** Optional: demonstration of retrieving by key (not required to display) */
+  async function retrieveLogoByKey() {
+    if (!form.logoKey) {
+      alert("No saved logoKey on this form.");
+      return;
+    }
+    const obj = await readLogoFromRTDB(form.logoKey);
+    if (!obj?.dataUrl) {
+      alert("Logo not found in RTDB for key: " + form.logoKey);
+      return;
+    }
+    setForm((prev) => ({ ...prev, logo: obj.dataUrl }));
+    setPreviewOk(true);
   }
 
   const filtered = useMemo(() => {
@@ -128,6 +201,9 @@ export default function TeamsPage() {
                     height="64"
                     style={{ objectFit: "cover" }}
                     onError={() => setPreviewOk(false)}
+                    onLoad={(e) =>
+                      console.log("[TeamsPage] preview loaded:", e.currentTarget.src.slice(0, 40) + "...")
+                    }
                   />
                 ) : (
                   <span className="fw-semibold text-muted">
@@ -136,7 +212,7 @@ export default function TeamsPage() {
                 )}
               </div>
               <div className="small text-muted">
-                Optional logo URL. If empty or broken, initials are shown.
+                Upload a small logo (PNG/JPG, &lt; 5MB) or paste any image URL below.
               </div>
             </div>
 
@@ -153,16 +229,52 @@ export default function TeamsPage() {
                 />
               </div>
 
+              {/* Upload to RTDB as Data URL */}
               <div className="col-12">
-                <label className="form-label">Logo URL</label>
+                <label className="form-label">Upload Logo (Firebase RTDB)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="form-control"
+                  onChange={handleLogoFile}
+                  disabled={uploading}
+                />
+                {uploadPct > 0 && uploadPct < 100 && (
+                  <div className="progress mt-2">
+                    <div
+                      className="progress-bar"
+                      role="progressbar"
+                      style={{ width: `${uploadPct}%` }}
+                    >
+                      {uploadPct}%
+                    </div>
+                  </div>
+                )}
+                {form.logoKey && (
+                  <div className="form-text">
+                    Saved at <code>/logos/{form.logoKey}</code>{" "}
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm"
+                      onClick={retrieveLogoByKey}
+                    >
+                      Retrieve again
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* OR: direct URL */}
+              <div className="col-12">
+                <label className="form-label">Logo URL (optional)</label>
                 <div className="input-group">
-                  <span className="input-group-text">https://</span>
+                  <span className="input-group-text">URL</span>
                   <input
                     name="logo"
                     className="form-control"
                     value={form.logo}
                     onChange={onChange}
-                    placeholder="cdn.domain.com/logo.png"
+                    placeholder="Paste an image URL or leave blank"
                   />
                   {form.logo && (
                     <button
@@ -200,7 +312,7 @@ export default function TeamsPage() {
               </div>
 
               <div className="col-12 d-flex gap-2">
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" disabled={uploading}>
                   {editingId ? "Update Team" : "Create Team"}
                 </button>
                 {editingId && (
@@ -212,6 +324,7 @@ export default function TeamsPage() {
                       setForm(emptyForm);
                       setPreviewOk(true);
                     }}
+                    disabled={uploading}
                   >
                     Cancel
                   </button>
@@ -306,9 +419,18 @@ export default function TeamsPage() {
                                   width="32"
                                   height="32"
                                   style={{ objectFit: "cover" }}
+                                  onLoad={(e) =>
+                                    console.log("[TeamsPage] row logo loaded:", {
+                                      id: t.id,
+                                      src: e.currentTarget.src.slice(0, 40) + "...",
+                                    })
+                                  }
                                   onError={(e) => {
                                     e.currentTarget.onerror = null;
                                     e.currentTarget.style.display = "none";
+                                    console.warn("[TeamsPage] row logo failed:", {
+                                      id: t.id,
+                                    });
                                   }}
                                 />
                               ) : (
@@ -365,4 +487,19 @@ export default function TeamsPage() {
       </div>
     </div>
   );
+}
+
+/** Util: read a File as Data URL with progress */
+function readFileAsDataURL(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onprogress = (evt) => {
+      if (evt.lengthComputable && typeof onProgress === "function") {
+        onProgress(Math.round((evt.loaded / evt.total) * 100));
+      }
+    };
+    reader.onload = () => resolve(reader.result); // data URL
+    reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
 }
