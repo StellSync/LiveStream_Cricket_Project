@@ -8,7 +8,7 @@ const MatchSchema = new mongoose.Schema(
     id: { type: Number, unique: true },
 
     // Manual match number (admin enters this)
-    matchNumber: { type: Number, required: true }, // <-- added
+    matchNumber: { type: Number, required: true },
 
     // Foreign keys by NUMERIC IDs
     tournamentId: { type: Number, required: true, index: true },
@@ -18,15 +18,22 @@ const MatchSchema = new mongoose.Schema(
     team2Id: { type: Number, required: true },
 
     // Match configuration
-    overType: { type: String, required: true },       // e.g. "4b", "T20", "50"
+    // CHANGED: overType is now a Number (e.g., 20, 50, 4 for "4b" cases if you encode numerically)
+    overType: { type: Number, required: true },
+
     noOfOvers: { type: Number, required: true },
+
+    // NEW: flags to indicate whether wides/no-balls are counted in this tournament/match
+    IsCountWideBall: { type: Boolean, default: false },  // default false for backward compatibility
+    IsCountNoBall:  { type: Boolean, default: false },   // default false for backward compatibility
+
     date: { type: Date, required: true },
-    startTime: { type: String, required: true },      // "HH:mm"
+    startTime: { type: String, required: true }, // "HH:mm"
   },
   { timestamps: true }
 );
 
-// OPTIONAL but recommended: prevent duplicate match numbers within a tournament.
+// Prevent duplicate match numbers within a tournament
 MatchSchema.index({ tournamentId: 1, matchNumber: 1 }, { unique: true });
 
 const AutoIncrement = AutoIncrementFactory(mongoose);
