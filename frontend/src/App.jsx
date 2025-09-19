@@ -5,6 +5,7 @@ import TournamentsPage from "./pages/TournamentsPage.jsx";
 import TeamsPage from "./pages/TeamsPage.jsx";
 import PlayersPage from "./pages/PlayersPage.jsx";
 import MatchesPage from "./pages/MatchesPage.jsx";
+import ScoreDashboard from "./pages/ScoreDashboard.jsx";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/teams" element={<TeamsPage />} />
         <Route path="/players" element={<PlayersPage />} />
         <Route path="/matches" element={<MatchesPage />} />
+        <Route path="/scoreboard" element={<ScoreDashboard />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
