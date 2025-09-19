@@ -5,6 +5,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Vite/React builds
 frontend/dist/
@@ -36,3 +39,5 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+.env
