@@ -272,7 +272,7 @@ export default function PlayersPage() {
           className="card shadow-sm"
           style={{ height: MAIN_PANEL_HEIGHT }}
         >
-          <div className="card-body d-flex flex-column" style={{ height: "100%" }}>
+          <div className="card-body d-flex flex-column" style={{ height: "90%" }}>
             {/* Top bar: filters */}
             <div className="d-flex flex-wrap align-items-center justify-content-between mb-3">
               <h5 className="card-title mb-0">Players</h5>
