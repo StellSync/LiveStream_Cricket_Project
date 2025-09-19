@@ -3,13 +3,24 @@ import Match from "../models/Match.js";
 import Team from "../models/Team.js";
 import Tournament from "../models/Tournament.js";
 
-/**
- * ---- Helpers to resolve IDs when admin sends names ----
- * Admin can send: tournamentId OR tournamentName
- *                 team1Id / team1Name
- *                 team2Id / team2Name
- * We only store numeric IDs in DB.
- */
+/** ---------- Utilities ---------- */
+function toPlain(doc) {
+  return doc?.toObject ? doc.toObject() : doc;
+}
+
+function parseBoolLoose(v, fallback = false) {
+  if (v === undefined || v === null) return fallback;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    if (["true", "1", "yes", "y", "on"].includes(s)) return true;
+    if (["false", "0", "no", "n", "off"].includes(s)) return false;
+  }
+  return fallback;
+}
+
+/** ---------- Resolve IDs from either ids or names ---------- */
 async function resolveTournamentId({ tournamentId, tournamentName }) {
   if (Number.isInteger(tournamentId)) return tournamentId;
   if (typeof tournamentId === "string" && /^\d+$/.test(tournamentId)) return parseInt(tournamentId, 10);
@@ -33,14 +44,7 @@ async function resolveTeamIdByEither(input, label) {
   throw Object.assign(new Error(`${label}Id or ${label}Name is required`), { status: 400 });
 }
 
-/**
- * ---- Helpers to enrich match doc(s) with names for response ----
- * DB stores only IDs; response also includes tournamentName, team1Name, team2Name.
- */
-function toPlain(doc) {
-  return doc?.toObject ? doc.toObject() : doc;
-}
-
+/** ---------- Enrichers (names for ids) ---------- */
 async function enrichMatchDoc(doc) {
   if (!doc) return doc;
   const m = toPlain(doc);
@@ -63,18 +67,18 @@ async function enrichMatchList(docs) {
   const list = docs.map(toPlain);
   if (!list.length) return [];
 
-  const tIds = [...new Set(list.map(d => d.tournamentId))];
-  const teamIds = [...new Set(list.flatMap(d => [d.team1Id, d.team2Id]))];
+  const tIds = [...new Set(list.map((d) => d.tournamentId))];
+  const teamIds = [...new Set(list.flatMap((d) => [d.team1Id, d.team2Id]))];
 
   const [tournaments, teams] = await Promise.all([
     Tournament.find({ id: { $in: tIds } }, { id: 1, name: 1 }).lean(),
     Team.find({ id: { $in: teamIds } }, { id: 1, teamName: 1 }).lean(),
   ]);
 
-  const tMap = new Map(tournaments.map(t => [t.id, t.name]));
-  const teamMap = new Map(teams.map(tm => [tm.id, tm.teamName]));
+  const tMap = new Map(tournaments.map((t) => [t.id, t.name]));
+  const teamMap = new Map(teams.map((tm) => [tm.id, tm.teamName]));
 
-  return list.map(d => ({
+  return list.map((d) => ({
     ...d,
     tournamentName: tMap.get(d.tournamentId) ?? null,
     team1Name: teamMap.get(d.team1Id) ?? null,
@@ -89,11 +93,13 @@ export const createMatch = async (req, res, next) => {
       tournamentId, tournamentName,
       team1Id, team1Name,
       team2Id, team2Name,
-      matchNumber,           // <-- NEW
-      overType,              // string
-      noOfOvers,
-      date,
-      startTime,
+      matchNumber,               // number (required)
+      overType,                  // number (required)  <-- CHANGED
+      noOfOvers,                 // number (required)
+      date,                      // "YYYY-MM-DD"
+      startTime,                 // "HH:mm"
+      IsCountWideBall,           // boolean (optional; default false)
+      IsCountNoBall,             // boolean (optional; default false)
     } = req.body;
 
     // Resolve ids
@@ -101,16 +107,23 @@ export const createMatch = async (req, res, next) => {
     const t1Id = await resolveTeamIdByEither({ team1Id, team1Name }, "team1");
     const t2Id = await resolveTeamIdByEither({ team2Id, team2Name }, "team2");
 
-    if (t1Id === t2Id) throw Object.assign(new Error("team1 and team2 cannot be the same"), { status: 400 });
+    if (t1Id === t2Id) {
+      throw Object.assign(new Error("team1 and team2 cannot be the same"), { status: 400 });
+    }
 
-    // ---- validate matchNumber (manual) ----
+    // Validate numbers
     if (matchNumber == null || isNaN(Number(matchNumber))) {
       throw Object.assign(new Error("matchNumber is required and must be a number"), { status: 400 });
+    }
+
+    if (overType == null || isNaN(Number(overType))) {
+      throw Object.assign(new Error("overType is required and must be a number"), { status: 400 });
     }
 
     if (noOfOvers == null || isNaN(Number(noOfOvers))) {
       throw Object.assign(new Error("noOfOvers is required and must be a number"), { status: 400 });
     }
+
     if (!date) {
       throw Object.assign(new Error("date is required (YYYY-MM-DD)"), { status: 400 });
     }
@@ -122,9 +135,11 @@ export const createMatch = async (req, res, next) => {
       tournamentId: tId,
       team1Id: t1Id,
       team2Id: t2Id,
-      matchNumber: Number(matchNumber),                  // <-- NEW
-      overType: overType != null ? String(overType).trim() : null,
+      matchNumber: Number(matchNumber),
+      overType: Number(overType),                 // CHANGED
       noOfOvers: Number(noOfOvers),
+      IsCountWideBall: parseBoolLoose(IsCountWideBall, false),
+      IsCountNoBall:  parseBoolLoose(IsCountNoBall,  false),
       date,
       startTime,
     };
@@ -136,7 +151,6 @@ export const createMatch = async (req, res, next) => {
     next(e);
   }
 };
-
 
 /** -------------------- LIST (optional filters: tournamentId, teamId) -------------------- */
 export const listMatches = async (req, res, next) => {
@@ -179,12 +193,27 @@ export const updateMatch = async (req, res, next) => {
     const numId = parseInt(req.params.id, 10);
     if (Number.isNaN(numId)) return res.status(400).json({ message: "id must be a number" });
 
-    const update = {};
     const body = req.body || {};
+    const update = {};
 
-    // (tournament/team resolution stays the same)
+    // tournament / teams (optional)
+    if (body.tournamentId != null || body.tournamentName) {
+      update.tournamentId = await resolveTournamentId({
+        tournamentId: body.tournamentId,
+        tournamentName: body.tournamentName,
+      });
+    }
+    if (body.team1Id != null || body.team1Name) {
+      update.team1Id = await resolveTeamIdByEither(body, "team1");
+    }
+    if (body.team2Id != null || body.team2Name) {
+      update.team2Id = await resolveTeamIdByEither(body, "team2");
+    }
+    if (update.team1Id != null && update.team2Id != null && update.team1Id === update.team2Id) {
+      throw Object.assign(new Error("team1 and team2 cannot be the same"), { status: 400 });
+    }
 
-    // matchNumber (manual)
+    // matchNumber
     if (body.matchNumber != null) {
       if (isNaN(Number(body.matchNumber))) {
         throw Object.assign(new Error("matchNumber must be a number"), { status: 400 });
@@ -192,16 +221,37 @@ export const updateMatch = async (req, res, next) => {
       update.matchNumber = Number(body.matchNumber);
     }
 
-    // overType / noOfOvers / date / startTime (unchanged)
-    if (body.overType != null) update.overType = String(body.overType).trim();
+    // overType (now number)
+    if (body.overType != null) {
+      if (isNaN(Number(body.overType))) {
+        throw Object.assign(new Error("overType must be a number"), { status: 400 });
+      }
+      update.overType = Number(body.overType);
+    }
+
+    // noOfOvers
     if (body.noOfOvers != null) {
-      if (isNaN(Number(body.noOfOvers))) throw Object.assign(new Error("noOfOvers must be a number"), { status: 400 });
+      if (isNaN(Number(body.noOfOvers))) {
+        throw Object.assign(new Error("noOfOvers must be a number"), { status: 400 });
+      }
       update.noOfOvers = Number(body.noOfOvers);
     }
+
+    // date / startTime
     if (body.date != null) update.date = body.date;
     if (body.startTime != null) {
-      if (!/^\d{2}:\d{2}$/.test(body.startTime)) throw Object.assign(new Error("startTime must be HH:mm"), { status: 400 });
+      if (!/^\d{2}:\d{2}$/.test(body.startTime)) {
+        throw Object.assign(new Error("startTime must be HH:mm"), { status: 400 });
+      }
       update.startTime = body.startTime;
+    }
+
+    // NEW booleans
+    if (body.IsCountWideBall != null) {
+      update.IsCountWideBall = parseBoolLoose(body.IsCountWideBall, false);
+    }
+    if (body.IsCountNoBall != null) {
+      update.IsCountNoBall = parseBoolLoose(body.IsCountNoBall, false);
     }
 
     const m = await Match.findOneAndUpdate({ id: numId }, update, { new: true });
@@ -213,7 +263,6 @@ export const updateMatch = async (req, res, next) => {
     next(e);
   }
 };
-
 
 /** -------------------- DELETE by numeric id -------------------- */
 export const deleteMatch = async (req, res, next) => {

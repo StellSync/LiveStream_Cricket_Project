@@ -5,6 +5,7 @@ import "./Navbar.css";
 export default function Layout({ children }) {
   return (
     <>
+
       {/* Navbar */}
       <nav
         className="navbar navbar-expand-lg navbar-dark shadow-sm"
@@ -14,6 +15,7 @@ export default function Layout({ children }) {
           <Link className="navbar-brand fw-bold fs-4" to="/">
             🏏📊 Scoreboard Admin
           </Link>
+
           <button
             className="navbar-toggler"
             type="button"
@@ -57,11 +59,13 @@ export default function Layout({ children }) {
         </div>
       </nav>
 
+
       {/* Main content */}
       <main className="container-fluid my-4 px-3 px-md-4">{children}</main>
 
       {/* Footer */}
       <Footer />
+
     </>
   );
 }
