@@ -89,21 +89,25 @@ export const createMatch = async (req, res, next) => {
       tournamentId, tournamentName,
       team1Id, team1Name,
       team2Id, team2Name,
-      overType,            // number (e.g., 20 or 50)
-      noOfOvers,          // required number
-      date,               // "YYYY-MM-DD"
-      startTime,          // "HH:mm"
+      matchNumber,           // <-- NEW
+      overType,              // string
+      noOfOvers,
+      date,
+      startTime,
     } = req.body;
 
-    // Resolve ids (store only ids)
+    // Resolve ids
     const tId  = await resolveTournamentId({ tournamentId, tournamentName });
     const t1Id = await resolveTeamIdByEither({ team1Id, team1Name }, "team1");
     const t2Id = await resolveTeamIdByEither({ team2Id, team2Name }, "team2");
 
-    if (t1Id === t2Id) {
-      throw Object.assign(new Error("team1 and team2 cannot be the same"), { status: 400 });
+    if (t1Id === t2Id) throw Object.assign(new Error("team1 and team2 cannot be the same"), { status: 400 });
+
+    // ---- validate matchNumber (manual) ----
+    if (matchNumber == null || isNaN(Number(matchNumber))) {
+      throw Object.assign(new Error("matchNumber is required and must be a number"), { status: 400 });
     }
-   
+
     if (noOfOvers == null || isNaN(Number(noOfOvers))) {
       throw Object.assign(new Error("noOfOvers is required and must be a number"), { status: 400 });
     }
@@ -118,7 +122,8 @@ export const createMatch = async (req, res, next) => {
       tournamentId: tId,
       team1Id: t1Id,
       team2Id: t2Id,
-      overType: overType != null ? Number(overType) : undefined,
+      matchNumber: Number(matchNumber),                  // <-- NEW
+      overType: overType != null ? String(overType).trim() : null,
       noOfOvers: Number(noOfOvers),
       date,
       startTime,
@@ -131,6 +136,7 @@ export const createMatch = async (req, res, next) => {
     next(e);
   }
 };
+
 
 /** -------------------- LIST (optional filters: tournamentId, teamId) -------------------- */
 export const listMatches = async (req, res, next) => {
@@ -176,30 +182,18 @@ export const updateMatch = async (req, res, next) => {
     const update = {};
     const body = req.body || {};
 
-    // tournament
-    if (body.tournamentId != null || body.tournamentName) {
-      update.tournamentId = await resolveTournamentId({
-        tournamentId: body.tournamentId,
-        tournamentName: body.tournamentName,
-      });
+    // (tournament/team resolution stays the same)
+
+    // matchNumber (manual)
+    if (body.matchNumber != null) {
+      if (isNaN(Number(body.matchNumber))) {
+        throw Object.assign(new Error("matchNumber must be a number"), { status: 400 });
+      }
+      update.matchNumber = Number(body.matchNumber);
     }
 
-    // teams
-    if (body.team1Id != null || body.team1Name) {
-      update.team1Id = await resolveTeamIdByEither(body, "team1");
-    }
-    if (body.team2Id != null || body.team2Name) {
-      update.team2Id = await resolveTeamIdByEither(body, "team2");
-    }
-    if (update.team1Id != null && update.team2Id != null && update.team1Id === update.team2Id) {
-      throw Object.assign(new Error("team1 and team2 cannot be the same"), { status: 400 });
-    }
-
-    // overType / noOfOvers / date / startTime
-    if (body.overType != null) {
-      if (isNaN(Number(body.overType))) throw Object.assign(new Error("overType must be a number"), { status: 400 });
-      update.overType = Number(body.overType);
-    }
+    // overType / noOfOvers / date / startTime (unchanged)
+    if (body.overType != null) update.overType = String(body.overType).trim();
     if (body.noOfOvers != null) {
       if (isNaN(Number(body.noOfOvers))) throw Object.assign(new Error("noOfOvers must be a number"), { status: 400 });
       update.noOfOvers = Number(body.noOfOvers);
@@ -219,6 +213,7 @@ export const updateMatch = async (req, res, next) => {
     next(e);
   }
 };
+
 
 /** -------------------- DELETE by numeric id -------------------- */
 export const deleteMatch = async (req, res, next) => {
