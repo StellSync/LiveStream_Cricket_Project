@@ -6,7 +6,7 @@ const TournamentSchema = new mongoose.Schema(
     id: { type: Number, unique: true }, // auto-increment primary key (tournaments)
     name: { type: String, required: true, trim: true },
     date: { type: Date, required: true },
-    startTime: { type: String, required: true },      // e.g., "15:00"
+     logo: { type: String, required: true, trim: true },      // e.g., "15:00"
     place: { type: String, required: true, trim: true },
   },
   { timestamps: true }
