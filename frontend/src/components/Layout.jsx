@@ -58,7 +58,7 @@ export default function Layout({ children }) {
       </nav>
 
       {/* Main content */}
-      <main className="container my-4">{children}</main>
+      <main className="container-fluid my-4 px-3 px-md-4">{children}</main>
 
       {/* Footer */}
       <Footer />
