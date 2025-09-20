@@ -25,14 +25,25 @@ import {
   AppBar,
   Toolbar,
   Tooltip,
+  Card,
+  CardHeader,
+  CardContent,
+  Container,
 } from "@mui/material";
 
-import { getMatches, getPlayers, getTournament } from "../lib/api";
+import {
+  getMatches,
+  getPlayers,
+  getTournament,
+  setCurrentMatch,
+  getCurrentMatch,
+} from "../lib/api";
 
 export default function ScoreDashboard() {
   // ---- Master data ----
   const [matches, setMatches] = useState([]);
   const [currentMatchId, setCurrentMatchId] = useState("");
+  const [currentMatchDetails, setCurrentMatchState] = useState(null);
 
   // Teams for the selected match (store as NUMBER)
   const [battingTeamId, setBattingTeamId] = useState(null);
@@ -53,6 +64,31 @@ export default function ScoreDashboard() {
   const [overType, setOverType] = useState("");
   const [noOfOvers, setNoOfOvers] = useState("");
 
+  useEffect(() => {
+    // load existing active match when page loads
+    getCurrentMatch().then((data) => setCurrentMatchState(data));
+  }, []);
+
+  const handleSelectMatch = (match) => {
+    const matchInfo = {
+      matchId: match.id,
+      tournamentName: match.tournamentName,
+      tournamentLogo: match.tournamentLogo || match.tournament?.logo || "",
+      ground: match.tournamentPlace,
+      team1: match.team1Name,
+      team1Logo: match.team1Logo || "", // ✅ FIXED
+      team2: match.team2Name,
+      team2Logo: match.team2Logo || "", // ✅ FIXED
+      matchNumber: match.matchNumber,
+      overType: match.overType,
+      noOfOvers: match.noOfOvers,
+    };
+
+    console.log("Selected Data", match);
+    setCurrentMatch(matchInfo);
+    setCurrentMatchState(matchInfo);
+  };
+
   // ---- Load matches on mount (ONLY today's matches, in local time) ----
   useEffect(() => {
     const parseMatchDate = (val) => {
@@ -70,11 +106,29 @@ export default function ScoreDashboard() {
         const { data } = await getMatches();
 
         const now = new Date();
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-        const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+        const startOfToday = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          0,
+          0,
+          0,
+          0
+        );
+        const startOfTomorrow = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() + 1,
+          0,
+          0,
+          0,
+          0
+        );
 
         const todaysMatches = (data || []).filter((m) => {
-          const dt = parseMatchDate(m.date || m.matchDate || m.startTime || m.scheduledAt);
+          const dt = parseMatchDate(
+            m.date || m.matchDate || m.startTime || m.scheduledAt
+          );
           return dt && dt >= startOfToday && dt < startOfTomorrow;
         });
 
@@ -92,6 +146,7 @@ export default function ScoreDashboard() {
   );
 
   useEffect(() => {
+    // reset selections
     setBattingTeamId(null);
     setBowlingTeamId(null);
     setBatters([]);
@@ -101,6 +156,7 @@ export default function ScoreDashboard() {
     setBowler("");
     setOnStrike("batsman1");
 
+    // reset readonly
     setGround("");
     setOverType("");
     setNoOfOvers("");
@@ -110,18 +166,27 @@ export default function ScoreDashboard() {
 
       setOverType(currentMatch.overType ?? "");
       setNoOfOvers(
-        currentMatch.noOfOvers != null && currentMatch.noOfOvers !== "" ? String(currentMatch.noOfOvers) : ""
+        currentMatch.noOfOvers != null && currentMatch.noOfOvers !== ""
+          ? String(currentMatch.noOfOvers)
+          : ""
       );
 
       const fromMatch =
-        currentMatch.ground ?? currentMatch.venue ?? currentMatch.place ?? currentMatch.stadium ?? "";
+        currentMatch.ground ??
+        currentMatch.venue ??
+        currentMatch.place ??
+        currentMatch.stadium ??
+        "";
       if (String(fromMatch || "").trim()) {
         setGround(String(fromMatch));
         return;
       }
 
       const tournamentId =
-        currentMatch.tournamentId ?? currentMatch.tournamentID ?? currentMatch.tourId ?? null;
+        currentMatch.tournamentId ??
+        currentMatch.tournamentID ??
+        currentMatch.tourId ??
+        null;
 
       if (tournamentId != null && typeof getTournament === "function") {
         try {
@@ -133,18 +198,22 @@ export default function ScoreDashboard() {
         }
       }
     })();
-  }, [currentMatchId]);
+  }, [currentMatchId]); // eslint-disable-line
 
-  const normalizeBool = (v) => v === true || v === "true" || v === 1 || v === "1";
+  const normalizeBool = (v) =>
+    v === true || v === "true" || v === 1 || v === "1";
 
   const isPlayerBatter = (p) =>
-    normalizeBool(p.isBatter ?? p.Isbatter ?? p.isBatsman) || normalizeBool(p.isWK ?? p.IsWk);
+    normalizeBool(p.isBatter ?? p.Isbatter ?? p.isBatsman) ||
+    normalizeBool(p.isWK ?? p.IsWk);
 
   const isPlayerBowler = (p) => normalizeBool(p.isBowler ?? p.Isballer);
 
-  const getPlayerTeamId = (p) => Number(p.teamId ?? p.teamid ?? p.teamID ?? p.team);
+  const getPlayerTeamId = (p) =>
+    Number(p.teamId ?? p.teamid ?? p.teamID ?? p.team);
 
-  const getPlayerName = (p) => p.playerName ?? p.playername ?? p.name ?? `Player #${p.id}`;
+  const getPlayerName = (p) =>
+    p.playerName ?? p.playername ?? p.name ?? `Player #${p.id}`;
 
   useEffect(() => {
     (async () => {
@@ -157,20 +226,26 @@ export default function ScoreDashboard() {
       try {
         const { data } = await getPlayers(battingTeamId);
         const list = Array.isArray(data) ? data : [];
-        const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(battingTeamId));
+        const byTeam = list.filter(
+          (p) => getPlayerTeamId(p) === Number(battingTeamId)
+        );
         const onlyBatters = byTeam.filter(isPlayerBatter);
         const finalList = onlyBatters.length ? onlyBatters : byTeam;
 
         setBatters(finalList);
 
-        setBatsman1((prev) => (finalList.some((p) => String(p.id) === String(prev)) ? prev : ""));
-        setBatsman2((prev) => (finalList.some((p) => String(p.id) === String(prev)) ? prev : ""));
+        setBatsman1((prev) =>
+          finalList.some((p) => String(p.id) === String(prev)) ? prev : ""
+        );
+        setBatsman2((prev) =>
+          finalList.some((p) => String(p.id) === String(prev)) ? prev : ""
+        );
       } catch (e) {
         console.error("Failed to load batting team players", e);
         setBatters([]);
       }
     })();
-  }, [battingTeamId]);
+  }, [battingTeamId]); // eslint-disable-line
 
   useEffect(() => {
     (async () => {
@@ -182,19 +257,23 @@ export default function ScoreDashboard() {
       try {
         const { data } = await getPlayers(bowlingTeamId);
         const list = Array.isArray(data) ? data : [];
-        const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(bowlingTeamId));
+        const byTeam = list.filter(
+          (p) => getPlayerTeamId(p) === Number(bowlingTeamId)
+        );
         const onlyBowlers = byTeam.filter(isPlayerBowler);
         const finalList = onlyBowlers.length ? onlyBowlers : byTeam;
 
         setBowlers(finalList);
 
-        setBowler((prev) => (finalList.some((p) => String(p.id) === String(prev)) ? prev : ""));
+        setBowler((prev) =>
+          finalList.some((p) => String(p.id) === String(prev)) ? prev : ""
+        );
       } catch (e) {
         console.error("Failed to load bowling team players", e);
         setBowlers([]);
       }
     })();
-  }, [bowlingTeamId]);
+  }, [bowlingTeamId]); // eslint-disable-line
 
   const getMatchNumber = (m) =>
     m.matchNumber ?? m.match_no ?? m.matchNo ?? m.number ?? m.no ?? null;
@@ -206,8 +285,10 @@ export default function ScoreDashboard() {
     } — ${m.team1Name || `#${m.team1Id}`} vs ${m.team2Name || `#${m.team2Id}`}`;
   };
 
-  const team1Name = currentMatch?.team1Name || `#${currentMatch?.team1Id ?? ""}`;
-  const team2Name = currentMatch?.team2Name || `#${currentMatch?.team2Id ?? ""}`;
+  const team1Name =
+    currentMatch?.team1Name || `#${currentMatch?.team1Id ?? ""}`;
+  const team2Name =
+    currentMatch?.team2Name || `#${currentMatch?.team2Id ?? ""}`;
   const team1Id = currentMatch ? Number(currentMatch.team1Id) : null;
   const team2Id = currentMatch ? Number(currentMatch.team2Id) : null;
 
@@ -226,16 +307,22 @@ export default function ScoreDashboard() {
   // 3x3 scoring table
   const renderTable = (title, items) => (
     <Grid item xs={12} sm={4}>
-      <Typography fontWeight={700} mb={0.5} variant="body2">
+      <Typography
+        fontWeight={700}
+        mb={0.75}
+        variant="body2"
+        color="text.secondary"
+      >
         {title}
       </Typography>
       <Paper
         elevation={0}
         sx={{
-          borderRadius: 1.5,
+          borderRadius: 2,
           overflow: "hidden",
           border: "1px solid",
           borderColor: "divider",
+          bgcolor: "background.paper",
         }}
       >
         <Table
@@ -253,9 +340,18 @@ export default function ScoreDashboard() {
                 {[0, 1, 2].map((col) => {
                   const index = row * 3 + col;
                   const value = items[index] || "";
+                  const isDanger = title === "Normal Runs" && value === "W";
                   return (
-                    <TableCell key={col} align="center" sx={{ width: "33.3333%" }}>
-                      <Tooltip title={value ? `Add ${title.toLowerCase()} ${value}` : ""}>
+                    <TableCell
+                      key={col}
+                      align="center"
+                      sx={{ width: "33.3333%" }}
+                    >
+                      <Tooltip
+                        title={
+                          value ? `Add ${title.toLowerCase()} ${value}` : ""
+                        }
+                      >
                         <span>
                           <Button
                             fullWidth
@@ -264,16 +360,18 @@ export default function ScoreDashboard() {
                             disabled={!value}
                             sx={{
                               minWidth: 40,
-                              minHeight: 36,
-                              lineHeight: 1.1,
+                              minHeight: 40,
                               py: 0.5,
-                              fontWeight: 600,
-                              fontSize: 13,
-                              color: "text.primary",
+                              fontWeight: 700,
+                              fontSize: 14,
                               borderRadius: 0,
+                              color: isDanger ? "error.main" : "text.primary",
                               "&:hover": {
-                                backgroundColor: value ? "action.hover" : "transparent",
+                                backgroundColor: value
+                                  ? "action.hover"
+                                  : "transparent",
                               },
+                              "&.Mui-disabled": { opacity: 0.4 },
                             }}
                           >
                             {value}
@@ -305,7 +403,9 @@ export default function ScoreDashboard() {
       return;
     }
     const other =
-      val === Number(currentMatch.team1Id) ? Number(currentMatch.team2Id) : Number(currentMatch.team1Id);
+      val === Number(currentMatch.team1Id)
+        ? Number(currentMatch.team2Id)
+        : Number(currentMatch.team1Id);
     setBowlingTeamId(other);
   };
 
@@ -323,23 +423,27 @@ export default function ScoreDashboard() {
       return;
     }
     const other =
-      val === Number(currentMatch.team1Id) ? Number(currentMatch.team2Id) : Number(currentMatch.team1Id);
+      val === Number(currentMatch.team1Id)
+        ? Number(currentMatch.team2Id)
+        : Number(currentMatch.team1Id);
     setBattingTeamId(other);
   };
 
   return (
     <Box
       sx={{
-        height: "100vh",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "background.default",
-        overflow: "hidden",
+        bgcolor: (theme) =>
+          theme.palette.mode === "light"
+            ? "linear-gradient(180deg, #fafafa 0%, #ffffff 100%)"
+            : "background.default",
       }}
     >
-      {/* Top App Bar (smaller) */}
+      {/* Top App Bar */}
       <AppBar
-        position="static"
+        position="sticky"
         elevation={0}
         sx={{
           bgcolor: "background.paper",
@@ -348,334 +452,521 @@ export default function ScoreDashboard() {
           borderColor: "divider",
         }}
       >
-        <Toolbar variant="dense" sx={{ gap: 1, minHeight: 40 }}>
-          <Typography variant="subtitle2" fontWeight={800}>
+        <Toolbar variant="dense" sx={{ gap: 1, minHeight: 48 }}>
+          <Typography variant="subtitle2" fontWeight={800} letterSpacing={0.2}>
             Live Scoring Console
           </Typography>
-          <Divider flexItem orientation="vertical" />
-          <Stack direction="row" spacing={0.75} alignItems="center">
-            <Chip size="small" label={team1Name || "Team 1"} />
+          <Divider flexItem orientation="vertical" sx={{ mx: 1 }} />
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Chip
+              size="small"
+              variant="outlined"
+              label={team1Name || "Team 1"}
+            />
             <Typography variant="caption" color="text.secondary">
               vs
             </Typography>
-            <Chip size="small" label={team2Name || "Team 2"} />
-          </Stack>
-        </Toolbar>
-      </AppBar>
-
-      {/* Viewport Grid */}
-      <Box
-        sx={{
-          flex: 1,
-          p: 1,
-          maxWidth: 1320,
-          mx: "auto",
-          display: "grid",
-          gridTemplateRows: "auto auto 1fr auto",
-          rowGap: 6,
-          overflow: "hidden",
-        }}
-      >
-        {/* Match Setup (more compact) */}
-        <Paper elevation={0} sx={{ p: 1.25, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" mb={0.75}>
-            <Typography variant="body2" fontWeight={800}>
-              Match Setup
-            </Typography>
             <Chip
-              variant="outlined"
-              color={currentMatch ? "success" : "default"}
-              label={currentMatch ? "Match loaded" : "No match selected"}
               size="small"
+              variant="outlined"
+              label={team2Name || "Team 2"}
             />
           </Stack>
-
-          <Grid container spacing={1} alignItems="flex-end">
-            <Grid item xs={12} md={5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="match-label" shrink>
-                  Current Match
-                </InputLabel>
-                <Select
-                  labelId="match-label"
-                  id="match-select"
-                  value={currentMatchId}
-                  label="Current Match"
-                  onChange={(e) => setCurrentMatchId(String(e.target.value))}
-                  displayEmpty
-                >
-                  <MenuItem value="">
-                    <em>Select a match (today)</em>
-                  </MenuItem>
-                  {matches.map((m) => (
-                    <MenuItem key={m.id} value={m.id}>
-                      {matchLabel(m)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={3.5}>
-              <FormControl fullWidth disabled={!currentMatch} size="small">
-                <InputLabel id="batting-label" shrink>
-                  Batting Team
-                </InputLabel>
-                <Select
-                  labelId="batting-label"
-                  id="batting-select"
-                  value={battingTeamId ?? ""}
-                  label="Batting Team"
-                  onChange={handleBattingChange}
-                  displayEmpty
-                >
-                  <MenuItem value="">
-                    <em>Select batting team</em>
-                  </MenuItem>
-                  <MenuItem value={currentMatch ? Number(currentMatch.team1Id) : ""}>{team1Name}</MenuItem>
-                  <MenuItem value={currentMatch ? Number(currentMatch.team2Id) : ""}>{team2Name}</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={3.5}>
-              <FormControl fullWidth disabled={!currentMatch} size="small">
-                <InputLabel id="bowling-label" shrink>
-                  Bowling Team
-                </InputLabel>
-                <Select
-                  labelId="bowling-label"
-                  id="bowling-select"
-                  value={bowlingTeamId ?? ""}
-                  label="Bowling Team"
-                  onChange={handleBowlingChange}
-                  displayEmpty
-                >
-                  <MenuItem value="">
-                    <em>Select bowling team</em>
-                  </MenuItem>
-                  <MenuItem value={currentMatch ? Number(currentMatch.team1Id) : ""}>{team1Name}</MenuItem>
-                  <MenuItem value={currentMatch ? Number(currentMatch.team2Id) : ""}>{team2Name}</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 1 }} />
-
-          <Grid container spacing={1}>
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                size="small"
-                label="Ground"
-                value={ground}
-                placeholder="—"
-                fullWidth
-                disabled
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
-            <Grid item xs={6} sm={3} md={3}>
-              <TextField
-                size="small"
-                label="Balls Per Over"
-                value={overType}
-                placeholder="—"
-                fullWidth
-                disabled
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
-            <Grid item xs={6} sm={3} md={3}>
-              <TextField
-                size="small"
-                label="No of Overs"
-                value={noOfOvers}
-                placeholder="—"
-                fullWidth
-                disabled
-                InputProps={{ readOnly: true }}
-              />
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* Players */}
-        <Box>
-          <Typography variant="body2" fontWeight={800} mb={0.75}>
-            Players
-          </Typography>
-          <Grid container spacing={1}>
-            <Grid item xs={12} md={4}>
-              <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography fontWeight={700} variant="body2">
-                    Batsman 1
-                  </Typography>
-                  <Chip size="small" label={battingTeamId ? `T:${battingTeamId}` : "No team"} />
-                </Stack>
-                <FormControl fullWidth sx={{ mt: 0.75 }} disabled={!battingTeamId} size="small">
-                  <InputLabel id="batsman1-label" shrink>
-                    Select player
-                  </InputLabel>
-                  <Select
-                    labelId="batsman1-label"
-                    id="batsman1-select"
-                    value={batsman1 || ""}
-                    label="Select player"
-                    onChange={(e) => setBatsman1(String(e.target.value))}
-                    displayEmpty
-                  >
-                    <MenuItem value="">
-                      <em>Select player</em>
-                    </MenuItem>
-                    {batters.map((p) => (
-                      <MenuItem key={p.id} value={p.id}>
-                        {getPlayerName(p)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <RadioGroup
-                  value={onStrike}
-                  onChange={(e) => setOnStrike(e.target.value)}
-                  sx={{ "& .MuiFormControlLabel-root": { my: 0.25 } }}
-                >
-                  <FormControlLabel value="batsman1" control={<Radio size="small" />} label="On Strike" />
-                </RadioGroup>
-              </Paper>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography fontWeight={700} variant="body2">
-                    Batsman 2
-                  </Typography>
-                  <Chip size="small" label={battingTeamId ? `T:${battingTeamId}` : "No team"} />
-                </Stack>
-                <FormControl fullWidth sx={{ mt: 0.75 }} disabled={!battingTeamId} size="small">
-                  <InputLabel id="batsman2-label" shrink>
-                    Select player
-                  </InputLabel>
-                  <Select
-                    labelId="batsman2-label"
-                    id="batsman2-select"
-                    value={batsman2 || ""}
-                    label="Select player"
-                    onChange={(e) => setBatsman2(String(e.target.value))}
-                    displayEmpty
-                  >
-                    <MenuItem value="">
-                      <em>Select player</em>
-                    </MenuItem>
-                    {batters.map((p) => (
-                      <MenuItem key={p.id} value={p.id}>
-                        {getPlayerName(p)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <RadioGroup
-                  value={onStrike}
-                  onChange={(e) => setOnStrike(e.target.value)}
-                  sx={{ "& .MuiFormControlLabel-root": { my: 0.25 } }}
-                >
-                  <FormControlLabel value="batsman2" control={<Radio size="small" />} label="On Strike" />
-                </RadioGroup>
-              </Paper>
-            </Grid>
-
-            <Grid item xs={12} md={4}>
-              <Paper variant="outlined" sx={{ p: 1.25, borderRadius: 2 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between">
-                  <Typography fontWeight={700} variant="body2">
-                    Bowler
-                  </Typography>
-                  <Chip size="small" label={bowlingTeamId ? `T:${bowlingTeamId}` : "No team"} />
-                </Stack>
-                <FormControl fullWidth sx={{ mt: 0.75 }} disabled={!bowlingTeamId} size="small">
-                  <InputLabel id="bowler-label" shrink>
-                    Select bowler
-                  </InputLabel>
-                  <Select
-                    labelId="bowler-label"
-                    id="bowler-select"
-                    value={bowler || ""}
-                    label="Select bowler"
-                    onChange={(e) => setBowler(String(e.target.value))}
-                    displayEmpty
-                  >
-                    <MenuItem value="">
-                      <em>Select bowler</em>
-                    </MenuItem>
-                    {bowlers.map((p) => (
-                      <MenuItem key={p.id} value={p.id}>
-                        {getPlayerName(p)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Paper>
-            </Grid>
-          </Grid>
-        </Box>
-
-        {/* Scoring + Wickets */}
-        <Box
+        </Toolbar>
+        {/* OBS Overlay Preview */}
+        <Card
+          variant="outlined"
           sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "2fr 1fr" },
-            gap: 6,
+            borderRadius: 3,
             overflow: "hidden",
+            mb: 2.5,
+            borderColor: "divider",
+            bgcolor: "background.paper",
           }}
         >
-          <Box sx={{ overflow: "hidden" }}>
-            <Typography variant="body2" fontWeight={800} mb={0.5}>
-              Scoring
-            </Typography>
-            <Typography variant="caption" color="text.secondary" mb={0.75} display="block">
-              Tap a value to record runs or extras.
-            </Typography>
-            {/* Actions */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 0.75 }}>
-          <Button variant="outlined" size="small">
-            Edit
-          </Button>
-          <Button variant="contained" color="success" size="small">
-            Save
-          </Button>
-        </Box>
-            <Grid container spacing={0.75} sx={{ alignItems: "stretch" }}>
-              {renderTable("Normal Runs", runButtons)}
-              {renderTable("Wides", wideButtons)}
-              {renderTable("No Balls", noBallButtons)}
+          <CardHeader
+            titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
+            title="OBS Overlay Preview"
+            sx={{ py: 1.25, px: 1.5 }}
+          />
+          <Divider />
+          <CardContent sx={{ p: 2 }}>
+            {currentMatchDetails ? (
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="center"
+                spacing={3}
+              >
+                {/* Tournament */}
+                <Stack alignItems="center" spacing={0.5}>
+                  {currentMatchDetails.tournamentLogo && (
+                    <Box
+                      component="img"
+                      src={currentMatchDetails.tournamentLogo}
+                      alt="Tournament Logo"
+                      sx={{ height: 40 }}
+                    />
+                  )}
+                  <Typography variant="body2" fontWeight={700}>
+                    {currentMatchDetails.tournamentName} at{" "}
+                    {currentMatchDetails.ground}
+                  </Typography>
+                </Stack>
+
+                <Divider orientation="vertical" flexItem />
+
+                {/* Team 1 */}
+                <Stack alignItems="center" spacing={0.5}>
+                  {currentMatchDetails.team1Logo && (
+                    <Box
+                      component="img"
+                      src={currentMatchDetails.team1Logo}
+                      alt={currentMatchDetails.team1}
+                      sx={{ height: 50 }}
+                    />
+                  )}
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    {currentMatchDetails.team1}
+                  </Typography>
+                </Stack>
+
+                <Typography variant="body1" fontWeight={800}>
+                  VS
+                </Typography>
+
+                {/* Team 2 */}
+                <Stack alignItems="center" spacing={0.5}>
+                  {currentMatchDetails.team2Logo && (
+                    <Box
+                      component="img"
+                      src={currentMatchDetails.team2Logo}
+                      alt={currentMatchDetails.team2}
+                      sx={{ height: 50 }}
+                    />
+                  )}
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    {currentMatchDetails.team2}
+                  </Typography>
+                </Stack>
+              </Stack>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Select a match to preview overlay
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      </AppBar>
+
+      {/* Content */}
+      <Container maxWidth="lg" sx={{ flex: 1, py: 2 }}>
+        {/* Match Setup */}
+        <Card
+          variant="outlined"
+          sx={{
+            borderRadius: 3,
+            overflow: "hidden",
+            mb: 2.5,
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
+        >
+          <CardHeader
+            titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
+            title="Match Setup"
+            action={
+              <Chip
+                variant="outlined"
+                color={currentMatch ? "success" : "default"}
+                label={currentMatch ? "Match loaded" : "No match selected"}
+                size="small"
+              />
+            }
+            sx={{ py: 1.25, px: 1.5 }}
+          />
+          <Divider />
+          <CardContent sx={{ p: 1.5 }}>
+            <Grid container spacing={1.25} alignItems="flex-end">
+              <Grid item xs={12} md={5}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="match-label" shrink>
+                    Current Match
+                  </InputLabel>
+                  <Select
+                    labelId="match-label"
+                    id="match-select"
+                    value={currentMatchId}
+                    label="Current Match"
+                    onChange={(e) => {
+                      const id = String(e.target.value);
+                      setCurrentMatchId(id);
+                      const selected = matches.find((m) => String(m.id) === id);
+                      if (selected) handleSelectMatch(selected);
+                    }}
+                    displayEmpty
+                  >
+                    <MenuItem value="">
+                      <em>Select a match (today)</em>
+                    </MenuItem>
+                    {matches.map((m) => (
+                      <MenuItem key={m.id} value={m.id}>
+                        {matchLabel(m)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={3.5}>
+                <FormControl fullWidth disabled={!currentMatch} size="small">
+                  <InputLabel id="batting-label" shrink>
+                    Batting Team
+                  </InputLabel>
+                  <Select
+                    labelId="batting-label"
+                    id="batting-select"
+                    value={battingTeamId ?? ""}
+                    label="Batting Team"
+                    onChange={handleBattingChange}
+                    displayEmpty
+                  >
+                    <MenuItem value="">
+                      <em>Select batting team</em>
+                    </MenuItem>
+                    <MenuItem
+                      value={currentMatch ? Number(currentMatch.team1Id) : ""}
+                    >
+                      {team1Name}
+                    </MenuItem>
+                    <MenuItem
+                      value={currentMatch ? Number(currentMatch.team2Id) : ""}
+                    >
+                      {team2Name}
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={3.5}>
+                <FormControl fullWidth disabled={!currentMatch} size="small">
+                  <InputLabel id="bowling-label" shrink>
+                    Bowling Team
+                  </InputLabel>
+                  <Select
+                    labelId="bowling-label"
+                    id="bowling-select"
+                    value={bowlingTeamId ?? ""}
+                    label="Bowling Team"
+                    onChange={handleBowlingChange}
+                    displayEmpty
+                  >
+                    <MenuItem value="">
+                      <em>Select bowling team</em>
+                    </MenuItem>
+                    <MenuItem
+                      value={currentMatch ? Number(currentMatch.team1Id) : ""}
+                    >
+                      {team1Name}
+                    </MenuItem>
+                    <MenuItem
+                      value={currentMatch ? Number(currentMatch.team2Id) : ""}
+                    >
+                      {team2Name}
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
-          </Box>
 
-          <Paper
-            elevation={0}
-            sx={{
-              p: 1.25,
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: "divider",
-              overflow: "hidden",
-            }}
+            <Divider sx={{ my: 1.25 }} />
+
+            <Grid container spacing={1.25}>
+              <Grid item xs={12} sm={6} md={6}>
+                <TextField
+                  size="small"
+                  label="Ground"
+                  value={ground}
+                  placeholder="—"
+                  fullWidth
+                  disabled
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+              <Grid item xs={6} sm={3} md={3}>
+                <TextField
+                  size="small"
+                  label="Balls Per Over"
+                  value={overType}
+                  placeholder="—"
+                  fullWidth
+                  disabled
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+              <Grid item xs={6} sm={3} md={3}>
+                <TextField
+                  size="small"
+                  label="No of Overs"
+                  value={noOfOvers}
+                  placeholder="—"
+                  fullWidth
+                  disabled
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Players */}
+        <Box sx={{ mb: 2 }}>
+          <Typography
+            variant="body2"
+            fontWeight={800}
+            mb={1}
+            color="text.secondary"
           >
-            <Typography variant="body2" fontWeight={800} mb={0.75}>
-              Wickets
-            </Typography>
-            <Stack direction="column" spacing={0.75} sx={{ "& .MuiFormControlLabel-root": { m: 0 } }}>
-              <FormControlLabel control={<Checkbox size="small" />} label="Wicket" />
-              <FormControlLabel control={<Checkbox size="small" />} label="Run out (Batsman 1)" />
-              <FormControlLabel control={<Checkbox size="small" />} label="Run out (Batsman 2)" />
-            </Stack>
-          </Paper>
-        </Box>
+            Players
+          </Typography>
+          <Grid container spacing={1.25}>
+            {/* Batsman 1 */}
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                <CardHeader
+                  titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
+                  title="Batsman 1"
+                  action={
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={battingTeamId ? `T:${battingTeamId}` : "No team"}
+                    />
+                  }
+                  sx={{ py: 1, px: 1.25 }}
+                />
+                <Divider />
+                <CardContent sx={{ p: 1.25 }}>
+                  <FormControl
+                    fullWidth
+                    sx={{ mt: 0.25 }}
+                    disabled={!battingTeamId}
+                    size="small"
+                  >
+                    <InputLabel id="batsman1-label" shrink>
+                      Select player
+                    </InputLabel>
+                    <Select
+                      labelId="batsman1-label"
+                      id="batsman1-select"
+                      value={batsman1 || ""}
+                      label="Select player"
+                      onChange={(e) => setBatsman1(String(e.target.value))}
+                      displayEmpty
+                    >
+                      <MenuItem value="">
+                        <em>Select player</em>
+                      </MenuItem>
+                      {batters.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {getPlayerName(p)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <RadioGroup
+                    value={onStrike}
+                    onChange={(e) => setOnStrike(e.target.value)}
+                    sx={{
+                      "& .MuiFormControlLabel-root": { my: 0.25 },
+                      mt: 0.75,
+                    }}
+                  >
+                    <FormControlLabel
+                      value="batsman1"
+                      control={<Radio size="small" />}
+                      label="On Strike"
+                    />
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            </Grid>
 
-        
-      </Box>
+            {/* Batsman 2 */}
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                <CardHeader
+                  titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
+                  title="Batsman 2"
+                  action={
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={battingTeamId ? `T:${battingTeamId}` : "No team"}
+                    />
+                  }
+                  sx={{ py: 1, px: 1.25 }}
+                />
+                <Divider />
+                <CardContent sx={{ p: 1.25 }}>
+                  <FormControl
+                    fullWidth
+                    sx={{ mt: 0.25 }}
+                    disabled={!battingTeamId}
+                    size="small"
+                  >
+                    <InputLabel id="batsman2-label" shrink>
+                      Select player
+                    </InputLabel>
+                    <Select
+                      labelId="batsman2-label"
+                      id="batsman2-select"
+                      value={batsman2 || ""}
+                      label="Select player"
+                      onChange={(e) => setBatsman2(String(e.target.value))}
+                      displayEmpty
+                    >
+                      <MenuItem value="">
+                        <em>Select player</em>
+                      </MenuItem>
+                      {batters.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {getPlayerName(p)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <RadioGroup
+                    value={onStrike}
+                    onChange={(e) => setOnStrike(e.target.value)}
+                    sx={{
+                      "& .MuiFormControlLabel-root": { my: 0.25 },
+                      mt: 0.75,
+                    }}
+                  >
+                    <FormControlLabel
+                      value="batsman2"
+                      control={<Radio size="small" />}
+                      label="On Strike"
+                    />
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Bowler */}
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                <CardHeader
+                  titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
+                  title="Bowler"
+                  action={
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      label={bowlingTeamId ? `T:${bowlingTeamId}` : "No team"}
+                    />
+                  }
+                  sx={{ py: 1, px: 1.25 }}
+                />
+                <Divider />
+                <CardContent sx={{ p: 1.25 }}>
+                  <FormControl
+                    fullWidth
+                    sx={{ mt: 0.25 }}
+                    disabled={!bowlingTeamId}
+                    size="small"
+                  >
+                    <InputLabel id="bowler-label" shrink>
+                      Select bowler
+                    </InputLabel>
+                    <Select
+                      labelId="bowler-label"
+                      id="bowler-select"
+                      value={bowler || ""}
+                      label="Select bowler"
+                      onChange={(e) => setBowler(String(e.target.value))}
+                      displayEmpty
+                    >
+                      <MenuItem value="">
+                        <em>Select bowler</em>
+                      </MenuItem>
+                      {bowlers.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {getPlayerName(p)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Scoring + Wickets */}
+            <Grid item xs={12} md={8}>
+              <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                <CardHeader
+                  titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
+                  title="Scoring"
+                  subheaderTypographyProps={{ variant: "caption" }}
+                  subheader="Tap a value to record runs or extras."
+                  action={
+                    <Stack direction="row" spacing={1}>
+                      <Button variant="outlined" size="small">
+                        Edit
+                      </Button>
+                      <Button variant="contained" color="success" size="small">
+                        Save
+                      </Button>
+                    </Stack>
+                  }
+                  sx={{ py: 1, px: 1.25 }}
+                />
+                <Divider />
+                <CardContent sx={{ p: 1.25 }}>
+                  <Grid container spacing={1}>
+                    {renderTable("Normal Runs", runButtons)}
+                    {renderTable("Wides", wideButtons)}
+                    {renderTable("No Balls", noBallButtons)}
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* RunOuts */}
+            <Grid item xs={12} md={4}>
+              <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                <CardHeader
+                  titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
+                  title="Wickets"
+                  sx={{ py: 1, px: 1.25 }}
+                />
+                <Divider />
+                <CardContent sx={{ p: 1.25 }}>
+                  <Stack
+                    direction="column"
+                    spacing={0.75}
+                    sx={{ "& .MuiFormControlLabel-root": { m: 0 } }}
+                  >
+                    <FormControlLabel
+                      control={<Checkbox size="small" />}
+                      label="Wicket"
+                    />
+                    <FormControlLabel
+                      control={<Checkbox size="small" />}
+                      label="Run out (Batsman 1)"
+                    />
+                    <FormControlLabel
+                      control={<Checkbox size="small" />}
+                      label="Run out (Batsman 2)"
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+        </Box>
+      </Container>
     </Box>
   );
 }

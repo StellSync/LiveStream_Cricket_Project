@@ -16,9 +16,9 @@ const PlayerSchema = new mongoose.Schema(
     // Core player fields
     playerName: { type: String, required: true, trim: true },
     playerAddress: { type: String, trim: true },
-    phone: { type: String, trim: true },  // keep as string for +94, leading zeros
+    phone: { type: String, trim: true }, // keep as string for +94, leading zeros
 
-    position: { type: String, trim: true }, // "Batter", "Bowler", "All-rounder", "WK"...
+    position: { type: Number }, // "Batter", "Bowler", "All-rounder", "WK"...
 
     // Role flags
     isBatter: { type: Boolean, default: false },
@@ -31,6 +31,9 @@ const PlayerSchema = new mongoose.Schema(
 
 const AutoIncrement = AutoIncrementFactory(mongoose);
 // IMPORTANT: give Player its OWN counter name
-PlayerSchema.plugin(AutoIncrement, { inc_field: "id", id: "player_id_counter" });
+PlayerSchema.plugin(AutoIncrement, {
+  inc_field: "id",
+  id: "player_id_counter",
+});
 
 export default mongoose.model("Player", PlayerSchema);
