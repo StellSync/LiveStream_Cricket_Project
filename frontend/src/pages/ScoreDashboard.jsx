@@ -64,6 +64,21 @@ export default function ScoreDashboard() {
   const [overType, setOverType] = useState("");
   const [noOfOvers, setNoOfOvers] = useState("");
 
+  // Score states
+  const [inningsRuns, setInningsRuns] = useState(0);
+  const [inningsWickets, setInningsWickets] = useState(0);
+  const [overs, setOvers] = useState(0);
+  const [balls, setBalls] = useState(0);
+  const [currentOverRuns, setCurrentOverRuns] = useState(0);
+  const [batsman1Runs, setBatsman1Runs] = useState(0);
+  const [batsman1Balls, setBatsman1Balls] = useState(0);
+  const [batsman2Runs, setBatsman2Runs] = useState(0);
+  const [batsman2Balls, setBatsman2Balls] = useState(0);
+  const [bowlerOvers, setBowlerOvers] = useState(0);
+  const [bowlerMaidens, setBowlerMaidens] = useState(0);
+  const [bowlerRuns, setBowlerRuns] = useState(0);
+  const [bowlerWickets, setBowlerWickets] = useState(0);
+
   useEffect(() => {
     // load existing active match when page loads
     getCurrentMatch().then((data) => setCurrentMatchState(data));
@@ -146,59 +161,109 @@ export default function ScoreDashboard() {
   );
 
   useEffect(() => {
-    // reset selections
-    setBattingTeamId(null);
-    setBowlingTeamId(null);
-    setBatters([]);
-    setBowlers([]);
-    setBatsman1("");
-    setBatsman2("");
-    setBowler("");
-    setOnStrike("batsman1");
+  // reset selections
+  setBattingTeamId(null);
+  setBowlingTeamId(null);
+  setBatters([]);
+  setBowlers([]);
+  setBatsman1("");
+  setBatsman2("");
+  setBowler("");
+  setOnStrike("batsman1");
 
-    // reset readonly
-    setGround("");
-    setOverType("");
-    setNoOfOvers("");
+  // reset readonly
+  setGround("");
+  setOverType(""); // Reset to empty, will be set by match data
+  setNoOfOvers("");
 
-    (async () => {
-      if (!currentMatch) return;
+  // reset scores
+  setInningsRuns(0);
+  setInningsWickets(0);
+  setOvers(0);
+  setBalls(0);
+  setCurrentOverRuns(0);
+  setBatsman1Runs(0);
+  setBatsman1Balls(0);
+  setBatsman2Runs(0);
+  setBatsman2Balls(0);
+  setBowlerOvers(0);
+  setBowlerMaidens(0);
+  setBowlerRuns(0);
+  setBowlerWickets(0);
 
-      setOverType(currentMatch.overType ?? "");
-      setNoOfOvers(
-        currentMatch.noOfOvers != null && currentMatch.noOfOvers !== ""
-          ? String(currentMatch.noOfOvers)
-          : ""
-      );
+  (async () => {
+    if (!currentMatch) return;
 
-      const fromMatch =
-        currentMatch.ground ??
-        currentMatch.venue ??
-        currentMatch.place ??
-        currentMatch.stadium ??
-        "";
-      if (String(fromMatch || "").trim()) {
-        setGround(String(fromMatch));
-        return;
+    setOverType(currentMatch.overType ?? "6"); // Default to 6 if no overType provided
+    setNoOfOvers(
+      currentMatch.noOfOvers != null && currentMatch.noOfOvers !== ""
+        ? String(currentMatch.noOfOvers)
+        : ""
+    );
+
+    const fromMatch =
+      currentMatch.ground ??
+      currentMatch.venue ??
+      currentMatch.place ??
+      currentMatch.stadium ??
+      "";
+    if (String(fromMatch || "").trim()) {
+      setGround(String(fromMatch));
+      return;
+    }
+
+    const tournamentId =
+      currentMatch.tournamentId ??
+      currentMatch.tournamentID ??
+      currentMatch.tourId ??
+      null;
+
+    if (tournamentId != null && typeof getTournament === "function") {
+      try {
+        const { data } = await getTournament(Number(tournamentId));
+        const g = data?.place ?? "";
+        if (String(g || "").trim()) setGround(String(g));
+      } catch (err) {
+        console.warn("Unable to fetch tournament for ground:", err);
       }
+    }
+  })();
+}, [currentMatchId]); // eslint-disable-line
 
-      const tournamentId =
-        currentMatch.tournamentId ??
-        currentMatch.tournamentID ??
-        currentMatch.tourId ??
-        null;
+  useEffect(() => {
+    setBatsman1Runs(0);
+    setBatsman1Balls(0);
+  }, [batsman1]);
 
-      if (tournamentId != null && typeof getTournament === "function") {
-        try {
-          const { data } = await getTournament(Number(tournamentId));
-          const g = data?.place ?? "";
-          if (String(g || "").trim()) setGround(String(g));
-        } catch (err) {
-          console.warn("Unable to fetch tournament for ground:", err);
-        }
-      }
-    })();
-  }, [currentMatchId]); // eslint-disable-line
+  useEffect(() => {
+    setBatsman2Runs(0);
+    setBatsman2Balls(0);
+  }, [batsman2]);
+
+  useEffect(() => {
+    setBowlerOvers(0);
+    setBowlerMaidens(0);
+    setBowlerRuns(0);
+    setBowlerWickets(0);
+    setCurrentOverRuns(0);
+    setBalls(0);
+  }, [bowler]);
+
+  useEffect(() => {
+    setInningsRuns(0);
+    setInningsWickets(0);
+    setOvers(0);
+    setBalls(0);
+    setCurrentOverRuns(0);
+    setBatsman1Runs(0);
+    setBatsman1Balls(0);
+    setBatsman2Runs(0);
+    setBatsman2Balls(0);
+    setBowlerOvers(0);
+    setBowlerMaidens(0);
+    setBowlerRuns(0);
+    setBowlerWickets(0);
+  }, [battingTeamId]);
 
   const normalizeBool = (v) =>
     v === true || v === "true" || v === 1 || v === "1";
@@ -292,6 +357,29 @@ export default function ScoreDashboard() {
   const team1Id = currentMatch ? Number(currentMatch.team1Id) : null;
   const team2Id = currentMatch ? Number(currentMatch.team2Id) : null;
 
+  // Derived team info
+  const battingTeamName = battingTeamId === team1Id ? team1Name : team2Name;
+  const bowlingTeamName = bowlingTeamId === team1Id ? team1Name : team2Name;
+  const battingTeamLogo = battingTeamId === team1Id ? currentMatch?.team1Logo : currentMatch?.team2Logo;
+  const bowlingTeamLogo = bowlingTeamId === team1Id ? currentMatch?.team1Logo : currentMatch?.team2Logo;
+  const battingTeamCode = battingTeamName.substring(0, 3).toUpperCase();
+  const bowlingTeamCode = bowlingTeamName.substring(0, 3).toUpperCase();
+
+  // Derived player info
+  const batsman1Obj = batters.find((p) => String(p.id) === batsman1);
+  const batsman1Name = batsman1Obj ? getPlayerName(batsman1Obj) : "";
+  const batsman2Obj = batters.find((p) => String(p.id) === batsman2);
+  const batsman2Name = batsman2Obj ? getPlayerName(batsman2Obj) : "";
+  const bowlerObj = bowlers.find((p) => String(p.id) === bowler);
+  const bowlerName = bowlerObj ? getPlayerName(bowlerObj) : "";
+
+  const strikerName = onStrike === "batsman1" ? batsman1Name : batsman2Name;
+  const nonStrikerName = onStrike === "batsman1" ? batsman2Name : batsman1Name;
+  const strikerRuns = onStrike === "batsman1" ? batsman1Runs : batsman2Runs;
+  const strikerBalls = onStrike === "batsman1" ? batsman1Balls : batsman2Balls;
+  const nonStrikerRuns = onStrike === "batsman1" ? batsman2Runs : batsman1Runs;
+  const nonStrikerBalls = onStrike === "batsman1" ? batsman2Balls : batsman1Balls;
+
   // Build a fixed-size 3x3 grid (9 cells). Truncates extras and pads with "" if short.
   const makeGrid = (items, total = 9) => {
     const padded = [...items].slice(0, total);
@@ -303,6 +391,77 @@ export default function ScoreDashboard() {
   const runButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "W"]); // keep W in this grid
   const wideButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
   const noBallButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
+
+  const handleScore = (title, value) => {
+    if (value === "-") return; // TODO: Implement cancel if needed
+
+    const runs = Number(value);
+
+    const ballsPerOver = Number(overType || 6);
+
+    const setStrikerRuns = onStrike === "batsman1" ? setBatsman1Runs : setBatsman2Runs;
+    const setStrikerBalls = onStrike === "batsman1" ? setBatsman1Balls : setBatsman2Balls;
+
+    if (!isNaN(runs)) {
+      if (title === "Normal Runs") {
+        setStrikerRuns((prev) => prev + runs);
+        setStrikerBalls((prev) => prev + 1);
+        setInningsRuns((prev) => prev + runs);
+        setBowlerRuns((prev) => prev + runs);
+        setCurrentOverRuns((prev) => prev + runs);
+
+        setBalls((prev) => {
+          const newBalls = prev + 1;
+          if (newBalls === ballsPerOver) {
+            if (currentOverRuns + runs === 0) {
+              setBowlerMaidens((m) => m + 1);
+            }
+            setBowlerOvers((o) => o + 1);
+            setOvers((o) => o + 1);
+            setCurrentOverRuns(0);
+            return 0;
+          }
+          return newBalls;
+        });
+
+        if (runs % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "Wides") {
+        setInningsRuns((prev) => prev + runs + 1);
+        if (runs % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "No Balls") {
+        setInningsRuns((prev) => prev + runs + 1);
+        setBowlerRuns((prev) => prev + runs);
+        if (runs > 0) {
+          setStrikerRuns((prev) => prev + runs);
+        }
+        if ((runs + 1) % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      }
+    } else if (value === "W" && title === "Normal Runs") {
+      setInningsWickets((prev) => prev + 1);
+      setBowlerWickets((prev) => prev + 1);
+      setStrikerBalls((prev) => prev + 1);
+
+      setBalls((prev) => {
+        const newBalls = prev + 1;
+        if (newBalls === ballsPerOver) {
+          if (currentOverRuns === 0) {
+            setBowlerMaidens((m) => m + 1);
+          }
+          setBowlerOvers((o) => o + 1);
+          setOvers((o) => o + 1);
+          setCurrentOverRuns(0);
+          return 0;
+        }
+        return newBalls;
+      });
+    }
+  };
 
   // 3x3 scoring table
   const renderTable = (title, items) => (
@@ -358,6 +517,7 @@ export default function ScoreDashboard() {
                             size="small"
                             variant="text"
                             disabled={!value}
+                            onClick={() => handleScore(title, value)}
                             sx={{
                               minWidth: 40,
                               minHeight: 40,
@@ -557,6 +717,93 @@ export default function ScoreDashboard() {
             )}
           </CardContent>
         </Card>
+        {/* Score Ticker Preview */}
+       <Card
+  variant="outlined"
+  sx={{
+    borderRadius: 8,
+    overflow: "hidden",
+    mb: 3,
+    border: "1px solid",
+    borderColor: "divider",
+    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+    bgcolor: "background.paper",
+    transition: "transform 0.2s ease-in-out",
+    "&:hover": {
+      transform: "translateY(-2px)",
+    },
+  }}
+>
+  <CardHeader
+    titleTypographyProps={{ variant: "h6", fontWeight: 800,  }}
+    title="Score Ticker Preview"
+    sx={{
+      py: 1.5,
+      px: 2,
+      
+      color: "black",
+    }}
+  />
+  <Divider />
+  <CardContent sx={{ p: 0 }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        bgcolor: "linear-gradient(90deg, #4a90e2 0%, #63b8ff 100%)",
+        color: "black",
+        p: 1.5,
+        fontSize: 16,
+        fontWeight: 700,
+        textAlign: "center",
+        gap: 1,
+      }}
+    >
+      <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
+        {battingTeamLogo && (
+          <Box
+            component="img"
+            src={battingTeamLogo}
+            alt=""
+            sx={{ height: 24, mr: 1, borderRadius: "4px" }}
+          />
+        )}
+        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+          {battingTeamCode} {inningsRuns}-{inningsWickets} ({overs}.{balls})
+        </Typography>
+      </Box>
+        <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+      (RR: {(() => {
+        const ballsPerOver = Number(overType) || 6; // Convert to number, default to 6 if invalid
+        const totalOvers = overs + (balls / ballsPerOver);
+        return inningsRuns >= 0 && !isNaN(totalOvers) && totalOvers > 0 
+          ? (inningsRuns / totalOvers).toFixed(2) 
+          : "0.00";
+      })()})
+    </Typography>
+      <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+        {strikerName.toUpperCase()} {strikerRuns} ({strikerBalls})
+      </Typography>
+      <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+        {nonStrikerName.toUpperCase()} {nonStrikerRuns} ({nonStrikerBalls})
+      </Typography>
+      <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+        {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-{bowlerRuns}
+      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
+        {bowlingTeamLogo && (
+          <Box
+            component="img"
+            src={bowlingTeamLogo}
+            alt=""
+            sx={{ height: 24, ml: 1, borderRadius: "4px" }}
+          />
+        )}
+      </Box>
+    </Box>
+  </CardContent>
+</Card>
       </AppBar>
 
       {/* Content */}

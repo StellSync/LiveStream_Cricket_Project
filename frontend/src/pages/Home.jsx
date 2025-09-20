@@ -16,6 +16,8 @@ export default function Home() {
         <div className="alert alert-info mb-0">
           Tip: After creating teams & tournaments, create a match by selecting IDs or names.
           The API stores only IDs but the UI will show names.
+
+          
         </div>
       </div>
     </div>
