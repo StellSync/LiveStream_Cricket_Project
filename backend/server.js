@@ -28,14 +28,9 @@ await connectDB(MONGO_URI);
 
 // ---------- API ROUTES ----------
 app.use("/api/tournaments", tournamentRoutes);
-app.use("/api/team",teamRoutes);
+app.use("/api/team", teamRoutes);
 app.use("/api/players", playerRoutes);
 app.use("/api/matches", matchRoutes);
-
-
-
-
-
 
 // ---------- In-memory score (kept for demo; can later read from DB) ----------
 let score = {
@@ -63,7 +58,9 @@ app.post("/api/score", (req, res) => {
   const body = req.body || {};
   score = {
     ...score,
-    ...Object.fromEntries(Object.entries(body).filter(([_, v]) => v !== undefined)),
+    ...Object.fromEntries(
+      Object.entries(body).filter(([_, v]) => v !== undefined)
+    ),
     lastUpdated: new Date().toISOString(),
   };
   broadcast(score);
@@ -151,4 +148,116 @@ app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`Scoreboard backend → http://localhost:${PORT}`);
   console.log(`Overlay for OBS → http://localhost:${PORT}/overlay`);
+});
+
+// --- In server.js ---
+let currentMatchInfo = {
+  matchId: null,
+  tournamentName: "",
+  tournamentLogo: "",
+  ground: "",
+  team1: "",
+  team1Logo: "",
+  team2: "",
+  team2Logo: "",
+  matchNumber: "",
+  overType: "",
+  noOfOvers: "",
+};
+
+const matchClients = new Set();
+function broadcastMatchInfo(data) {
+  const payload = `data: ${JSON.stringify(data)}\n\n`;
+  for (const res of matchClients) res.write(payload);
+}
+
+app.get("/api/current-match", (_req, res) => res.json(currentMatchInfo));
+
+app.post("/api/current-match", (req, res) => {
+  currentMatchInfo = { ...currentMatchInfo, ...req.body };
+  broadcastMatchInfo(currentMatchInfo);
+  res.json({ ok: true, currentMatchInfo });
+});
+
+app.get("/sse-match", (req, res) => {
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-store",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders?.();
+  res.write(`data: ${JSON.stringify(currentMatchInfo)}\n\n`);
+  matchClients.add(res);
+  req.on("close", () => matchClients.delete(res));
+});
+
+app.get("/overlay/match", (_req, res) => {
+  const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OBS Overlay - Match Info</title>
+<style>
+  html, body { margin:0; padding:0; background:transparent; }
+  .bar {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    width: 100vw; min-height: 100px; 
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    box-sizing:border-box; padding:8px 16px; color:#fff;
+    background: linear-gradient(90deg, #111 0%, #222 100%);
+    border-top:2px solid #ff9800; border-bottom:2px solid #ff9800;
+    text-align: center;
+  }
+  .tournament { font-weight:700; font-size:22px; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
+  .tournament img { height:32px; }
+  .teams { display:flex; align-items:center; gap:30px; margin-bottom:6px; }
+  .team { display:flex; align-items:center; gap:10px; font-size:20px; font-weight:600; }
+  .team img { height:40px; }
+  .details { font-size:16px; opacity:0.9; }
+</style>
+</head>
+<body>
+  <div class="bar" id="bar">
+    <div class="tournament">
+      <img id="tournamentLogo" src="" alt="Tournament" />
+      <span id="tournament">Tournament Name</span>
+    </div>
+    <div class="teams">
+      <div class="team">
+        <img id="team1Logo" src="" alt="Team 1" />
+        <span id="team1">Team A</span>
+      </div>
+      <span>vs</span>
+      <div class="team">
+        <img id="team2Logo" src="" alt="Team 2" />
+        <span id="team2">Team B</span>
+      </div>
+    </div>
+    <div class="details">
+      <span id="matchNo">Match #1</span> —
+      <span id="place">Ground</span> —
+      <span id="overs">6 balls/over, 20 overs</span>
+    </div>
+  </div>
+<script>
+  function render(m) {
+    tournament.textContent = m.tournamentName || "—";
+    tournamentLogo.src = m.tournamentLogo || "";
+    team1.textContent = m.team1 || "—";
+    team2.textContent = m.team2 || "—";
+    team1Logo.src = m.team1Logo || "";
+    team2Logo.src = m.team2Logo || "";
+    matchNo.textContent = "Match #" + (m.matchNumber || "—");
+    place.textContent = m.ground || "—";
+    overs.textContent = (m.overType || "-") + " balls/over, " + (m.noOfOvers || "-") + " overs";
+  }
+
+  const es = new EventSource("/sse-match");
+  es.onmessage = (e) => render(JSON.parse(e.data));
+</script>
+</body>
+</html>`;
+  res.set("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
 });
