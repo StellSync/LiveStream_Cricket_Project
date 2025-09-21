@@ -13,7 +13,7 @@ const emptyForm = {
   playerName: "",
   playerAddress: "",
   phone: "",
-  position: "",
+  position: 0,
   isBatter: false,
   isBaller: false,
   isWk: false,
@@ -21,7 +21,7 @@ const emptyForm = {
 };
 
 // Fixed heights for scroll areas (tweak if you want)
-const MAIN_PANEL_HEIGHT = 720;       // right card height
+const MAIN_PANEL_HEIGHT = 720; // right card height
 const TEAM_SECTION_BODY_HEIGHT = 260; // inner per-team scroll height
 
 export default function PlayersPage() {
@@ -33,15 +33,23 @@ export default function PlayersPage() {
   const [query, setQuery] = useState(""); // optional player search
 
   async function load() {
-    const [playersRes, teamsRes] = await Promise.all([getPlayers(), getTeams()]);
+    const [playersRes, teamsRes] = await Promise.all([
+      getPlayers(),
+      getTeams(),
+    ]);
     setItems(playersRes.data || []);
     setTeams(teamsRes.data || []);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   function onChange(e) {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   }
 
   async function onSubmit(e) {
@@ -64,7 +72,7 @@ export default function PlayersPage() {
       playerName: p.playerName || "",
       playerAddress: p.playerAddress || "",
       phone: p.phone || "",
-      position: p.position || "",
+      position: p.position || 0,
       isBatter: !!p.isBatter,
       isBaller: !!p.isBaller,
       isWk: !!p.isWk,
@@ -128,7 +136,9 @@ export default function PlayersPage() {
       ),
     }));
     arr.sort((a, b) =>
-      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
+      (a.name || "").localeCompare(b.name || "", undefined, {
+        sensitivity: "base",
+      })
     );
     return arr;
   }, [visiblePlayers, teamMap]);
@@ -139,7 +149,9 @@ export default function PlayersPage() {
       <div className="col-lg-5">
         <div className="card shadow-sm">
           <div className="card-body">
-            <h5 className="card-title">{editingId ? "Edit Player" : "Add Player"}</h5>
+            <h5 className="card-title">
+              {editingId ? "Edit Player" : "Add Player"}
+            </h5>
             <form onSubmit={onSubmit} className="row g-3">
               <div className="col-12">
                 <label className="form-label">Team</label>
@@ -172,6 +184,7 @@ export default function PlayersPage() {
               <div className="col-6">
                 <label className="form-label">Position</label>
                 <input
+                  type="number"
                   name="position"
                   className="form-control"
                   value={form.position}
@@ -207,7 +220,9 @@ export default function PlayersPage() {
                     checked={form.isBatter}
                     onChange={onChange}
                   />
-                  <label className="form-check-label" htmlFor="isBatter">Batter</label>
+                  <label className="form-check-label" htmlFor="isBatter">
+                    Batter
+                  </label>
                 </div>
                 <div className="form-check form-check-inline">
                   <input
@@ -218,7 +233,9 @@ export default function PlayersPage() {
                     checked={form.isBaller}
                     onChange={onChange}
                   />
-                  <label className="form-check-label" htmlFor="isBaller">Bowler</label>
+                  <label className="form-check-label" htmlFor="isBaller">
+                    Bowler
+                  </label>
                 </div>
                 <div className="form-check form-check-inline">
                   <input
@@ -229,7 +246,9 @@ export default function PlayersPage() {
                     checked={form.isWk}
                     onChange={onChange}
                   />
-                  <label className="form-check-label" htmlFor="isWk">Wicket Keeper</label>
+                  <label className="form-check-label" htmlFor="isWk">
+                    Wicket Keeper
+                  </label>
                 </div>
                 <div className="form-check form-check-inline">
                   <input
@@ -240,7 +259,9 @@ export default function PlayersPage() {
                     checked={form.isCaptain}
                     onChange={onChange}
                   />
-                  <label className="form-check-label" htmlFor="isCaptain">Captain</label>
+                  <label className="form-check-label" htmlFor="isCaptain">
+                    Captain
+                  </label>
                 </div>
               </div>
 
@@ -268,11 +289,11 @@ export default function PlayersPage() {
 
       {/* RIGHT: grouped sections by team with dual scrollers */}
       <div className="col-lg-7">
-        <div
-          className="card shadow-sm"
-          style={{ height: MAIN_PANEL_HEIGHT }}
-        >
-          <div className="card-body d-flex flex-column" style={{ height: "100%" }}>
+        <div className="card shadow-sm" style={{ height: MAIN_PANEL_HEIGHT }}>
+          <div
+            className="card-body d-flex flex-column"
+            style={{ height: "90%" }}
+          >
             {/* Top bar: filters */}
             <div className="d-flex flex-wrap align-items-center justify-content-between mb-3">
               <h5 className="card-title mb-0">Players</h5>
@@ -319,10 +340,12 @@ export default function PlayersPage() {
                     {/* Section header */}
                     <div className="d-flex align-items-center justify-content-between bg-light px-3 py-2 rounded border">
                       <div className="fw-semibold">
-                        {grp.name} <span className="text-muted">#{grp.teamId}</span>
+                        {grp.name}{" "}
+                        <span className="text-muted">#{grp.teamId}</span>
                       </div>
                       <div className="small text-muted">
-                        {grp.rows.length} player{grp.rows.length === 1 ? "" : "s"}
+                        {grp.rows.length} player
+                        {grp.rows.length === 1 ? "" : "s"}
                       </div>
                     </div>
 
@@ -335,7 +358,10 @@ export default function PlayersPage() {
                       }}
                     >
                       <table className="table table-striped align-middle mb-0">
-                        <thead style={{ position: "sticky", top: 0, zIndex: 1 }} className="table-light">
+                        <thead
+                          style={{ position: "sticky", top: 0, zIndex: 1 }}
+                          className="table-light"
+                        >
                           <tr>
                             <th style={{ width: 70 }}>ID</th>
                             <th>Name</th>
@@ -351,19 +377,29 @@ export default function PlayersPage() {
                               <td>{p.id}</td>
                               <td>{p.playerName}</td>
                               <td className="text-nowrap">{p.phone || "-"}</td>
-                              <td className="text-nowrap">{p.position || "-"}</td>
+                              <td className="text-nowrap">
+                                {p.position || "-"}
+                              </td>
                               <td>
                                 {p.isCaptain && (
-                                  <span className="badge text-bg-warning me-1">C</span>
+                                  <span className="badge text-bg-warning me-1">
+                                    C
+                                  </span>
                                 )}
                                 {p.isWk && (
-                                  <span className="badge text-bg-info me-1">WK</span>
+                                  <span className="badge text-bg-info me-1">
+                                    WK
+                                  </span>
                                 )}
                                 {p.isBatter && (
-                                  <span className="badge text-bg-primary me-1">Bat</span>
+                                  <span className="badge text-bg-primary me-1">
+                                    Bat
+                                  </span>
                                 )}
                                 {p.isBaller && (
-                                  <span className="badge text-bg-success me-1">Bowl</span>
+                                  <span className="badge text-bg-success me-1">
+                                    Bowl
+                                  </span>
                                 )}
                               </td>
                               <td className="text-end">
