@@ -509,18 +509,20 @@ export default function PlayersPage() {
                                 )}
                               </td>
                               <td className="text-end">
-                                <button
-                                  className="btn btn-sm btn-outline-primary me-2"
-                                  onClick={() => onEdit(p)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => onDelete(p.id)}
-                                >
-                                  Delete
-                                </button>
+                                <div className="d-inline-flex gap-2">
+                                  <button
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={() => onEdit(p)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => onDelete(p.id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
