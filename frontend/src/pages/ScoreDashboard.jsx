@@ -396,7 +396,7 @@ export default function ScoreDashboard() {
   };
 
   // 3x3 button sets
-  const runButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "W"]); // keep W in this grid
+  const runButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7"]); // keep W in this grid
   const wideButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
   const noBallButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
 
@@ -1277,23 +1277,45 @@ export default function ScoreDashboard() {
                     />
                     <Divider />
                     <CardContent sx={{ p: 1.25 }}>
-                      <Stack
-                        direction="column"
-                        spacing={0.75}
-                        sx={{ "& .MuiFormControlLabel-root": { m: 0 } }}
-                      >
-                        <FormControlLabel
-                          control={<Checkbox size="small" />}
-                          label="Wicket"
-                        />
-                        <FormControlLabel
-                          control={<Checkbox size="small" />}
-                          label="Run out (Batsman 1)"
-                        />
-                        <FormControlLabel
-                          control={<Checkbox size="small" />}
-                          label="Run out (Batsman 2)"
-                        />
+                      <Stack direction="column" spacing={1}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          sx={{
+                            bgcolor: "#ef5350", // light red
+                            color: "white",
+                            "&:hover": { bgcolor: "#e53935" },
+                          }}
+                        >
+                          Wicket
+                        </Button>
+
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          sx={{
+                            bgcolor: "#d32f2f", // medium red
+                            color: "white",
+                            "&:hover": { bgcolor: "#c62828" },
+                          }}
+                        >
+                          Run out (Batsman 1)
+                        </Button>
+
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          sx={{
+                            bgcolor: "#b71c1c", // dark red
+                            color: "white",
+                            "&:hover": { bgcolor: "#7f0000" },
+                          }}
+                        >
+                          Run out (Batsman 2)
+                        </Button>
                       </Stack>
                     </CardContent>
                   </Card>
@@ -1304,7 +1326,7 @@ export default function ScoreDashboard() {
         </Grid>
 
         <Grid item xs={12} md={6} pt={2}>
-          <Container>
+          <Container-fluid>
             <Card
               variant="outlined"
               sx={{
@@ -1425,7 +1447,7 @@ export default function ScoreDashboard() {
                 </Grid>
               </CardContent>
             </Card>
-          </Container>
+          </Container-fluid>
         </Grid>
       </Grid>
     </Box>
