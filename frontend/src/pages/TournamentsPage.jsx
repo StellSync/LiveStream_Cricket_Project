@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   getTournaments,
   createTournament,
@@ -43,6 +43,20 @@ function estimateDataUrlBytes(dataUrl) {
   return Math.floor((len * 3) / 4) - padding;
 }
 
+// Local (non-UTC) YYYY-MM-DD for min= and comparisons
+function todayLocalStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function isPastDateStr(yyyy_mm_dd) {
+  if (!yyyy_mm_dd) return false;
+  // Compare lexicographically because both are YYYY-MM-DD
+  return yyyy_mm_dd < todayLocalStr();
+}
+
 export default function TournamentsPage() {
   const [items, setItems] = useState([]);
   const [form, setForm] = useState(emptyForm);
@@ -53,6 +67,12 @@ export default function TournamentsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [previewOk, setPreviewOk] = useState(true);
+
+  // validation state
+  const [errors, setErrors] = useState({});
+
+  // memoize today string
+  const todayStr = useMemo(() => todayLocalStr(), []);
 
   async function load() {
     setLoading(true);
@@ -65,22 +85,40 @@ export default function TournamentsPage() {
   }
   useEffect(() => { load(); }, []);
 
+  function validate(nextForm) {
+    const e = {};
+    if (!nextForm.name.trim()) e.name = "Name is required.";
+    if (!nextForm.place.trim()) e.place = "Ground is required.";
+
+    if (!nextForm.date) {
+      e.date = "Date is required.";
+    } else if (isPastDateStr(nextForm.date)) {
+      e.date = "Please select today or a future date.";
+    }
+
+    if (!nextForm.logo.trim()) e.logo = "Tournament logo is required.";
+    return e;
+  }
+
   function onChange(e) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (e.target.name === "logo") setPreviewOk(true);
+    const { name, value } = e.target;
+    const next = { ...form, [name]: value };
+    setForm(next);
+    if (name === "logo") setPreviewOk(true);
+    // live-validate changed field
+    const fresh = validate(next);
+    setErrors((prev) => ({ ...prev, [name]: fresh[name] }));
   }
 
   async function onSubmit(e) {
     e.preventDefault();
-    if (!form.name.trim() || !form.date || !form.place.trim()) return;
-    if (!form.logo.trim()) {
-      alert("Tournament logo is required.");
-      return;
-    }
+    const freshErrors = validate(form);
+    setErrors(freshErrors);
+    if (Object.keys(freshErrors).length > 0) return;
 
     const payload = {
       name: form.name.trim(),
-      date: form.date,
+      date: form.date, // already validated to be >= today
       place: form.place.trim(),
       logo: form.logo.trim(),
       ...(form.logoKey && { logoKey: form.logoKey }),
@@ -91,19 +129,26 @@ export default function TournamentsPage() {
 
     setForm(emptyForm);
     setEditingId(null);
+    setErrors({});
     load();
   }
 
   function onEdit(t) {
     setEditingId(t.id);
+    const dateStr = t.date ? t.date.slice(0, 10) : "";
     setForm({
       name: t.name || "",
-      date: t.date ? t.date.slice(0, 10) : "",
+      date: dateStr,
       place: t.place || "",
       logo: t.logo || "",
       logoKey: t.logoKey || "",
     });
     setPreviewOk(true);
+    // If existing stored date is in the past, surface the error so admin must pick a new one
+    setErrors((prev) => ({
+      ...prev,
+      date: dateStr && isPastDateStr(dateStr) ? "Please select today or a future date." : undefined,
+    }));
   }
 
   async function onDelete(id) {
@@ -178,6 +223,8 @@ export default function TournamentsPage() {
     setPreviewOk(true);
   }
 
+  const invalid = (k) => Boolean(errors[k]);
+
   return (
     <div className="row g-4">
       {/* LEFT: form */}
@@ -217,39 +264,51 @@ export default function TournamentsPage() {
               </div>
             </div>
 
-            <form onSubmit={onSubmit} className="row g-3">
+            <form onSubmit={onSubmit} className="row g-3" noValidate>
               <div className="col-12">
                 <label className="form-label">Name</label>
                 <input
                   name="name"
-                  className="form-control"
+                  className={`form-control ${invalid("name") ? "is-invalid" : ""}`}
                   value={form.name}
                   onChange={onChange}
                   required
                 />
+                {invalid("name") && (
+                  <div className="invalid-feedback">{errors.name}</div>
+                )}
               </div>
 
               <div className="col-6">
                 <label className="form-label">Date</label>
+                {/* 🚫 disables past days in the picker */}
                 <input
                   type="date"
                   name="date"
-                  className="form-control"
+                  className={`form-control ${invalid("date") ? "is-invalid" : ""}`}
                   value={form.date}
                   onChange={onChange}
+                  min={todayStr}
                   required
                 />
+
+                {invalid("date") && (
+                  <div className="invalid-feedback">{errors.date}</div>
+                )}
               </div>
 
               <div className="col-6">
                 <label className="form-label">Ground</label>
                 <input
                   name="place"
-                  className="form-control"
+                  className={`form-control ${invalid("place") ? "is-invalid" : ""}`}
                   value={form.place}
                   onChange={onChange}
                   required
                 />
+                {invalid("place") && (
+                  <div className="invalid-feedback">{errors.place}</div>
+                )}
               </div>
 
               {/* Upload to Firebase RTDB as Data URL */}
@@ -258,10 +317,13 @@ export default function TournamentsPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  className="form-control"
+                  className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
                   onChange={handleLogoFile}
                   disabled={uploading}
                 />
+                {invalid("logo") && (
+                  <div className="invalid-feedback">{errors.logo}</div>
+                )}
                 {uploadPct > 0 && uploadPct < 100 && (
                   <div className="progress mt-2">
                     <div
@@ -294,7 +356,7 @@ export default function TournamentsPage() {
                   <span className="input-group-text">URL</span>
                   <input
                     name="logo"
-                    className="form-control"
+                    className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
                     value={form.logo}
                     onChange={onChange}
                     placeholder="Paste an image URL or leave blank"
@@ -324,6 +386,7 @@ export default function TournamentsPage() {
                       setEditingId(null);
                       setForm(emptyForm);
                       setPreviewOk(true);
+                      setErrors({});
                     }}
                     disabled={loading || uploading}
                   >
