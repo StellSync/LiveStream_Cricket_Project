@@ -1287,6 +1287,7 @@ export default function ScoreDashboard() {
                             color: "white",
                             "&:hover": { bgcolor: "#e53935" },
                           }}
+                          onClick={(e) => handleScore("Normal Runs", "W")}
                         >
                           Wicket
                         </Button>
