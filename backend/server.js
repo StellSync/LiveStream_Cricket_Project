@@ -397,18 +397,27 @@ app.get("/overlay/six", (_req, res) => {
 </body></html>`);
 });
 
-// ---- WICKET (flash + shake) ----
+
 // ---- WICKET (flash + drop + shake + shards) ----
 app.get("/overlay/wicket", (_req, res) => {
-  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  res
+    .set("Content-Type", "text/html; charset=utf-8")
+    .send(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>WICKET</title>
 <style>
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  .flash{position:fixed;inset:0;background:rgba(255,255,255,.95);animation:flash .32s ease-out 1}
-  @keyframes flash{from{opacity:.95}to{opacity:0}}
-  .field{position:fixed;inset:0;display:grid;place-items:center;
-         background:radial-gradient(65vmin 65vmin at 50% 50%,rgba(255,0,76,.17),transparent 70%)}
+
+  /* removed .flash + keyframes to avoid any white flash */
+
+  .field{
+    position:fixed;inset:0;display:grid;place-items:center;
+    /* keep or remove the subtle pink glow; set to transparent if you want none */
+    background:radial-gradient(65vmin 65vmin at 50% 50%,rgba(255,0,76,.17),transparent 70%);
+  }
   .badge{
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     font-weight:1000;letter-spacing:.08em;
@@ -421,7 +430,9 @@ app.get("/overlay/wicket", (_req, res) => {
     animation:drop .55s cubic-bezier(.2,.9,.25,1.4) forwards,
              shake .9s ease-in-out .55s 1;
   }
-  .label{font:800 3.4vmin system-ui;color:#ffd6df;text-align:center;margin-top:10px;letter-spacing:.1em}
+  .label{
+    font:800 3.4vmin system-ui;color:#ffd6df;text-align:center;margin-top:10px;letter-spacing:.1em
+  }
   @keyframes drop{to{transform:translateY(0) scale(1)}}
   @keyframes shake{
     0%,100%{transform:translateY(0)}
@@ -448,9 +459,10 @@ app.get("/overlay/wicket", (_req, res) => {
     100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y)))
                          rotate(var(--a)) scale(1)}
   }
-</style></head>
+</style>
+</head>
 <body>
-  <div class="flash"></div>
+  <!-- removed: <div class="flash"></div> -->
   <div class="field">
     <div>
       <div class="badge">W</div>
@@ -472,7 +484,8 @@ app.get("/overlay/wicket", (_req, res) => {
     s.appendChild(e);
   }
 </script>
-</body></html>`);
+</body>
+</html>`);
 });
 
 // (optional uppercase alias)
