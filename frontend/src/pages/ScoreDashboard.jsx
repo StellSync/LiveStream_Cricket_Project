@@ -1339,7 +1339,13 @@ export default function ScoreDashboard() {
                       gutterBottom
                       color="primary"
                     >
-                      {battingTeamId ? `${team1Name} Batting` : "Batting Team"}
+                      {battingTeamId
+                        ? `${
+                            battingTeamId === Number(currentMatch?.team1Id)
+                              ? team1Name
+                              : team2Name
+                          } Batting`
+                        : "Batting Team"}
                     </Typography>
                     <Table size="small">
                       <TableHead>
@@ -1379,7 +1385,13 @@ export default function ScoreDashboard() {
                       gutterBottom
                       color="secondary"
                     >
-                      {bowlingTeamId ? `${team2Name} Bowling` : "Bowling Team"}
+                      {bowlingTeamId
+                        ? `${
+                            bowlingTeamId === Number(currentMatch?.team1Id)
+                              ? team1Name
+                              : team2Name
+                          } Bowling`
+                        : "Bowling Team"}
                     </Typography>
                     <Table size="small">
                       <TableHead>
