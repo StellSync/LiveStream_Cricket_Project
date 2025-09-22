@@ -40,7 +40,7 @@ try {
   console.error("[server] Continuing to serve HTTP (DB-backed routes may fail).");
 }
 
-// ---------- health check (Electron waits for this) ----------
+// ---------- health check ----------
 app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
 // ---------- API ROUTES ----------
@@ -49,7 +49,7 @@ app.use("/api/team", teamRoutes);
 app.use("/api/players", playerRoutes);
 app.use("/api/matches", matchRoutes);
 
-// ---------- In-memory score (demo) ----------
+// ---------- Legacy demo score (kept for compatibility) ----------
 let score = {
   matchId: "demo-123",
   teamA: "Team A",
@@ -94,7 +94,7 @@ app.get("/sse", (req, res) => {
   req.on("close", () => clients.delete(res));
 });
 
-// ---------- OBS overlay: scoreboard bar ----------
+// ---------- Legacy simple overlay (kept) ----------
 app.get("/overlay", (_req, res) => {
   const html = `<!doctype html>
 <html>
@@ -145,7 +145,7 @@ app.get("/overlay", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(html);
 });
 
-// ---------- Current match info (SSE) ----------
+// ---------- Current match info (kept) ----------
 let currentMatchInfo = {
   matchId: null,
   tournamentName: "",
@@ -186,77 +186,7 @@ app.get("/sse-match", (req, res) => {
   req.on("close", () => matchClients.delete(res));
 });
 
-// ---------- Overlay: match info bar ----------
-app.get("/overlay/match", (_req, res) => {
-  const html = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>OBS Overlay - Match Info</title>
-<style>
-  html, body { margin:0; padding:0; background:transparent; }
-  .bar {
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    width: 100vw; min-height: 100px; 
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    box-sizing:border-box; padding:8px 16px; color:#fff;
-    background: linear-gradient(90deg, #111 0%, #222 100%);
-    border-top:2px solid #ff9800; border-bottom:2px solid #ff9800;
-    text-align: center;
-  }
-  .tournament { font-weight:700; font-size:22px; margin-bottom:8px; display:flex; align-items:center; gap:10px; }
-  .tournament img { height:32px; }
-  .teams { display:flex; align-items:center; gap:30px; margin-bottom:6px; }
-  .team { display:flex; align-items:center; gap:10px; font-size:20px; font-weight:600; }
-  .team img { height:40px; }
-  .details { font-size:16px; opacity:0.9; }
-</style>
-</head>
-<body>
-  <div class="bar" id="bar">
-    <div class="tournament">
-      <img id="tournamentLogo" src="" alt="Tournament" />
-      <span id="tournament">Tournament Name</span>
-    </div>
-    <div class="teams">
-      <div class="team">
-        <img id="team1Logo" src="" alt="Team 1" />
-        <span id="team1">Team A</span>
-      </div>
-      <span>vs</span>
-      <div class="team">
-        <img id="team2Logo" src="" alt="Team 2" />
-        <span id="team2">Team B</span>
-      </div>
-    </div>
-    <div class="details">
-      <span id="matchNo">Match #1</span> —
-      <span id="place">Ground</span> —
-      <span id="overs">6 balls/over, 20 overs</span>
-    </div>
-  </div>
-<script>
-  function render(m) {
-    tournament.textContent = m.tournamentName || "—";
-    tournamentLogo.src = m.tournamentLogo || "";
-    team1.textContent = m.team1 || "—";
-    team2.textContent = m.team2 || "—";
-    team1Logo.src = m.team1Logo || "";
-    team2Logo.src = m.team2Logo || "";
-    matchNo.textContent = "Match #" + (m.matchNumber || "—");
-    place.textContent = m.ground || "—";
-    overs.textContent = (m.overType || "-") + " balls/over, " + (m.noOfOvers || "-") + " overs";
-  }
-  const es = new EventSource("/sse-match");
-  es.onmessage = (e) => render(JSON.parse(e.data));
-</script>
-</body>
-</html>`;
-  res.set("Content-Type", "text/html; charset=utf-8").send(html);
-});
-
-// ---------- Overlay: FOUR ----------
+// ---------- Event overlays (kept) ----------
 app.get("/overlay/four", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -322,7 +252,6 @@ app.get("/overlay/four", (_req, res) => {
 </body></html>`);
 });
 
-// ---------- Overlay: SIX ----------
 app.get("/overlay/six", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -380,7 +309,6 @@ app.get("/overlay/six", (_req, res) => {
 </body></html>`);
 });
 
-// ---------- Overlay: WICKET (no white flash) ----------
 app.get("/overlay/wicket", (_req, res) => {
   res
     .set("Content-Type", "text/html; charset=utf-8")
@@ -461,9 +389,313 @@ app.get("/overlay/wicket", (_req, res) => {
 </body>
 </html>`);
 });
-
-// uppercase alias
 app.get("/overlay/Wicket", (req, res) => res.redirect(302, "/overlay/wicket"));
+
+// ============================================================================
+// NEW: Professional SCOREBAR overlay (single bar, current stats only)
+// ============================================================================
+
+// Live overlay state (driven by your ScoreDashboard values)
+let overlayState = {
+  matchId: null,
+
+  // teams
+  battingTeam: "",
+  battingTeamLogo: "",
+  bowlingTeam: "",
+  bowlingTeamLogo: "",
+
+  // totals
+  runs: 0,
+  wickets: 0,
+  overs: 0,     // completed overs (integer)
+  balls: 0,     // balls in current over (0..ballsPerOver-1)
+  ballsPerOver: 6,
+  runRate: "0.00",
+
+  // players
+  striker:     { name: "", runs: 0, balls: 0 },
+  nonStriker:  { name: "", runs: 0, balls: 0 },
+
+  // bowler
+  bowler: { name: "", wickets: 0, overs: 0, runs: 0 },
+
+  // current-over bubbles (e.g., ["1","1","Wd1","Nb0","W","4"])
+  overBalls: [],
+};
+
+const overlayClients = new Set();
+function broadcastOverlay(data) {
+  const payload = `data: ${JSON.stringify(data)}\n\n`;
+  for (const res of overlayClients) res.write(payload);
+}
+
+// Read current overlay state
+app.get("/api/overlay", (_req, res) => res.json(overlayState));
+
+// Patch overlay state (call this from your page after each scoring input)
+app.post("/api/overlay", (req, res) => {
+  const b = req.body || {};
+  overlayState = {
+    ...overlayState,
+    ...Object.fromEntries(Object.entries(b).filter(([_, v]) => v !== undefined)),
+    striker:     { ...overlayState.striker,    ...(b.striker || {}) },
+    nonStriker:  { ...overlayState.nonStriker, ...(b.nonStriker || {}) },
+    bowler:      { ...overlayState.bowler,     ...(b.bowler || {}) },
+    overBalls:   Array.isArray(b.overBalls) ? b.overBalls : overlayState.overBalls,
+  };
+  // Auto-calc RR if not supplied
+  const bpo = Number(overlayState.ballsPerOver || 6);
+  const tovers = Number(overlayState.overs || 0) + Number(overlayState.balls || 0)/bpo;
+  if (!b.runRate) {
+    overlayState.runRate = tovers > 0 ? (Number(overlayState.runs || 0) / tovers).toFixed(2) : "0.00";
+  }
+  broadcastOverlay(overlayState);
+  res.json({ ok: true, overlay: overlayState });
+});
+
+// Server-Sent Events stream for the overlay
+app.get("/sse-overlay", (req, res) => {
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-store",
+    Connection: "keep-alive",
+  });
+  res.flushHeaders?.();
+  res.write(`data: ${JSON.stringify(overlayState)}\n\n`);
+  overlayClients.add(res);
+  req.on("close", () => overlayClients.delete(res));
+});
+
+// The single scorebar overlay UI for OBS
+app.get("/overlay/scorebar", (_req, res) => {
+  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Scorebar</title>
+<style>
+  html,body{margin:0;background:transparent}
+  *{box-sizing:border-box}
+  :root{
+    --blue:#1e3a8a;        /* indigo-800 */
+    --blue2:#0f1e4d;       /* deep indigo for gradient */
+    --sky:#2563eb;         /* blue-600 */
+    --orange:#ef4444;      /* red-ish/orange for score tile */
+    --chip:#14b8a6;        /* teal chips for legal balls */
+    --mut:#6b7280;         /* grey text */
+    --white:rgba(255,255,255,.96);
+  }
+
+  /* bar container */
+  .wrap{
+    width:100vw;
+    padding:10px 16px;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    color:#0b1220;
+    background:linear-gradient(90deg,rgba(0,0,0,.0),rgba(0,0,0,.0));
+  }
+
+  /* white left/right cards */
+  .card{
+    background:var(--white);
+    border-radius:18px;
+    padding:10px 12px;
+    min-width:280px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.18);
+  }
+  .teamlogo, .opp-logo{
+    width:42px;height:42px;border-radius:10px;background:#fff;object-fit:contain;
+    box-shadow:0 1px 4px rgba(0,0,0,.15);
+  }
+  .bats{
+    display:flex;flex-direction:column;gap:2px;min-width:0;
+  }
+  .line{display:flex;align-items:center;gap:8px;white-space:nowrap}
+  .nm{font-weight:800;font-size:14px;max-width:18ch;overflow:hidden;text-overflow:ellipsis}
+  .fig{font-weight:800;font-size:14px}
+  .strike{width:7px;height:7px;border-radius:50%;background:#ef4444}
+  .mut{color:var(--mut)}
+
+  /* center pill */
+  .pillbox{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    flex:1 1 auto;
+    min-width:420px;
+  }
+  .pill{
+    display:flex;align-items:center;gap:0;
+    background:linear-gradient(180deg,#1f2d67 0%, #0f1f56 100%);
+    border-radius:18px;
+    overflow:hidden;
+    color:#fff;
+    box-shadow:0 2px 12px rgba(0,0,0,.28);
+  }
+  .pill .match{
+    padding:10px 12px;
+    font-weight:900;
+    font-size:13px;
+    background:rgba(255,255,255,.08);
+    letter-spacing:.04em;
+  }
+  .pill .score{
+    padding:10px 16px;
+    background:linear-gradient(180deg,#ff7b60,#ef4444);
+    font-weight:1000;
+    font-size:20px;
+    letter-spacing:.02em;
+    display:flex;align-items:center;gap:10px;
+  }
+  .ov-badge{
+    background:#1b294f;
+    color:#dbeafe;
+    font:800 10px/1 system-ui;
+    padding:4px 8px;border-radius:12px;
+    margin-left:6px;
+  }
+  .chiprow{
+    display:flex;align-items:center;gap:6px;min-height:22px;
+  }
+  .chip{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;
+        font:900 11px/1 system-ui;color:#fff}
+  .chip.r{background:var(--chip)}
+  .chip.wd{background:#fb8c00}
+  .chip.nb{background:#8e24aa}
+  .chip.w{background:#ef4444}
+
+  .rr{
+    margin-top:-2px;
+    background:linear-gradient(90deg,#0e2a7a,#0a1d53);
+    color:#cfe0ff;
+    border-radius:10px;
+    padding:4px 10px;
+    font-weight:900;
+    font-size:11px;
+    letter-spacing:.06em;
+  }
+
+  /* right card aligns like left */
+  .right .bwl{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .right .nm{max-width:16ch}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- LEFT: current batters (on-strike marked) -->
+    <div class="card left">
+      <img id="bLogo" class="teamlogo" alt="">
+      <div class="bats">
+        <div class="line">
+          <span class="strike" id="strikeDot" style="visibility:hidden"></span>
+          <span class="nm" id="b1Name">—</span>
+          <span class="fig" id="b1Fig">0 (0)</span>
+        </div>
+        <div class="line mut">
+          <span class="nm" id="b2Name">—</span>
+          <span class="fig" id="b2Fig">0 (0)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER: match pill + current over chips + run rate strip -->
+    <div class="pillbox">
+      <div class="pill">
+        <div class="match" id="mt">— v —</div>
+        <div class="score">
+          <span id="tot">0-0</span>
+          <span class="ov-badge" id="ovb">0.0 overs</span>
+        </div>
+      </div>
+      <div class="chiprow" id="chips"></div>
+      <div class="rr" id="rr">RUN RATE 0.00</div>
+    </div>
+
+    <!-- RIGHT: current bowler + bowling team logo -->
+    <div class="card right">
+      <div class="bwl">
+        <div class="line">
+          <span class="nm" id="bowlerName">—</span>
+          <span class="fig" id="bowlerFig">0-0-0</span>
+        </div>
+        <div class="line mut">
+          <span id="fieldTeam">—</span>
+        </div>
+      </div>
+      <img id="fLogo" class="opp-logo" alt="">
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const bLogo=$('bLogo'), b1Name=$('b1Name'), b1Fig=$('b1Fig'),
+        b2Name=$('b2Name'), b2Fig=$('b2Fig'), strikeDot=$('strikeDot');
+  const mt=$('mt'), tot=$('tot'), ovb=$('ovb'), rr=$('rr'), chips=$('chips');
+  const bowlerName=$('bowlerName'), bowlerFig=$('bowlerFig'),
+        fieldTeam=$('fieldTeam'), fLogo=$('fLogo');
+
+  function mkChip(label){
+    const d=document.createElement('div'); d.className='chip r'; d.textContent=label;
+    if(label==='W'){ d.className='chip w'; }
+    else if(label.startsWith('Wd')){ d.className='chip wd'; }
+    else if(label.startsWith('Nb')){ d.className='chip nb'; }
+    return d;
+  }
+
+  function render(s){
+    // teams/match line inside pill
+    const batCode = (s.battingTeam||'').toUpperCase();
+    const fldCode = (s.bowlingTeam||'').toUpperCase();
+    mt.textContent = batCode + ' v ' + fldCode;
+
+    // total + overs badge
+    tot.textContent = (s.runs||0) + '-' + (s.wickets||0);
+    const bpo = Number(s.ballsPerOver||6);
+    ovb.textContent = (s.overs||0) + '.' + (s.balls||0) + ' overs';
+
+    // run rate strip
+    rr.textContent = 'RUN RATE ' + (s.runRate || '0.00');
+
+    // current over chips
+    chips.innerHTML = '';
+    (s.overBalls||[]).forEach(b => chips.appendChild(mkChip(b)));
+
+    // batters (show on-strike as top line)
+    const st = s.striker || {};
+    const ns = s.nonStriker || {};
+    strikeDot.style.visibility = (st.name ? 'visible' : 'hidden');
+    b1Name.textContent = (st.name||'').toUpperCase();
+    b1Fig.textContent  = (st.runs||0) + ' (' + (st.balls||0) + ')';
+    b2Name.textContent = (ns.name||'').toUpperCase();
+    b2Fig.textContent  = (ns.runs||0) + ' (' + (ns.balls||0) + ')';
+
+    // logos
+    bLogo.src = s.battingTeamLogo || '';
+    fLogo.src = s.bowlingTeamLogo || '';
+
+    // bowler block
+    bowlerName.textContent = (s.bowler?.name||'').toUpperCase();
+    bowlerFig.textContent  = (s.bowler?.wickets||0) + '-' + (s.bowler?.overs||0) + '-' + (s.bowler?.runs||0);
+    fieldTeam.textContent  = fldCode || '—';
+  }
+
+  const es = new EventSource('/sse-overlay');
+  es.onmessage = (e) => render(JSON.parse(e.data));
+</script>
+</body>
+</html>`);
+});
+
 
 // ---------- Serve built React when Electron provides the path ----------
 const distFromElectron = process.env.FRONTEND_DIST;
@@ -481,5 +713,6 @@ app.use(errorHandler);
 // ---------- Start ----------
 app.listen(PORT, () => {
   console.log(`Scoreboard backend → http://localhost:${PORT}`);
-  console.log(`Overlay for OBS   → http://localhost:${PORT}/overlay`);
+  console.log(`Overlay (legacy)  → http://localhost:${PORT}/overlay`);
+  console.log(`Overlay (scorebar)→ http://localhost:${PORT}/overlay/scorebar`);
 });
