@@ -551,7 +551,8 @@ app.get("/overlay/scorebar", (_req, res) => {
   }
   .pill .score{
     padding:10px 16px;
-    background:linear-gradient(180deg,#ff7b60,#ef4444);
+    background:linear-gradient(135deg,#2563eb,#1e3a8a);
+
     font-weight:1000;
     font-size:20px;
     letter-spacing:.02em;
@@ -588,6 +589,92 @@ app.get("/overlay/scorebar", (_req, res) => {
   /* right card aligns like left */
   .right .bwl{display:flex;flex-direction:column;gap:2px;min-width:0}
   .right .nm{max-width:16ch}
+
+  .card.right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  min-width: 280px;
+
+  /* glass effect */
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.5); /* green border */
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+
+  /* green tinted gradient */
+  background-image: linear-gradient(
+    135deg,
+    rgba(34, 37, 197, 0.25),  /* emerald green */
+    rgba(22, 125, 163, 0.25)   /* darker green */
+  );
+
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35),
+              inset 0 0 12px rgba(34, 34, 197, 0.25);
+}
+
+
+
+.card.left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  min-width: 280px;
+
+  /* glass effect */
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.46); /* green border */
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+
+  /* green tinted gradient */
+  background-image: linear-gradient(
+    135deg,
+    rgba(34, 37, 197, 0.25),  /* emerald green */
+    rgba(22, 125, 163, 0.25)   /* darker green */
+  );
+
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35),
+              inset 0 0 12px rgba(0, 0, 0, 0.25);
+}
+
+
+
+
+.wrap {
+  width: 100vw;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+
+  /* glass strip */
+  background: rgba(15, 23, 42, 0.55); /* semi-transparent dark navy */
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+
+  /* gradient overlay */
+  background-image: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.9),   /* emerald tint (left) */
+    rgba(81, 36, 144, 0.75),  /* blue tint (center) */
+    rgba(0, 0, 0, 0.86)    /* emerald tint (right) */
+  );
+
+  border-top: 2px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #f8fafc;
+}
+
+
 </style>
 </head>
 <body>
