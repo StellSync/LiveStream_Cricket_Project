@@ -6,7 +6,7 @@ const TeamSchema = new mongoose.Schema(
     id: { type: Number, unique: true },                 // auto-increment primary key (teams)
     teamName: { type: String, required: true, trim: true },
     logo: { type: String, required: true, trim: true },
-    contactNo: { type: String, required: true, trim: true }, // keep as string for leading 0, +94, etc.
+    contactNo: { type: String,trim: true }, // keep as string for leading 0, +94, etc.
     address: { type: String, required: true, trim: true }
   },
   { timestamps: true }

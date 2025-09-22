@@ -1,16 +1,24 @@
 // backend/server.js
-import dotenv from "dotenv";
+// ── load dotenv only if available (dev); skip in packaged prod ────────────────
+try {
+  const { default: dotenv } = await import("dotenv");
+  dotenv.config();
+  console.log("[dotenv] loaded");
+} catch {
+  // no-op in production (package missing is OK)
+}
+
 import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { connectDB } from "./config/db.js";
+
 import tournamentRoutes from "./routes/tournamentRoutes.js";
 import teamRoutes from "./routes/teamRoutes.js";
-import { errorHandler } from "./middleware/errorHandler.js";
 import playerRoutes from "./routes/playerRoutes.js";
 import matchRoutes from "./routes/matchRoutes.js";
-dotenv.config();
+import { errorHandler } from "./middleware/errorHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,13 +26,22 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS + JSON
+// ---------- middleware ----------
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-// ---------- DB ----------
+// ---------- DB (non-fatal on failure) ----------
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017";
-await connectDB(MONGO_URI);
+try {
+  await connectDB(MONGO_URI);
+  console.log("[server] MongoDB connected");
+} catch (err) {
+  console.error("[server] Mongo connection failed:", err?.message || err);
+  console.error("[server] Continuing to serve HTTP (DB-backed routes may fail).");
+}
+
+// ---------- health check (Electron waits for this) ----------
+app.get("/healthz", (_req, res) => res.json({ ok: true }));
 
 // ---------- API ROUTES ----------
 app.use("/api/tournaments", tournamentRoutes);
@@ -32,7 +49,7 @@ app.use("/api/team", teamRoutes);
 app.use("/api/players", playerRoutes);
 app.use("/api/matches", matchRoutes);
 
-// ---------- In-memory score (kept for demo; can later read from DB) ----------
+// ---------- In-memory score (demo) ----------
 let score = {
   matchId: "demo-123",
   teamA: "Team A",
@@ -47,7 +64,7 @@ let score = {
 };
 
 const clients = new Set();
-function broadcast(data) {
+function broadcastScore(data) {
   const payload = `data: ${JSON.stringify(data)}\n\n`;
   for (const res of clients) res.write(payload);
 }
@@ -58,12 +75,10 @@ app.post("/api/score", (req, res) => {
   const body = req.body || {};
   score = {
     ...score,
-    ...Object.fromEntries(
-      Object.entries(body).filter(([_, v]) => v !== undefined)
-    ),
+    ...Object.fromEntries(Object.entries(body).filter(([_, v]) => v !== undefined)),
     lastUpdated: new Date().toISOString(),
   };
-  broadcast(score);
+  broadcastScore(score);
   res.json({ ok: true, score });
 });
 
@@ -79,7 +94,7 @@ app.get("/sse", (req, res) => {
   req.on("close", () => clients.delete(res));
 });
 
-// ---------- OBS overlay ----------
+// ---------- OBS overlay: scoreboard bar ----------
 app.get("/overlay", (_req, res) => {
   const html = `<!doctype html>
 <html>
@@ -127,30 +142,10 @@ app.get("/overlay", (_req, res) => {
 </script>
 </body>
 </html>`;
-  res.set("Content-Type", "text/html; charset=utf-8");
-  res.send(html);
+  res.set("Content-Type", "text/html; charset=utf-8").send(html);
 });
 
-// ---------- Serve built React (when Electron passes path) ----------
-const distFromElectron = process.env.FRONTEND_DIST;
-if (distFromElectron) {
-  console.log("Serving admin UI from:", distFromElectron);
-  app.use(express.static(distFromElectron));
-  app.get("/", (_req, res) => {
-    res.sendFile(path.join(distFromElectron, "index.html"));
-  });
-}
-
-// ---------- Errors ----------
-app.use(errorHandler);
-
-// ---------- Start ----------
-app.listen(PORT, () => {
-  console.log(`Scoreboard backend → http://localhost:${PORT}`);
-  console.log(`Overlay for OBS → http://localhost:${PORT}/overlay`);
-});
-
-// --- In server.js ---
+// ---------- Current match info (SSE) ----------
 let currentMatchInfo = {
   matchId: null,
   tournamentName: "",
@@ -191,6 +186,7 @@ app.get("/sse-match", (req, res) => {
   req.on("close", () => matchClients.delete(res));
 });
 
+// ---------- Overlay: match info bar ----------
 app.get("/overlay/match", (_req, res) => {
   const html = `<!doctype html>
 <html>
@@ -252,18 +248,15 @@ app.get("/overlay/match", (_req, res) => {
     place.textContent = m.ground || "—";
     overs.textContent = (m.overType || "-") + " balls/over, " + (m.noOfOvers || "-") + " overs";
   }
-
   const es = new EventSource("/sse-match");
   es.onmessage = (e) => render(JSON.parse(e.data));
 </script>
 </body>
 </html>`;
-  res.set("Content-Type", "text/html; charset=utf-8");
-  res.send(html);
+  res.set("Content-Type", "text/html; charset=utf-8").send(html);
 });
 
-// ---- FOUR (big "4" with simple pop animation) ----
-// ---- FOUR (neon pop + confetti) ----
+// ---------- Overlay: FOUR ----------
 app.get("/overlay/four", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -287,8 +280,6 @@ app.get("/overlay/four", (_req, res) => {
   }
   .label{font:700 3.4vmin system-ui;color:#dff9ff;text-align:center;margin-top:10px;
          text-shadow:0 2px 10px rgba(0,0,0,.45);letter-spacing:.08em}
-
-  /* Confetti */
   .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
   .p{
     position:absolute;top:50%;left:50%;width:.8vmin;height:3.2vmin;border-radius:.3vmin;
@@ -303,8 +294,6 @@ app.get("/overlay/four", (_req, res) => {
     10%{opacity:1}
     100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--r)) scale(1)}
   }
-
-  /* Animations */
   @keyframes enter{to{transform:scale(1) rotate(0)}}
   @keyframes glow{to{box-shadow:0 0 22px 6px var(--glow),0 0 60px 10px rgba(0,225,255,.35) inset}}
 </style></head>
@@ -317,7 +306,6 @@ app.get("/overlay/four", (_req, res) => {
     <div class="confetti" id="c"></div>
   </div>
 <script>
-  // spawn a quick confetti burst
   const c = document.getElementById('c');
   const N = 40;
   for (let i=0;i<N;i++){
@@ -334,9 +322,7 @@ app.get("/overlay/four", (_req, res) => {
 </body></html>`);
 });
 
-
-// ---- SIX (big "6" with rings) ----
-// ---- SIX (cosmic rings + star trail) ----
+// ---------- Overlay: SIX ----------
 app.get("/overlay/six", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -345,13 +331,11 @@ app.get("/overlay/six", (_req, res) => {
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   .sky{position:fixed;inset:0;display:grid;place-items:center;
        background:radial-gradient(70vmin 70vmin at 50% 50%,rgba(255,255,255,.06),transparent 70%)}
-  /* rippling rings */
   .ring{position:absolute;border-radius:50%;border:7px solid rgba(255,255,255,.28);animation:pulse 1.8s ease-out infinite}
   .r1{width:40vmin;height:40vmin}
   .r2{width:60vmin;height:60vmin;animation-delay:.25s}
   .r3{width:80vmin;height:80vmin;animation-delay:.5s}
   @keyframes pulse{from{transform:scale(.6);opacity:.6}to{transform:scale(1.25);opacity:0}}
-  /* star trail */
   .trail{position:absolute;inset:0;pointer-events:none;overflow:hidden}
   .star{position:absolute;width:1.2vmin;height:1.2vmin;background:#fff;border-radius:50%;
         box-shadow:0 0 16px 6px rgba(255,255,255,.6);
@@ -385,7 +369,6 @@ app.get("/overlay/six", (_req, res) => {
     <div class="trail" id="t"></div>
   </div>
 <script>
-  // quick star trail sweep
   const t = document.getElementById('t');
   for(let i=0;i<10;i++){
     const s=document.createElement('div'); s.className='star';
@@ -397,18 +380,22 @@ app.get("/overlay/six", (_req, res) => {
 </body></html>`);
 });
 
-// ---- WICKET (flash + shake) ----
-// ---- WICKET (flash + drop + shake + shards) ----
+// ---------- Overlay: WICKET (no white flash) ----------
 app.get("/overlay/wicket", (_req, res) => {
-  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  res
+    .set("Content-Type", "text/html; charset=utf-8")
+    .send(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>WICKET</title>
 <style>
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  .flash{position:fixed;inset:0;background:rgba(255,255,255,.95);animation:flash .32s ease-out 1}
-  @keyframes flash{from{opacity:.95}to{opacity:0}}
-  .field{position:fixed;inset:0;display:grid;place-items:center;
-         background:radial-gradient(65vmin 65vmin at 50% 50%,rgba(255,0,76,.17),transparent 70%)}
+  .field{
+    position:fixed;inset:0;display:grid;place-items:center;
+    background:radial-gradient(65vmin 65vmin at 50% 50%,rgba(255,0,76,.17),transparent 70%);
+  }
   .badge{
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     font-weight:1000;letter-spacing:.08em;
@@ -421,7 +408,9 @@ app.get("/overlay/wicket", (_req, res) => {
     animation:drop .55s cubic-bezier(.2,.9,.25,1.4) forwards,
              shake .9s ease-in-out .55s 1;
   }
-  .label{font:800 3.4vmin system-ui;color:#ffd6df;text-align:center;margin-top:10px;letter-spacing:.1em}
+  .label{
+    font:800 3.4vmin system-ui;color:#ffd6df;text-align:center;margin-top:10px;letter-spacing:.1em
+  }
   @keyframes drop{to{transform:translateY(0) scale(1)}}
   @keyframes shake{
     0%,100%{transform:translateY(0)}
@@ -430,8 +419,6 @@ app.get("/overlay/wicket", (_req, res) => {
     60%{transform:translate(-4px,0) rotate(-.8deg)}
     80%{transform:translate(4px,0) rotate(.8deg)}
   }
-
-  /* shards burst */
   .shards{position:absolute;inset:0;pointer-events:none}
   .shard{
     position:absolute;top:50%;left:50%;
@@ -448,9 +435,9 @@ app.get("/overlay/wicket", (_req, res) => {
     100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y)))
                          rotate(var(--a)) scale(1)}
   }
-</style></head>
+</style>
+</head>
 <body>
-  <div class="flash"></div>
   <div class="field">
     <div>
       <div class="badge">W</div>
@@ -459,7 +446,6 @@ app.get("/overlay/wicket", (_req, res) => {
     <div class="shards" id="s"></div>
   </div>
 <script>
-  // radial shards
   const s = document.getElementById('s');
   const N = 28;
   for(let i=0;i<N;i++){
@@ -472,10 +458,28 @@ app.get("/overlay/wicket", (_req, res) => {
     s.appendChild(e);
   }
 </script>
-</body></html>`);
+</body>
+</html>`);
 });
 
-// (optional uppercase alias)
+// uppercase alias
 app.get("/overlay/Wicket", (req, res) => res.redirect(302, "/overlay/wicket"));
 
+// ---------- Serve built React when Electron provides the path ----------
+const distFromElectron = process.env.FRONTEND_DIST;
+if (distFromElectron) {
+  console.log("[server] Serving admin UI from:", distFromElectron);
+  app.use(express.static(distFromElectron));
+  app.get("/", (_req, res) => {
+    res.sendFile(path.join(distFromElectron, "index.html"));
+  });
+}
 
+// ---------- Errors ----------
+app.use(errorHandler);
+
+// ---------- Start ----------
+app.listen(PORT, () => {
+  console.log(`Scoreboard backend → http://localhost:${PORT}`);
+  console.log(`Overlay for OBS   → http://localhost:${PORT}/overlay`);
+});
