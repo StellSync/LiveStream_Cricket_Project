@@ -78,9 +78,8 @@ export default function ScoreDashboard() {
   const [bowlerRuns, setBowlerRuns] = useState(0);
   const [bowlerWickets, setBowlerWickets] = useState(0);
 
-  //Balling card
+  // Balling card
   const [overBallHistory, setOverBallHistory] = useState([]);
-  //const ballsPerOver = 6;
 
   // Lock scoring when an over completes until bowler changes
   const [scoringLocked, setScoringLocked] = useState(false);
@@ -251,20 +250,19 @@ export default function ScoreDashboard() {
     setBatsman2Balls(0);
   }, [batsman2]);
 
- useEffect(() => {
-  // bowler changed -> unlock scoring for next over
-  setBowlerOvers(0);
-  setBowlerMaidens(0);
-  setBowlerRuns(0);
-  setBowlerWickets(0);
-  setCurrentOverRuns(0);
-  setBalls(0);
-  setScoringLocked(false);
+  useEffect(() => {
+    // bowler changed -> unlock scoring for next over
+    setBowlerOvers(0);
+    setBowlerMaidens(0);
+    setBowlerRuns(0);
+    setBowlerWickets(0);
+    setCurrentOverRuns(0);
+    setBalls(0);
+    setScoringLocked(false);
 
-  // clear last over's ball history now that new bowler is set
-  setOverBallHistory([]);
-}, [bowler]);
-
+    // clear last over's ball history now that new bowler is set
+    setOverBallHistory([]);
+  }, [bowler]);
 
   useEffect(() => {
     setInningsRuns(0);
@@ -473,123 +471,256 @@ export default function ScoreDashboard() {
     });
   };
 
- const handleScore = (title, value) => {
-  if (value === "-") return;
-  if (scoringLocked) return; // guard if UI didn't already prevent it
+  const handleScore = (title, value) => {
+    if (value === "-") return;
+    if (scoringLocked) return; // guard if UI didn't already prevent it
 
-  const runs = Number(value);
-  const ballsPerOver = Number(overType || 6);
+    const runs = Number(value);
+    const ballsPerOver = Number(overType || 6);
 
-  const setStrikerRunsFn =
-    onStrike === "batsman1" ? setBatsman1Runs : setBatsman2Runs;
-  const setStrikerBallsFn =
-    onStrike === "batsman1" ? setBatsman1Balls : setBatsman2Balls;
+    const setStrikerRunsFn =
+      onStrike === "batsman1" ? setBatsman1Runs : setBatsman2Runs;
+    const setStrikerBallsFn =
+      onStrike === "batsman1" ? setBatsman1Balls : setBatsman2Balls;
 
-  const strikerId = onStrike === "batsman1" ? batsman1 : batsman2;
+    const strikerId = onStrike === "batsman1" ? batsman1 : batsman2;
 
-  // inside handleScore, replace updateBallsAndOver with this:
-const updateBallsAndOver = (maidensRunsThisBall = 0) => {
-  setBalls((prevBalls) => {
-    const newBalls = prevBalls + 1;
+    // inside handleScore, replace updateBallsAndOver with this:
+    const updateBallsAndOver = (maidensRunsThisBall = 0) => {
+      setBalls((prevBalls) => {
+        const newBalls = prevBalls + 1;
 
-    if (newBalls === ballsPerOver) {
-      // Over completed on this legal delivery
-      if ((currentOverRuns + maidensRunsThisBall) === 0) {
-        setBowlerMaidens((m) => m + 1);
-      }
-      setBowlerOvers((o) => o + 1);
-      setOvers((o) => o + 1);
+        if (newBalls === ballsPerOver) {
+          // Over completed on this legal delivery
+          if (currentOverRuns + maidensRunsThisBall === 0) {
+            setBowlerMaidens((m) => m + 1);
+          }
+          setBowlerOvers((o) => o + 1);
+          setOvers((o) => o + 1);
 
-      // keep the overBallHistory visible (DO NOT reset here)
-      setCurrentOverRuns(0);
-      setScoringLocked(true);   // lock until bowler changes
-      return 0;                 // .0 balls of next over
-    }
+          // keep the overBallHistory visible (DO NOT reset here)
+          setCurrentOverRuns(0);
+          setScoringLocked(true); // lock until bowler changes
+          return 0; // .0 balls of next over
+        }
 
-    return newBalls;
-  });
-};
-
-  if (!isNaN(runs)) {
-    if (title === "Normal Runs") {
-      // Normal runs: add to batsman, bowler, team; ball counts
-      setStrikerRunsFn((prev) => prev + runs);
-      setStrikerBallsFn((prev) => prev + 1);
-      setInningsRuns((prev) => prev + runs);
-      setBowlerRuns((prev) => prev + runs);
-      setCurrentOverRuns((prev) => prev + runs);
-
-      // Log this legal ball in the current over
-      setOverBallHistory((prev) => [...prev, String(runs)]);
-
-      // Close over if needed (LOCK only)
-      updateBallsAndOver(runs);
-
-      // Swap strike on odd runs
-      if (runs % 2 === 1) {
-        setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
-      }
-    } else if (title === "Wides") {
-      // Wides: team only (+1 base wide plus extra wides), NO ball
-      setInningsRuns((prev) => prev + runs + 1);
-      setOverBallHistory((prev) => [...prev, `Wd${runs}`]);
-      if ((runs + 1) % 2 === 1) {
-        setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
-      }
-    } else if (title === "No Balls") {
-      // No-balls: team +1 and (optional bat runs), NO ball
-      setInningsRuns((prev) => prev + runs + 1);
-      setBowlerRuns((prev) => prev + runs);
-      if (runs > 0) setStrikerRunsFn((prev) => prev + runs);
-      setOverBallHistory((prev) => [...prev, `Nb${runs}`]);
-      if ((runs + 1) % 2 === 1) {
-        setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
-      }
-    } else if (title === "Byes") {
-      // Byes: team only, ball counts; rotate strike on odd byes
-      setInningsRuns((prev) => prev + runs);
-      setCurrentOverRuns((prev) => prev + runs);
-      setStrikerBallsFn((prev) => prev + 1);
-      setOverBallHistory((prev) => [...prev, `B${runs}`]);
-
-      // Close over if needed (LOCK only)
-      updateBallsAndOver(runs);
-
-      if (runs % 2 === 1) {
-        setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
-      }
-    }
-  } else if (value === "W" && title === "Normal Runs") {
-    // Wicket on a legal delivery
-    setInningsWickets((prev) => prev + 1);
-    setBowlerWickets((prev) => prev + 1);
-    setStrikerBallsFn((prev) => prev + 1);
-
-    // Log wicket in current over
-    setOverBallHistory((prev) => [...prev, "W"]);
-
-    // Mark striker dismissed and remove from dropdowns
-    if (strikerId) {
-      setDismissedBatterIds((prev) => {
-        const next = new Set(prev.map(String));
-        next.add(String(strikerId));
-        return Array.from(next);
+        return newBalls;
       });
-    }
-    if (onStrike === "batsman1") {
-      setBatsman1("");
-      setOnStrike("batsman2");
-    } else {
-      setBatsman2("");
-      setOnStrike("batsman1");
-    }
+    };
 
-    // Close over if needed (LOCK only)
-    updateBallsAndOver(0);
+    if (!isNaN(runs)) {
+      if (title === "Normal Runs") {
+        // Normal runs: add to batsman, bowler, team; ball counts
+        setStrikerRunsFn((prev) => prev + runs);
+        setStrikerBallsFn((prev) => prev + 1);
+        setInningsRuns((prev) => prev + runs);
+        setBowlerRuns((prev) => prev + runs);
+        setCurrentOverRuns((prev) => prev + runs);
+
+        // Log this legal ball in the current over
+        setOverBallHistory((prev) => [...prev, String(runs)]);
+
+        // Close over if needed (LOCK only)
+        updateBallsAndOver(runs);
+
+        // Swap strike on odd runs
+        if (runs % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "Wides") {
+        // Wides: team only (+1 base wide plus extra wides), NO ball
+        setInningsRuns((prev) => prev + runs + 1);
+        setOverBallHistory((prev) => [...prev, `Wd${runs}`]);
+        if ((runs + 1) % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "No Balls") {
+        // No-balls: team +1 and (optional bat runs), NO ball
+        setInningsRuns((prev) => prev + runs + 1);
+        setBowlerRuns((prev) => prev + runs);
+        if (runs > 0) setStrikerRunsFn((prev) => prev + runs);
+        setOverBallHistory((prev) => [...prev, `Nb${runs}`]);
+        if ((runs + 1) % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "Byes") {
+        // Byes: team only, ball counts; rotate strike on odd byes
+        setInningsRuns((prev) => prev + runs);
+        setCurrentOverRuns((prev) => prev + runs);
+        setStrikerBallsFn((prev) => prev + 1);
+        setOverBallHistory((prev) => [...prev, `B${runs}`]);
+
+        // Close over if needed (LOCK only)
+        updateBallsAndOver(runs);
+
+        if (runs % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      }
+    } else if (value === "W" && title === "Normal Runs") {
+      // Wicket on a legal delivery
+      setInningsWickets((prev) => prev + 1);
+      setBowlerWickets((prev) => prev + 1);
+      setStrikerBallsFn((prev) => prev + 1);
+
+      // Log wicket in current over
+      setOverBallHistory((prev) => [...prev, "W"]);
+
+      // Mark striker dismissed and remove from dropdowns
+      if (strikerId) {
+        setDismissedBatterIds((prev) => {
+          const next = new Set(prev.map(String));
+          next.add(String(strikerId));
+          return Array.from(next);
+        });
+      }
+      if (onStrike === "batsman1") {
+        setBatsman1("");
+        setOnStrike("batsman2");
+      } else {
+        setBatsman2("");
+        setOnStrike("batsman1");
+      }
+
+      // Close over if needed (LOCK only)
+      updateBallsAndOver(0);
+    }
+  };
+
+  
+
+// Run-out handler: ball counts, batter out, no bowler wicket or runs
+const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
+  if (scoringLocked) return;
+ 
+  const outId = who === "batsman1" ? batsman1 : batsman2;
+  if (!outId) return;
+ 
+  // Ball counts to the striker on a legal delivery
+  if (onStrike === "batsman1") {
+    setBatsman1Balls((b) => b + 1);
+  } else {
+    setBatsman2Balls((b) => b + 1);
   }
+ 
+  // Team wicket + history (no change to bowler wickets or runs)
+  setInningsWickets((w) => w + 1);
+  setOverBallHistory((prev) => [...prev, "RO"]);
+ 
+  // Mark dismissed so they don't appear again
+  setDismissedBatterIds((prev) => {
+    const next = new Set(prev.map(String));
+    next.add(String(outId));
+    return Array.from(next);
+  });
+ 
+  // Clear the dismissed batter slot and adjust strike only if striker was out
+  if (who === "batsman1") {
+    setBatsman1("");
+    if (onStrike === "batsman1") setOnStrike("batsman2");
+  } else {
+    setBatsman2("");
+    if (onStrike === "batsman2") setOnStrike("batsman1");
+  }
+ 
+  // Legal delivery completed (no runs for maiden calc)
+  finishBallAndCheckOver(0);
 };
 
 
+  // ---------- PUSH SCOREBAR DATA TO BACKEND FOR OBS ----------
+  const postOverlay = async () => {
+    try {
+      if (!battingTeamId || !bowlingTeamId) return;
+
+      const bpo = Number(overType) || 6;
+      const totalOversFloat = overs + (balls / bpo || 0);
+      const runRate =
+        totalOversFloat > 0 ? (inningsRuns / totalOversFloat).toFixed(2) : "0.00";
+
+      await fetch("/api/overlay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          battingTeam: battingTeamCode,
+          battingTeamLogo,
+          bowlingTeam: bowlingTeamCode,
+          bowlingTeamLogo,
+
+          runs: inningsRuns,
+          wickets: inningsWickets,
+          overs,
+          balls,
+          ballsPerOver: bpo,
+
+          runRate,
+
+          striker: { name: strikerName, runs: strikerRuns, balls: strikerBalls },
+          nonStriker: {
+            name: nonStrikerName,
+            runs: nonStrikerRuns,
+            balls: nonStrikerBalls,
+          },
+
+          bowler: {
+            name: bowlerName,
+            wickets: bowlerWickets,
+            overs: bowlerOvers,
+            runs: bowlerRuns,
+          },
+
+          overBalls: overBallHistory, // e.g., ["1","1","Wd1","Nb0","W","4"]
+        }),
+      });
+    } catch (err) {
+      console.warn("Failed to push overlay:", err);
+    }
+  };
+
+  // Push overlay whenever scoring-relevant state changes
+  useEffect(() => {
+    postOverlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // match/team context
+    battingTeamId,
+    bowlingTeamId,
+    battingTeamLogo,
+    bowlingTeamLogo,
+    battingTeamCode,
+    bowlingTeamCode,
+    overType,
+
+    // inning summary
+    inningsRuns,
+    inningsWickets,
+    overs,
+    balls,
+
+    // players / strike
+    onStrike,
+    strikerName,
+    nonStrikerName,
+    strikerRuns,
+    strikerBalls,
+    nonStrikerRuns,
+    nonStrikerBalls,
+
+    // bowler
+    bowlerName,
+    bowlerOvers,
+    bowlerRuns,
+    bowlerWickets,
+
+    // current over visuals
+    overBallHistory,
+  ]);
+
+  // Also push whenever match header loaded (logos/names/ground ready)
+  useEffect(() => {
+    postOverlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMatchDetails]);
 
   // 3x3 scoring table
   const renderTable = (title, items) => (
@@ -896,7 +1027,7 @@ const updateBallsAndOver = (maidensRunsThisBall = 0) => {
                     {balls})
                   </Typography>
                 </Box>
- 
+
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
                   (RR:{" "}
                   {(() => {
@@ -910,21 +1041,21 @@ const updateBallsAndOver = (maidensRunsThisBall = 0) => {
                   })()}
                   )
                 </Typography>
- 
+
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
                   {strikerName.toUpperCase()} {strikerRuns} ({strikerBalls})
                 </Typography>
- 
+
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
                   {nonStrikerName.toUpperCase()} {nonStrikerRuns} (
                   {nonStrikerBalls})
                 </Typography>
- 
+
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
                   {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-
                   {bowlerRuns}
                 </Typography>
- 
+
                 <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
                   {bowlingTeamLogo && (
                     <Box
@@ -936,7 +1067,7 @@ const updateBallsAndOver = (maidensRunsThisBall = 0) => {
                   )}
                 </Box>
               </Box>
- 
+
               {/* Current Over Balls Strip */}
               <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
                 {overBallHistory.length > 0 ? (
@@ -1419,33 +1550,38 @@ const updateBallsAndOver = (maidensRunsThisBall = 0) => {
                           Wicket
                         </Button>
 
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          disabled
-                          sx={{
-                            bgcolor: "#d32f2f",
-                            color: "white",
-                            "&:hover": { bgcolor: "#c62828" },
-                          }}
-                        >
-                          Run out (Batsman 1)
-                        </Button>
+                       <Button
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={scoringLocked}
+                        sx={{
+                          bgcolor: "#d32f2f",
+                          color: "white",
+                          "&:hover": { bgcolor: "#c62828" },
+                        }}
+                        onClick={() => handleRunOut("batsman1")}
+                      >
+                        Run out (Batsman 1)
+                      </Button>
+ 
+                      <Button
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={scoringLocked}
+                        sx={{
+                          bgcolor: "#b71c1c",
+                          color: "white",
+                          "&:hover": { bgcolor: "#7f0000" },
+                        }}
+                        onClick={() => handleRunOut("batsman2")}
+                      >
+                        Run out (Batsman 2)
+                      </Button>
+ 
 
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          disabled
-                          sx={{
-                            bgcolor: "#b71c1c",
-                            color: "white",
-                            "&:hover": { bgcolor: "#7f0000" },
-                          }}
-                        >
-                          Run out (Batsman 2)
-                        </Button>
+
                       </Stack>
                     </CardContent>
                   </Card>
