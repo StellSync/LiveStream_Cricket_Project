@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "main": "server.js",
+  "private": true,
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
@@ -10,12 +11,9 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
-    "express": "^4.19.2",
+    "express": "^4.21.2",
     "mongoose": "^8.18.1",
     "mongoose-sequence": "^6.0.1",
     "scoreboard-app": "file:.."
-  },
-  "devDependencies": {
-    "rimraf": "^6.0.1"
   }
 }
