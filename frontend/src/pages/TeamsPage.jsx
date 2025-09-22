@@ -16,6 +16,10 @@ function initials(name = "") {
     .join("");
 }
 
+// helpers for phone validation/standardization
+const digitsOnly = (s) => (s || "").replace(/\D/g, "");
+const isTenDigits = (s) => digitsOnly(s).length === 10;
+
 export default function TeamsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +33,9 @@ export default function TeamsPage() {
   const [uploadPct, setUploadPct] = useState(0);
   const [uploading, setUploading] = useState(false);
 
+  // validation state
+  const [errors, setErrors] = useState({});
+
   async function load() {
     setLoading(true);
     try {
@@ -38,22 +45,60 @@ export default function TeamsPage() {
       setLoading(false);
     }
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
+
+  function validate(next) {
+    const e = {};
+    // Team name required
+    if (!next.teamName.trim()) {
+      e.teamName = "Team name is required.";
+    } else if (next.teamName.trim().length < 2) {
+      e.teamName = "Team name must be at least 2 characters.";
+    }
+
+    // Phone required, must be exactly 10 digits (allow formatting while typing)
+    const phoneDigits = digitsOnly(next.contactNo);
+    if (!next.contactNo.trim()) {
+      e.contactNo = "Phone number is required.";
+    } else if (phoneDigits.length !== 10) {
+      e.contactNo = "Phone must contain exactly 10 digits.";
+    }
+
+    // Address optional (add a simple check if you want)
+    // if (next.address && next.address.trim().length < 3) e.address = "Address is too short.";
+
+    // Logo optional (you can enforce required by uncommenting)
+    // if (!next.logo.trim()) e.logo = "Logo is required.";
+
+    return e;
+  }
 
   function onChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const next = { ...form, [name]: value };
+    setForm(next);
     if (name === "logo") setPreviewOk(true);
+
+    // live-validate the changed field
+    const fresh = validate(next);
+    setErrors((prev) => ({ ...prev, [name]: fresh[name] }));
   }
 
   async function onSubmit(e) {
     e.preventDefault();
-    if (!form.teamName.trim()) return;
+
+    const freshErrors = validate(form);
+    setErrors(freshErrors);
+    if (Object.keys(freshErrors).length > 0) return;
+
+    const standardizedPhone = digitsOnly(form.contactNo); // store clean 10 digits
 
     const payload = {
       teamName: form.teamName.trim(),
       logo: form.logo.trim(),
-      contactNo: form.contactNo.trim(),
+      contactNo: standardizedPhone,
       address: form.address.trim(),
       ...(form.logoKey && { logoKey: form.logoKey }),
     };
@@ -63,6 +108,7 @@ export default function TeamsPage() {
 
     setForm(emptyForm);
     setEditingId(null);
+    setErrors({});
     load();
   }
 
@@ -76,6 +122,14 @@ export default function TeamsPage() {
       logoKey: t.logoKey || "",
     });
     setPreviewOk(true);
+    // surface any validation issues when loading existing data
+    setErrors(validate({
+      teamName: t.teamName || "",
+      logo: t.logo || "",
+      contactNo: t.contactNo || "",
+      address: t.address || "",
+      logoKey: t.logoKey || "",
+    }));
   }
 
   async function onDeleteClick(id) {
@@ -157,7 +211,7 @@ export default function TeamsPage() {
       ? items.filter(
           (t) =>
             t.teamName?.toLowerCase().includes(q) ||
-            t.contactNo?.toLowerCase().includes(q) ||
+            String(t.contactNo || "").toLowerCase().includes(q) ||
             t.address?.toLowerCase().includes(q)
         )
       : items.slice();
@@ -168,6 +222,8 @@ export default function TeamsPage() {
     );
     return sortAsc ? base : base.reverse();
   }, [items, query, sortAsc]);
+
+  const invalid = (k) => Boolean(errors[k]);
 
   return (
     <div className="row g-5">
@@ -222,17 +278,20 @@ export default function TeamsPage() {
               </div>
             </div>
 
-            <form onSubmit={onSubmit} className="row g-3">
+            <form onSubmit={onSubmit} className="row g-3" noValidate>
               <div className="col-12">
                 <label className="form-label">Team Name</label>
                 <input
                   name="teamName"
-                  className="form-control"
+                  className={`form-control ${invalid("teamName") ? "is-invalid" : ""}`}
                   value={form.teamName}
                   onChange={onChange}
                   placeholder="e.g. Jaffna Lions"
                   required
                 />
+                {invalid("teamName") && (
+                  <div className="invalid-feedback">{errors.teamName}</div>
+                )}
               </div>
 
               {/* Upload to RTDB as compressed Data URL */}
@@ -241,10 +300,13 @@ export default function TeamsPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  className="form-control"
+                  className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
                   onChange={handleLogoFile}
                   disabled={uploading}
                 />
+                {invalid("logo") && (
+                  <div className="invalid-feedback">{errors.logo}</div>
+                )}
                 {uploadPct > 0 && uploadPct < 100 && (
                   <div className="progress mt-2">
                     <div
@@ -254,7 +316,7 @@ export default function TeamsPage() {
                     >
                       {uploadPct}%
                     </div>
-                  </div>
+                    </div>
                 )}
                 {form.logoKey && (
                   <div className="form-text">
@@ -277,7 +339,7 @@ export default function TeamsPage() {
                   <span className="input-group-text">URL</span>
                   <input
                     name="logo"
-                    className="form-control"
+                    className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
                     value={form.logo}
                     onChange={onChange}
                     placeholder="Paste an image URL or leave blank"
@@ -298,23 +360,37 @@ export default function TeamsPage() {
               <div className="col-md-6">
                 <label className="form-label">Phone</label>
                 <input
+                  type="tel"
                   name="contactNo"
-                  className="form-control"
+                  inputMode="numeric"
+                  // pattern enforces 10 digits if user presses Enter on the field, but we also do JS validation
+                  pattern="\d{10}"
+                  className={`form-control ${invalid("contactNo") ? "is-invalid" : ""}`}
                   value={form.contactNo}
-                  onChange={onChange}
-                  placeholder="+94 7X XXX XXXX"
+                  onChange={(e) => {
+                    // allow formatting while typing; if you want to force digits only, replace with digitsOnly(e.target.value)
+                    onChange(e);
+                  }}
+                  placeholder="e.g. 0771234567"
+                  required
                 />
+                {invalid("contactNo") && (
+                  <div className="invalid-feedback">{errors.contactNo}</div>
+                )}
               </div>
 
               <div className="col-md-6">
                 <label className="form-label">Address</label>
                 <input
                   name="address"
-                  className="form-control"
+                  className={`form-control ${invalid("address") ? "is-invalid" : ""}`}
                   value={form.address}
                   onChange={onChange}
                   placeholder="City / Ground"
                 />
+                {invalid("address") && (
+                  <div className="invalid-feedback">{errors.address}</div>
+                )}
               </div>
 
               <div className="col-12 d-flex gap-2">
@@ -329,6 +405,7 @@ export default function TeamsPage() {
                       setEditingId(null);
                       setForm(emptyForm);
                       setPreviewOk(true);
+                      setErrors({});
                     }}
                     disabled={uploading}
                   >
