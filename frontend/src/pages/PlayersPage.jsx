@@ -480,6 +480,7 @@ export default function PlayersPage() {
                             <th style={{ width: 70 }}>ID</th>
                             <th>Name</th>
                             <th style={{ width: 120 }}>Phone</th>
+                            <th style={{ width: 120 }}>Address</th>
                             <th style={{ width: 140 }}>Position</th>
                             <th style={{ width: 160 }}>Roles</th>
                             <th style={{ width: 140 }}></th>
@@ -491,6 +492,7 @@ export default function PlayersPage() {
                               <td>{p.id}</td>
                               <td>{p.playerName}</td>
                               <td className="text-nowrap">{p.phone || "-"}</td>
+                              <td className="text-nowrap">{p.playerAddress}</td>
                               <td className="text-nowrap">
                                 {p.position ?? "-"}
                               </td>
