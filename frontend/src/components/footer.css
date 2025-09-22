@@ -1,0 +1,18 @@
+/* Footer.css */
+.app-footer {
+  background: linear-gradient(to right, #000000, #0d1b2a);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.18);
+  position: relative; /* important: NOT fixed */
+  z-index: 10;
+}
+
+.app-footer .footer-link {
+  transition: color 0.18s ease, transform 0.18s ease;
+  color: #9fe8e0;
+}
+
+.app-footer .footer-link:hover {
+  color: #00ffcc;
+  transform: translateY(-2px);
+}
