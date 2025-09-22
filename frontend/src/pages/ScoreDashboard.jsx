@@ -589,6 +589,43 @@ const updateBallsAndOver = (maidensRunsThisBall = 0) => {
   }
 };
 
+// Run-out handler: ball counts, batter out, no bowler wicket or runs
+const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
+  if (scoringLocked) return;
+
+  const outId = who === "batsman1" ? batsman1 : batsman2;
+  if (!outId) return;
+
+  // Ball counts to the striker on a legal delivery
+  if (onStrike === "batsman1") {
+    setBatsman1Balls((b) => b + 1);
+  } else {
+    setBatsman2Balls((b) => b + 1);
+  }
+
+  // Team wicket + history (no change to bowler wickets or runs)
+  setInningsWickets((w) => w + 1);
+  setOverBallHistory((prev) => [...prev, "RO"]);
+
+  // Mark dismissed so they don't appear again
+  setDismissedBatterIds((prev) => {
+    const next = new Set(prev.map(String));
+    next.add(String(outId));
+    return Array.from(next);
+  });
+
+  // Clear the dismissed batter slot and adjust strike only if striker was out
+  if (who === "batsman1") {
+    setBatsman1("");
+    if (onStrike === "batsman1") setOnStrike("batsman2");
+  } else {
+    setBatsman2("");
+    if (onStrike === "batsman2") setOnStrike("batsman1");
+  }
+
+  // Legal delivery completed (no runs for maiden calc)
+  finishBallAndCheckOver(0);
+};
 
 
   // 3x3 scoring table
@@ -1420,32 +1457,35 @@ const updateBallsAndOver = (maidensRunsThisBall = 0) => {
                         </Button>
 
                         <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          disabled
-                          sx={{
-                            bgcolor: "#d32f2f",
-                            color: "white",
-                            "&:hover": { bgcolor: "#c62828" },
-                          }}
-                        >
-                          Run out (Batsman 1)
-                        </Button>
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={scoringLocked}
+                        sx={{
+                          bgcolor: "#d32f2f",
+                          color: "white",
+                          "&:hover": { bgcolor: "#c62828" },
+                        }}
+                        onClick={() => handleRunOut("batsman1")}
+                      >
+                        Run out (Batsman 1)
+                      </Button>
 
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          disabled
-                          sx={{
-                            bgcolor: "#b71c1c",
-                            color: "white",
-                            "&:hover": { bgcolor: "#7f0000" },
-                          }}
-                        >
-                          Run out (Batsman 2)
-                        </Button>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={scoringLocked}
+                        sx={{
+                          bgcolor: "#b71c1c",
+                          color: "white",
+                          "&:hover": { bgcolor: "#7f0000" },
+                        }}
+                        onClick={() => handleRunOut("batsman2")}
+                      >
+                        Run out (Batsman 2)
+                      </Button>
+
                       </Stack>
                     </CardContent>
                   </Card>
