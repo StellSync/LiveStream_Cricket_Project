@@ -59,12 +59,7 @@ export default function TeamsPage() {
     }
 
     // Phone required, must be exactly 10 digits (allow formatting while typing)
-    const phoneDigits = digitsOnly(next.contactNo);
-    if (!next.contactNo.trim()) {
-      e.contactNo = "Phone number is required.";
-    } else if (phoneDigits.length !== 10) {
-      e.contactNo = "Phone must contain exactly 10 digits.";
-    }
+   
 
     // Address optional (add a simple check if you want)
     // if (next.address && next.address.trim().length < 3) e.address = "Address is too short.";
@@ -372,7 +367,7 @@ export default function TeamsPage() {
                     onChange(e);
                   }}
                   placeholder="e.g. 0771234567"
-                  required
+                  
                 />
                 {invalid("contactNo") && (
                   <div className="invalid-feedback">{errors.contactNo}</div>
