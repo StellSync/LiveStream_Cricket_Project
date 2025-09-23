@@ -767,11 +767,7 @@ app.get("/overlay/scorebar", (_req, res) => {
     padding:10px 12px;font-weight:900;font-size:13px;letter-spacing:.05em;opacity:.95
   }
   .pill .score{
-    padding:10px 16px;margin-left:8px;
-    background:linear-gradient(180deg,#ff7b60,#ef4444);
-    font-weight:1000;font-size:22px;letter-spacing:.02em;display:flex;align-items:center;gap:10px;
-    border-left:1px solid rgba(255,255,255,.2);
-    box-shadow:inset 0 0 25px rgba(255,255,255,.15);
+
   }
   .ov-badge{
     background:rgba(12,19,59,.8);
@@ -796,14 +792,7 @@ app.get("/overlay/scorebar", (_req, res) => {
 
   .right .bwl{display:flex;flex-direction:column;gap:3px;min-width:0}
   .right .nm{max-width:16ch}
-  .mut{color:var(--mut)}
 
-  /* change-detection flash */
-  .flash{animation:flash 0.7s ease}
-  @keyframes flash{
-    0%{filter:brightness(1.4)}
-    100%{filter:brightness(1)}
-  }
 </style>
 </head>
 <body>
