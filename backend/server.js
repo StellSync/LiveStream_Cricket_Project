@@ -272,7 +272,7 @@ app.get("/overlay/four", (_req, res) => {
   .stage{position:fixed;inset:0;display:grid;place-items:center;
          background:radial-gradient(60vmin 60vmin at 50% 50%,rgba(0,200,255,.15),transparent 70%)}
   .badge{
-    --glow:#00e1ff;
+    --glow: #00e1ff;
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     font-weight:1000;font-size:22vmin;line-height:1;color:#fff;letter-spacing:.02em;
     padding:.15em .6em;border-radius:2rem;border:5px solid rgba(0,225,255,.9);
@@ -349,6 +349,7 @@ app.get("/overlay/four", (_req, res) => {
 </body></html>`);
 });
 
+// ---------- Event overlays (SIX - Upgraded Cosmic Burst) ----------
 app.get("/overlay/six", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -357,44 +358,109 @@ app.get("/overlay/six", (_req, res) => {
   html,body{margin:0;height:100%;background:transparent;overflow:hidden}
   .sky{position:fixed;inset:0;display:grid;place-items:center;
        background:radial-gradient(70vmin 70vmin at 50% 50%,rgba(255,255,255,.08),transparent 70%)}
-  .ring{position:absolute;border-radius:50%;border:7px solid rgba(255,255,255,.28);animation:pulse 1.6s ease-out infinite}
-  .r1{width:40vmin;height:40vmin}
-  .r2{width:60vmin;height:60vmin;animation-delay:.2s}
-  .r3{width:80vmin;height:80vmin;animation-delay:.4s}
-  .r4{width:100vmin;height:100vmin;animation-delay:.6s}
-  @keyframes pulse{from{transform:scale(.6);opacity:.6}to{transform:scale(1.35);opacity:0}}
-  .trail{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-  .star{position:absolute;width:1.2vmin;height:1.2vmin;background:#fff;border-radius:50%;
-        box-shadow:0 0 16px 6px rgba(255,255,255,.6);
-        transform:translate(-50%,-50%);opacity:0;animation:fly 1.05s ease-out forwards}
-  @keyframes fly{
-    0%{opacity:0;transform:translate(10% ,110%) scale(.45)}
-    10%{opacity:1}
-    100%{opacity:0;transform:translate(85%,-25%) scale(1)}
-  }
+
+  /* Rippling colorful rings */
+  .ring{position:absolute;border-radius:50%;border:7px solid transparent;animation:pulse 1.8s ease-out infinite}
+  .r1{width:40vmin;height:40vmin;border-color:rgba(255,0,200,.35)}
+  .r2{width:60vmin;height:60vmin;animation-delay:.25s;border-color:rgba(0,200,255,.35)}
+  .r3{width:80vmin;height:80vmin;animation-delay:.5s;border-color:rgba(255,255,0,.35)}
+  .r4{width:100vmin;height:100vmin;animation-delay:.75s;border-color:rgba(255,100,50,.35)}
+  @keyframes pulse{from{transform:scale(.6);opacity:.7}to{transform:scale(1.4);opacity:0}}
+
+  /* Badge */
   .badge{
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    font-weight:1000;font-size:24vmin;color:#fff;letter-spacing:.02em;
-    padding:.15em .7em;border-radius:2rem;border:5px solid rgba(255,255,255,.7);
-    background:conic-gradient(from 210deg,#33004b,#8a00ff,#33004b);
-    text-shadow:0 6px 24px rgba(0,0,0,.55);
-    filter:drop-shadow(0 10px 26px rgba(0,0,0,.55));
+    font-weight:1000;font-size:26vmin;color:#fff;letter-spacing:.02em;
+    padding:.15em .7em;border-radius:2rem;border:6px solid rgba(255,255,255,.8);
+    background: radial-gradient(
+  circle at center,
+  #00ff66 0%,   /* bright neon */
+  #00cc44 40%,  /* emerald */
+  #009933 80%   /* deep green edge */
+);
+
+    background-size:200% 200%;animation:bgshift 4s linear infinite;
+    text-shadow:0 0 30px rgba(60, 60, 60, 0.7),0 8px 26px rgba(0,0,0,.6);
+    filter:drop-shadow(0 12px 30px rgba(0,0,0,.6));
     transform:scale(.25) rotate(-10deg);
-    animation:pop .5s cubic-bezier(.18,.89,.32,1.28) forwards, wobble 2.2s ease-in-out .6s infinite;
+    position:relative;overflow:hidden;
+    animation:pop .55s cubic-bezier(.18,.89,.32,1.28) forwards,
+             wobble 2.2s ease-in-out .7s infinite;
   }
-  .label{font:900 3.6vmin system-ui;color:#ffe9ff;text-align:center;margin-top:10px;letter-spacing:.1em}
+  /* Shine sweep */
+  .badge::after{
+    content:"";position:absolute;inset:0;
+    background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.8) 50%,transparent 70%);
+    transform:translateX(-100%) skewX(-20deg);
+    animation:sweep 2.5s ease-in-out 1s infinite;
+  }
+
+  .label{font:900 3.8vmin system-ui;color: #b7fdb7ff;text-align:center;margin-top:10px;
+         letter-spacing:.1em;text-shadow:0 3px 12px rgba(0,0,0,.6)}
+
   @keyframes pop{to{transform:scale(1) rotate(0)}}
-  @keyframes wobble{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.04) rotate(.6deg)}}
-  .sparks{position:absolute;inset:0;pointer-events:none}
-  .spark{
-    position:absolute;top:50%;left:50%;width:.8vmin;height:.8vmin;border-radius:50%;
-    background:radial-gradient(#fff,#ffd3ff);
-    opacity:0; animation:spark 1s ease-out forwards;
+  @keyframes wobble{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.05) rotate(.8deg)}}
+  @keyframes bgshift{to{background-position:200% 200%}}
+  @keyframes sweep{to{transform:translateX(200%) skewX(-20deg)}}
+
+  /* Star trail */
+  .trail{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .star{position:absolute;width:1.4vmin;height:1.4vmin;background:#fff;border-radius:50%;
+        box-shadow:0 0 18px 7px rgba(255,255,255,.6);
+        transform:translate(-50%,-50%);opacity:0;animation:fly 1.1s ease-out forwards}
+  @keyframes fly{
+    0%{opacity:0;transform:translate(15%,115%) scale(.4)}
+    10%{opacity:1}
+    100%{opacity:0;transform:translate(85%,-20%) scale(1.1)}
   }
-  @keyframes spark{
-    0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
-    15%{opacity:1}
-    100%{opacity:0;transform:translate(calc(-50% + var(--sx)),calc(-50% + var(--sy))) scale(1)}
+
+  /* Sparks explosion */
+  .sparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.8vmin;  /* bigger sparks (was 0.8vmin) */
+  height: 1.8vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 30%, #ffffffff 70%, transparent 100%);
+  box-shadow: 0 0 12px 6px rgba(160, 255, 174, 0.85), 
+              0 0 24px 12px rgba(100, 255, 121, 0.5);
+  opacity: 0;
+  animation: spark 1.25s ease-out forwards;
+}
+
+@keyframes spark {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1.3);
+  }
+}
+
+
+  /* Meteors */
+  .meteors{position:absolute;inset:0;pointer-events:none}
+  .meteor{
+    position:absolute;width:1vmin;height:1vmin;border-radius:50%;background:#fff;
+    box-shadow:0 0 10px 4px rgba(255,255,255,.6);
+    opacity:0; animation:meteor 1.3s ease-out forwards;
+  }
+  @keyframes meteor{
+    0%{opacity:0;transform:translate(-10%,120%) scale(.5)}
+    20%{opacity:1}
+    100%{opacity:0;transform:translate(110%,-20%) scale(1.1)}
   }
 </style></head>
 <body>
@@ -402,32 +468,41 @@ app.get("/overlay/six", (_req, res) => {
     <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div>
     <div>
       <div class="badge">6</div>
-      <div class="label">SIX!</div>
+      <div class="label">HUGE SIX!</div>
     </div>
     <div class="trail" id="t"></div>
     <div class="sparks" id="sp"></div>
+    <div class="meteors" id="m"></div>
   </div>
 <script>
   const t = document.getElementById('t');
   for(let i=0;i<14;i++){
     const s=document.createElement('div'); s.className='star';
     s.style.left = (8 + i*7)+'%'; s.style.top = (100 - i*8)+'%';
-    s.style.animationDelay = (i*0.045)+'s';
+    s.style.animationDelay = (i*0.05)+'s';
     t.appendChild(s);
   }
   const sp = document.getElementById('sp');
-  for(let i=0;i<40;i++){
+  for(let i=0;i<50;i++){
     const s=document.createElement('div'); s.className='spark';
-    const ang = (i/40)*Math.PI*2, dist = 14 + Math.random()*22;
+    const ang = (i/50)*Math.PI*2, dist = 14 + Math.random()*26;
     s.style.setProperty('--sx', Math.cos(ang)*dist+'vmin');
     s.style.setProperty('--sy', Math.sin(ang)*dist+'vmin');
-    s.style.animationDelay = (Math.random()*0.2)+'s';
+    s.style.animationDelay = (Math.random()*0.25)+'s';
     sp.appendChild(s);
+  }
+  const m=document.getElementById('m');
+  for(let i=0;i<6;i++){
+    const s=document.createElement('div'); s.className='meteor';
+    s.style.left = (10+i*15)+'%'; s.style.top = (100 - i*12)+'%';
+    s.style.animationDelay = (i*0.15)+'s';
+    m.appendChild(s);
   }
 </script>
 </body>
 </html>`);
 });
+
 
 
 // ---------- Event overlays (FREE HIT) ----------
