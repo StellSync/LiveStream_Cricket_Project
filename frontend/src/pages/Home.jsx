@@ -1,218 +1,143 @@
-// src/pages/Home.jsx
-import React from "react";
+// src/pages/Homs.jsx
+import { useMemo } from "react";
+import {
+  Box,
+  Grid,
+  Card,
+  CardHeader,
+  CardContent,
+  CardActions,
+  Button,
+  Chip,
+  Stack,
+  Typography,
+  Divider,
+  Tooltip,
+  IconButton,
+} from "@mui/material";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
-function copy(text) {
-  navigator.clipboard?.writeText(text).catch(() => {});
-}
+export default function Homs() {
+  // ✅ Always target backend on :5000 (same host)
+  const base = useMemo(() => {
+    const { protocol, hostname, port } = window.location;
+    // if already on 5000, keep origin; else rewrite to :5000
+    if (port === "5000") return window.location.origin;
+    return `${protocol}//${hostname}:5000`;
+  }, []);
 
-function CardRow({ title, items }) {
-  return (
-    <div className="card shadow-sm">
-      <div className="card-body">
-        <h6 className="card-subtitle text-uppercase text-muted mb-2">OBS</h6>
-        <h4 className="card-title mb-3">{title}</h4>
+  const overlays = [
+    { title: "Scorebar (Glass)", path: "/overlay/scorebar", desc: "Live ticker with current over bubbles, batters and bowler.", tag: "Live" },
+    { title: "Scorebar (Neon)", path: "/overlay/scorebar-neon", desc: "Neon theme variant of the live ticker.", tag: "Live" },
+    { title: "Match Intro", path: "/overlay/match", desc: "Tournament + teams header slate.", tag: "Header" },
+    { title: "FOUR Animation", path: "/overlay/four", desc: "Animated stinger for a boundary (4).", tag: "Event" },
+    { title: "SIX Animation", path: "/overlay/six", desc: "Animated stinger for a six.", tag: "Event" },
+    { title: "FREE HIT Animation", path: "/overlay/freehit", desc: "Animated stinger for free hit.", tag: "Event" },
+    { title: "WICKET Animation", path: "/overlay/wicket", desc: "Animated stinger for wicket.", tag: "Event" },
 
-        <div className="row g-3">
-          {items.map((it) => (
-            <OverlayCard key={it.path} {...it} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function OverlayCard({ path, label, blurb, emoji, openInSameTab = false }) {
-  // Always point overlays to the backend (port 5000)
-  const base =
-    typeof window !== "undefined"
-      ? `${window.location.protocol}//${window.location.hostname}:5000`
-      : "http://localhost:5000";
-  const url = `${base}${path}`;
-
-  return (
-    <div className="col-12 col-md-6">
-      <div className="border rounded-3 p-3 h-100 d-flex">
-        <div
-          className="me-3 d-flex align-items-center justify-content-center rounded-circle"
-          style={{
-            width: 44,
-            height: 44,
-            background: "linear-gradient(135deg,#e3f2ff,#f5f9ff)",
-            border: "1px solid #e6eef7",
-            fontSize: 22,
-          }}
-          aria-hidden
-        >
-          {emoji}
-        </div>
-
-        <div className="flex-grow-1">
-          <div className="d-flex align-items-center justify-content-between">
-            <div className="fw-semibold">{label}</div>
-            <span className="badge bg-primary-subtle text-primary-emphasis">
-              Overlay
-            </span>
-          </div>
-
-          <div className="text-muted small mt-1">{blurb}</div>
-
-          {/* Actions */}
-          <div className="mt-3 d-flex gap-2">
-            <a
-              className="btn btn-sm btn-primary"
-              href={url}
-              target={openInSameTab ? "_self" : "_blank"}
-              rel="noreferrer"
-              title={url}
-            >
-              Preview
-            </a>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => copy(url)}
-              title={`Copy full URL:\n${url}`}
-            >
-              Copy URL
-            </button>
-            <details className="ms-auto">
-              <summary className="small text-muted" style={{ cursor: "pointer" }}>
-                Show URL
-              </summary>
-              <code className="small d-block mt-1 text-wrap">{url}</code>
-            </details>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function Home() {
-  const overlayPages = [
+    // NEW: Summary Scorecard (served by backend on :5000)
     {
-      path: "/overlay/scorebar",
-      label: "Scorebar (Live)",
-      blurb:
-        "Professional single-line scoreboard with batters, bowler and current-over chips.",
-      emoji: "📊",
-    },
-    {
-      path: "/overlay/match",
-      label: "Match Header",
-      blurb:
-        "Tournament logo/name, teams, ground and overs. Great for pre-game or innings start.",
-      emoji: "🎟️",
-    },
-    {
-      path: "/overlay",
-      label: "Legacy Bar",
-      blurb: "Simple legacy scoreboard bar (kept for compatibility).",
-      emoji: "🧰",
+      title: "Summary Scorecard",
+      path: "/summary",
+      desc: "Two-innings scorecard for OBS. POST completed match data to /api/summary from ScoreDashboard, then load this.",
+      tag: "Summary",
     },
   ];
 
-  const eventOverlays = [
-    {
-      path: "/overlay/four",
-      label: "FOUR!",
-      blurb: "Neon pop + confetti burst.",
-      emoji: "💥",
-    },
-    {
-      path: "/overlay/six",
-      label: "SIX!",
-      blurb: "Cosmic rings + star trail animation.",
-      emoji: "🚀",
-    },
-    {
-      path: "/overlay/wicket",
-      label: "WICKET!",
-      blurb: "Flash + drop + shake + shards.",
-      emoji: "⚡",
-    },
-    {
-      path: "/overlay/freehit",
-      label: "FREE HIT",
-      blurb: "Green rings + twinkling stars animation.",
-      emoji: "🟢",
-    },
-  ];
-
-  const streams = [
-    {
-      path: "/sse-overlay",
-      label: "Scorebar Stream (SSE)",
-      blurb: "Live JSON stream used by the scorebar overlay.",
-      emoji: "🔌",
-    },
-    {
-      path: "/sse-match",
-      label: "Match Header Stream (SSE)",
-      blurb: "Live JSON stream for tournament/teams header overlay.",
-      emoji: "🛰️",
-    },
-    {
-      path: "/sse",
-      label: "Legacy Score Stream (SSE)",
-      blurb: "Legacy demo SSE used by the old overlay.",
-      emoji: "📡",
-    },
-  ];
+  const copy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+  };
 
   return (
-    <div className="row g-3">
-      {/* Hero / tip */}
-      <div className="col-12">
-        <div className="card shadow-sm border-0">
-          <div className="card-body">
-            <h4 className="card-title mb-2">OBS Overlays</h4>
-            <p className="text-muted mb-0">
-              Click <strong>Preview</strong> to open in a new tab, or{" "}
-              <strong>Copy URL</strong> to paste into an OBS Browser Source.
-            </p>
-          </div>
-        </div>
-      </div>
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h5" fontWeight={900} gutterBottom>
+        Overlays & Tools
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+        Add any of these URLs as a Browser Source in OBS. Links are pinned to port <strong>5000</strong>.
+      </Typography>
 
-      {/* Overlay Pages */}
-      <div className="col-12">
-        <CardRow title="Overlay Pages" items={overlayPages} />
-      </div>
+      <Card variant="outlined" sx={{ mb: 2, borderRadius: 3 }}>
+        <CardContent sx={{ p: 2 }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Chip label="Base URL" size="small" />
+            <Typography fontFamily="monospace">{base}</Typography>
+            <Tooltip title="Copy base URL">
+              <IconButton size="small" onClick={() => copy(base)}>
+                <ContentCopyIcon fontSize="inherit" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </CardContent>
+      </Card>
 
-      {/* Event Overlays */}
-      <div className="col-12">
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <h6 className="card-subtitle text-uppercase text-muted mb-2">OBS</h6>
-            <h4 className="card-title mb-3">Event Overlays</h4>
-            <div className="row g-3">
-              {eventOverlays.map((it) => (
-                <OverlayCard key={it.path} {...it} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <Grid container spacing={2}>
+        {overlays.map((o) => {
+          const url = `${base}${o.path}`;
+          return (
+            <Grid item xs={12} sm={6} md={4} key={o.path}>
+              <Card variant="outlined" sx={{ borderRadius: 3, height: "100%", display: "flex", flexDirection: "column" }}>
+                <CardHeader
+                  titleTypographyProps={{ variant: "subtitle1", fontWeight: 800 }}
+                  title={o.title}
+                  action={<Chip label={o.tag} size="small" variant="outlined" />}
+                  sx={{ pb: 0.5 }}
+                />
+                <CardContent sx={{ pt: 1, pb: 0 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    {o.desc}
+                  </Typography>
+                  <Divider sx={{ my: 1 }} />
+                  <Typography variant="caption" sx={{ wordBreak: "break-all", fontFamily: "monospace" }}>
+                    {url}
+                  </Typography>
+                </CardContent>
+                <CardActions sx={{ mt: "auto", p: 1.5, pt: 0.5 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    startIcon={<OpenInNewIcon />}
+                    onClick={() => window.open(url, "_blank", "noopener")}
+                  >
+                    Open
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<ContentCopyIcon />}
+                    onClick={() => copy(url)}
+                  >
+                    Copy URL
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          );
+        })}
+      </Grid>
 
-      {/* Streams */}
-      <div className="col-12">
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <h6 className="card-subtitle text-uppercase text-muted mb-2">Live</h6>
-            <h4 className="card-title mb-3">SSE Streams</h4>
-            <div className="row g-3">
-              {streams.map((it) => (
-                <OverlayCard key={it.path} {...it} />
-              ))}
-            </div>
-            <div className="small text-muted mt-3">
-              Tip: you usually don’t add these directly to OBS—they power the overlay pages above.
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <Card variant="outlined" sx={{ mt: 3, borderRadius: 3 }}>
+        <CardHeader titleTypographyProps={{ variant: "subtitle1", fontWeight: 800 }} title="How to use the Summary Scorecard" />
+        <CardContent sx={{ pt: 1 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            After the 2nd innings finishes in <strong>ScoreDashboard</strong>, it POSTs the match object and both innings to
+            <code> /api/summary</code>. Then open <code>{base}/summary</code> in OBS to display the final scorecard.
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Re-posting will update the overlay instantly.
+          </Typography>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
