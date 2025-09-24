@@ -1,4 +1,3 @@
-// frontend/src/pages/ScoreDashboard.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   Box,
@@ -36,9 +35,8 @@ import {
   DialogActions,
   FormGroup,
   FormHelperText,
-  Fab   // ✅ add this line
+  Fab
 } from "@mui/material";
-
 
 import AddIcon from "@mui/icons-material/Add";
 
@@ -49,8 +47,7 @@ import {
   setCurrentMatch,
   getCurrentMatch,
   getTeams,
-  createPlayer ,
-
+  createPlayer,
 } from "../lib/api";
 
 export default function ScoreDashboard() {
@@ -77,6 +74,8 @@ export default function ScoreDashboard() {
   const [ground, setGround] = useState("");
   const [overType, setOverType] = useState("");
   const [noOfOvers, setNoOfOvers] = useState("");
+  const [isCountWideBall, setIsCountWideBall] = useState(false);
+  const [isCountNoBall, setIsCountNoBall] = useState(false);
 
   // Score states
   const [inningsRuns, setInningsRuns] = useState(0);
@@ -84,157 +83,147 @@ export default function ScoreDashboard() {
   const [overs, setOvers] = useState(0);
   const [balls, setBalls] = useState(0);
   const [currentOverRuns, setCurrentOverRuns] = useState(0);
-  const [batsman1Runs, setBatsman1Runs] = useState(0);
-  const [batsman1Balls, setBatsman1Balls] = useState(0);
-  const [batsman2Runs, setBatsman2Runs] = useState(0);
-  const [batsman2Balls, setBatsman2Balls] = useState(0);
-  const [bowlerOvers, setBowlerOvers] = useState(0);
-  const [bowlerMaidens, setBowlerMaidens] = useState(0);
-  const [bowlerRuns, setBowlerRuns] = useState(0);
-  const [bowlerWickets, setBowlerWickets] = useState(0);
 
+  // Stats maps
+  const [allBatterStats, setAllBatterStats] = useState({}); // {id: {runs, balls, fours, sixes}}
+  const [allBowlerStats, setAllBowlerStats] = useState({}); // {id: {overs, maidens, runs, wickets}}
 
-  
+  // --- Player Registration Dialog state ---
+  const [addOpen, setAddOpen] = useState(false);
+  const [teams, setTeams] = useState([]);
 
+  const emptyPlayerForm = {
+    teamId: "",
+    playerName: "",
+    playerAddress: "",
+    phone: "",
+    position: "", // keep as string
+    isBatter: false,
+    isBaller: false,
+    isWk: false,
+    isCaptain: false,
+  };
+  const [playerForm, setPlayerForm] = useState(emptyPlayerForm);
+  const [formErrors, setFormErrors] = useState({});
 
-// --- Player Registration Dialog state ---
-const [addOpen, setAddOpen] = useState(false);
-const [teams, setTeams] = useState([]);
+  // Innings management
+  const [currentInnings, setCurrentInnings] = useState(1);
+  const [innings1, setInnings1] = useState(null);
+  const [innings2, setInnings2] = useState(null);
 
-const emptyPlayerForm = {
-  teamId: "",
-  playerName: "",
-  playerAddress: "",
-  phone: "",
-  position: "", // keep as string
-  isBatter: false,
-  isBaller: false,
-  isWk: false,
-  isCaptain: false,
-};
-const [playerForm, setPlayerForm] = useState(emptyPlayerForm);
-const [formErrors, setFormErrors] = useState({});
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getTeams();
+        setTeams(res?.data || []);
+      } catch (e) {
+        console.warn("Failed to load teams", e);
+        setTeams([]);
+      }
+    })();
+  }, []);
 
-
-useEffect(() => {
-  (async () => {
+  async function reloadBatters() {
+    if (battingTeamId == null) return;
     try {
-      const res = await getTeams();
-      setTeams(res?.data || []);
+      const { data } = await getPlayers(battingTeamId);
+      const list = Array.isArray(data) ? data : [];
+      const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(battingTeamId));
+      const onlyBatters = byTeam.filter(isPlayerBatter);
+      setBatters(onlyBatters.length ? onlyBatters : byTeam);
     } catch (e) {
-      console.warn("Failed to load teams", e);
-      setTeams([]);
+      console.warn("Failed to reload batters", e);
     }
-  })();
-}, []);
-
-
-
-async function reloadBatters() {
-  if (battingTeamId == null) return;
-  try {
-    const { data } = await getPlayers(battingTeamId);
-    const list = Array.isArray(data) ? data : [];
-    const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(battingTeamId));
-    const onlyBatters = byTeam.filter(isPlayerBatter);
-    setBatters(onlyBatters.length ? onlyBatters : byTeam);
-  } catch (e) {
-    console.warn("Failed to reload batters", e);
-  }
-}
-
-async function reloadBowlers() {
-  if (bowlingTeamId == null) return;
-  try {
-    const { data } = await getPlayers(bowlingTeamId);
-    const list = Array.isArray(data) ? data : [];
-    const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(bowlingTeamId));
-    const onlyBowlers = byTeam.filter(isPlayerBowler);
-    setBowlers(onlyBowlers.length ? onlyBowlers : byTeam);
-  } catch (e) {
-    console.warn("Failed to reload bowlers", e);
-  }
-}
-
-function validatePlayer(values) {
-  const e = {};
-
-  if (!values.teamId) e.teamId = "Please select a team.";
-
-  const name = (values.playerName || "").trim();
-  if (!name) e.playerName = "Player name is required.";
-  else if (name.length < 2) e.playerName = "Name must be at least 2 characters.";
-
-  // position: required int 0..11
-  const raw = values.position;
-  if (raw === "" || raw === null || raw === undefined) {
-    e.position = "Position is required.";
-  } else {
-    const num = Number(raw);
-    if (!Number.isInteger(num)) e.position = "Position must be an integer.";
-    else if (num < 0 || num > 11) e.position = "Position must be 0–11.";
   }
 
-  if (!values.isBatter && !values.isBaller && !values.isWk) {
-    e.roles = "Select at least one role.";
-  }
-
-  return e;
-}
-
-function onPlayerField(e) {
-  const { name, value, type, checked } = e.target;
-  const next = {
-    ...playerForm,
-    [name]: type === "checkbox" ? checked : value,
-  };
-  setPlayerForm(next);
-
-  // live-validate the changed field
-  const fresh = validatePlayer(next);
-  setFormErrors((prev) => ({
-    ...prev,
-    [name]: fresh[name],
-    ...(name.startsWith("is") ? { roles: fresh.roles } : {}),
-  }));
-}
-
-async function onCreatePlayer(e) {
-  e.preventDefault();
-
-  const errs = validatePlayer(playerForm);
-  setFormErrors(errs);
-  if (Object.keys(errs).length > 0) return;
-
-  const payload = {
-    ...playerForm,
-    teamId: Number(playerForm.teamId),
-    position: Number(playerForm.position),
-  };
-
-  try {
-    await createPlayer(payload);
-
-    // refresh whichever list(s) needed
-    if (payload.teamId === Number(battingTeamId)) {
-      await reloadBatters();
+  async function reloadBowlers() {
+    if (bowlingTeamId == null) return;
+    try {
+      const { data } = await getPlayers(bowlingTeamId);
+      const list = Array.isArray(data) ? data : [];
+      const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(bowlingTeamId));
+      const onlyBowlers = byTeam.filter(isPlayerBowler);
+      setBowlers(onlyBowlers.length ? onlyBowlers : byTeam);
+    } catch (e) {
+      console.warn("Failed to reload bowlers", e);
     }
-    if (payload.teamId === Number(bowlingTeamId)) {
-      await reloadBowlers();
+  }
+
+  function validatePlayer(values) {
+    const e = {};
+
+    if (!values.teamId) e.teamId = "Please select a team.";
+
+    const name = (values.playerName || "").trim();
+    if (!name) e.playerName = "Player name is required.";
+    else if (name.length < 2) e.playerName = "Name must be at least 2 characters.";
+
+    // position: required int 0..11
+    const raw = values.position;
+    if (raw === "" || raw === null || raw === undefined) {
+      e.position = "Position is required.";
+    } else {
+      const num = Number(raw);
+      if (!Number.isInteger(num)) e.position = "Position must be an integer.";
+      else if (num < 0 || num > 11) e.position = "Position must be 0–11.";
     }
 
-    // clear + close
-    setPlayerForm(emptyPlayerForm);
-    setFormErrors({});
-    setAddOpen(false);
-  } catch (err) {
-    console.warn("Create player failed:", err);
+    if (!values.isBatter && !values.isBaller && !values.isWk) {
+      e.roles = "Select at least one role.";
+    }
+
+    return e;
   }
-}
 
+  function onPlayerField(e) {
+    const { name, value, type, checked } = e.target;
+    const next = {
+      ...playerForm,
+      [name]: type === "checkbox" ? checked : value,
+    };
+    setPlayerForm(next);
 
+    // live-validate the changed field
+    const fresh = validatePlayer(next);
+    setFormErrors((prev) => ({
+      ...prev,
+      [name]: fresh[name],
+      ...(name.startsWith("is") ? { roles: fresh.roles } : {}),
+    }));
+  }
 
+  async function onCreatePlayer(e) {
+    e.preventDefault();
 
+    const errs = validatePlayer(playerForm);
+    setFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    const payload = {
+      ...playerForm,
+      teamId: Number(playerForm.teamId),
+      position: Number(playerForm.position),
+    };
+
+    try {
+      await createPlayer(payload);
+
+      // refresh whichever list(s) needed
+      if (payload.teamId === Number(battingTeamId)) {
+        await reloadBatters();
+      }
+      if (payload.teamId === Number(bowlingTeamId)) {
+        await reloadBowlers();
+      }
+
+      // clear + close
+      setPlayerForm(emptyPlayerForm);
+      setFormErrors({});
+      setAddOpen(false);
+    } catch (err) {
+      console.warn("Create player failed:", err);
+    }
+  }
 
   // Balling card
   const [overBallHistory, setOverBallHistory] = useState([]);
@@ -244,6 +233,9 @@ async function onCreatePlayer(e) {
 
   // Track dismissed batters so they don't appear again in dropdowns
   const [dismissedBatterIds, setDismissedBatterIds] = useState([]);
+
+  // Undo history
+  const [history, setHistory] = useState([]);
 
   useEffect(() => {
     // load existing active match when page loads
@@ -263,6 +255,8 @@ async function onCreatePlayer(e) {
       matchNumber: match.matchNumber,
       overType: match.overType,
       noOfOvers: match.noOfOvers,
+      IsCountWideBall: match.IsCountWideBall,
+      IsCountNoBall: match.IsCountNoBall,
     };
 
     setCurrentMatch(matchInfo);
@@ -340,6 +334,8 @@ async function onCreatePlayer(e) {
     setGround("");
     setOverType("");
     setNoOfOvers("");
+    setIsCountWideBall(false);
+    setIsCountNoBall(false);
 
     // reset scores
     setInningsRuns(0);
@@ -347,17 +343,19 @@ async function onCreatePlayer(e) {
     setOvers(0);
     setBalls(0);
     setCurrentOverRuns(0);
-    setBatsman1Runs(0);
-    setBatsman1Balls(0);
-    setBatsman2Runs(0);
-    setBatsman2Balls(0);
-    setBowlerOvers(0);
-    setBowlerMaidens(0);
-    setBowlerRuns(0);
-    setBowlerWickets(0);
+
+    setAllBatterStats({});
+    setAllBowlerStats({});
 
     setScoringLocked(false);
     setDismissedBatterIds([]);
+
+    setHistory([]);
+
+    // reset innings
+    setCurrentInnings(1);
+    setInnings1(null);
+    setInnings2(null);
 
     (async () => {
       if (!currentMatch) return;
@@ -368,6 +366,8 @@ async function onCreatePlayer(e) {
           ? String(currentMatch.noOfOvers)
           : ""
       );
+      setIsCountWideBall(currentMatch.IsCountWideBall ?? false);
+      setIsCountNoBall(currentMatch.IsCountNoBall ?? false);
 
       const fromMatch =
         currentMatch.ground ??
@@ -399,27 +399,16 @@ async function onCreatePlayer(e) {
   }, [currentMatchId]); // eslint-disable-line
 
   useEffect(() => {
-    setBatsman1Runs(0);
-    setBatsman1Balls(0);
-  }, [batsman1]);
-
-  useEffect(() => {
-    setBatsman2Runs(0);
-    setBatsman2Balls(0);
-  }, [batsman2]);
-
-  useEffect(() => {
     // bowler changed -> unlock scoring for next over
-    setBowlerOvers(0);
-    setBowlerMaidens(0);
-    setBowlerRuns(0);
-    setBowlerWickets(0);
     setCurrentOverRuns(0);
     setBalls(0);
     setScoringLocked(false);
 
     // clear last over's ball history now that new bowler is set
     setOverBallHistory([]);
+
+    // reset undo history for new bowler
+    setHistory([]);
   }, [bowler]);
 
   useEffect(() => {
@@ -428,16 +417,11 @@ async function onCreatePlayer(e) {
     setOvers(0);
     setBalls(0);
     setCurrentOverRuns(0);
-    setBatsman1Runs(0);
-    setBatsman1Balls(0);
-    setBatsman2Runs(0);
-    setBatsman2Balls(0);
-    setBowlerOvers(0);
-    setBowlerMaidens(0);
-    setBowlerRuns(0);
-    setBowlerWickets(0);
+    setAllBatterStats({});
+    setAllBowlerStats({});
     setScoringLocked(false);
     setDismissedBatterIds([]);
+    setHistory([]);
   }, [battingTeamId]);
 
   const normalizeBool = (v) =>
@@ -554,13 +538,22 @@ async function onCreatePlayer(e) {
   const bowlerObj = bowlers.find((p) => String(p.id) === bowler);
   const bowlerName = bowlerObj ? getPlayerName(bowlerObj) : "";
 
+  const batsman1Runs = allBatterStats[batsman1]?.runs ?? 0;
+  const batsman1Balls = allBatterStats[batsman1]?.balls ?? 0;
+  const batsman2Runs = allBatterStats[batsman2]?.runs ?? 0;
+  const batsman2Balls = allBatterStats[batsman2]?.balls ?? 0;
+
+  const bowlerOvers = allBowlerStats[bowler]?.overs ?? 0;
+  const bowlerMaidens = allBowlerStats[bowler]?.maidens ?? 0;
+  const bowlerRuns = allBowlerStats[bowler]?.runs ?? 0;
+  const bowlerWickets = allBowlerStats[bowler]?.wickets ?? 0;
+
   const strikerName = onStrike === "batsman1" ? batsman1Name : batsman2Name;
   const nonStrikerName = onStrike === "batsman1" ? batsman2Name : batsman1Name;
   const strikerRuns = onStrike === "batsman1" ? batsman1Runs : batsman2Runs;
   const strikerBalls = onStrike === "batsman1" ? batsman1Balls : batsman2Balls;
   const nonStrikerRuns = onStrike === "batsman1" ? batsman2Runs : batsman1Runs;
-  const nonStrikerBalls =
-    onStrike === "batsman1" ? batsman2Balls : batsman1Balls;
+  const nonStrikerBalls = onStrike === "batsman1" ? batsman2Balls : batsman1Balls;
 
   // Build a fixed-size 3x3 grid (9 cells)
   const makeGrid = (items, total = 9) => {
@@ -570,7 +563,7 @@ async function onCreatePlayer(e) {
   };
 
   // 3x3 button sets
-  const runButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7"]);
+  const runButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "W"]);
   const wideButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
   const noBallButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
   const byesButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
@@ -617,9 +610,22 @@ async function onCreatePlayer(e) {
       if (newBalls === ballsPerOver) {
         // maiden if over had no runs this over (bat or byes)
         if (currentOverRuns + addedRunsForMaidens === 0) {
-          setBowlerMaidens((m) => m + 1);
+          setAllBowlerStats((prevStats) => {
+            const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+            return {
+              ...prevStats,
+              [bowler]: { ...curr, maidens: curr.maidens + 1, overs: curr.overs + 1 },
+            };
+          });
+        } else {
+          setAllBowlerStats((prevStats) => {
+            const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+            return {
+              ...prevStats,
+              [bowler]: { ...curr, overs: curr.overs + 1 },
+            };
+          });
         }
-        setBowlerOvers((o) => o + 1);
         setOvers((o) => o + 1);
         setCurrentOverRuns(0);
         setScoringLocked(true); // Lock scoring until bowler is changed
@@ -634,52 +640,57 @@ async function onCreatePlayer(e) {
     if (scoringLocked) return; // guard if UI didn't already prevent it
 
     const runs = Number(value);
-    const ballsPerOver = Number(overType || 6);
-
-    const setStrikerRunsFn =
-      onStrike === "batsman1" ? setBatsman1Runs : setBatsman2Runs;
-    const setStrikerBallsFn =
-      onStrike === "batsman1" ? setBatsman1Balls : setBatsman2Balls;
-
     const strikerId = onStrike === "batsman1" ? batsman1 : batsman2;
 
-    // inside handleScore, replace updateBallsAndOver with this:
-    const updateBallsAndOver = (maidensRunsThisBall = 0) => {
-      setBalls((prevBalls) => {
-        const newBalls = prevBalls + 1;
-
-        if (newBalls === ballsPerOver) {
-          // Over completed on this legal delivery
-          if (currentOverRuns + maidensRunsThisBall === 0) {
-            setBowlerMaidens((m) => m + 1);
-          }
-          setBowlerOvers((o) => o + 1);
-          setOvers((o) => o + 1);
-
-          // keep the overBallHistory visible (DO NOT reset here)
-          setCurrentOverRuns(0);
-          setScoringLocked(true); // lock until bowler changes
-          return 0; // .0 balls of next over
-        }
-
-        return newBalls;
-      });
+    // Snapshot current state for undo
+    const snapshot = {
+      inningsRuns,
+      inningsWickets,
+      overs,
+      balls,
+      currentOverRuns,
+      onStrike,
+      batsman1,
+      batsman2,
+      dismissedBatterIds: [...dismissedBatterIds],
+      overBallHistory: [...overBallHistory],
+      scoringLocked,
+      allBatterStats: { ...allBatterStats },
+      allBowlerStats: { ...allBowlerStats },
     };
+    setHistory((prev) => [...prev, snapshot]);
 
     if (!isNaN(runs)) {
       if (title === "Normal Runs") {
         // Normal runs: add to batsman, bowler, team; ball counts
-        setStrikerRunsFn((prev) => prev + runs);
-        setStrikerBallsFn((prev) => prev + 1);
+        setAllBatterStats((prevStats) => {
+          const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+          return {
+            ...prevStats,
+            [strikerId]: {
+              runs: curr.runs + runs,
+              balls: curr.balls + 1,
+              fours: curr.fours + (runs === 4 ? 1 : 0),
+              sixes: curr.sixes + (runs === 6 ? 1 : 0),
+            },
+          };
+        });
         setInningsRuns((prev) => prev + runs);
-        setBowlerRuns((prev) => prev + runs);
+        setAllBowlerStats((prevStats) => {
+          const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+          console.log(curr);
+          return {
+            ...prevStats,
+            [bowler]: { ...curr, runs: curr.runs + runs },
+          };
+        });
         setCurrentOverRuns((prev) => prev + runs);
 
         // Log this legal ball in the current over
         setOverBallHistory((prev) => [...prev, String(runs)]);
 
         // Close over if needed (LOCK only)
-        updateBallsAndOver(runs);
+        finishBallAndCheckOver(runs);
 
         // Swap strike on odd runs
         if (runs % 2 === 1) {
@@ -688,28 +699,66 @@ async function onCreatePlayer(e) {
       } else if (title === "Wides") {
         // Wides: team only (+1 base wide plus extra wides), NO ball
         setInningsRuns((prev) => prev + runs + 1);
+        setAllBowlerStats((prevStats) => {
+          const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+          return {
+            ...prevStats,
+            [bowler]: { ...curr, runs: curr.runs + runs + 1 },
+          };
+        });
+        setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Wd${runs}`]);
         if ((runs + 1) % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
         }
+        if (isCountWideBall) {
+          finishBallAndCheckOver(runs + 1);
+        }
       } else if (title === "No Balls") {
         // No-balls: team +1 and (optional bat runs), NO ball
         setInningsRuns((prev) => prev + runs + 1);
-        setBowlerRuns((prev) => prev + runs);
-        if (runs > 0) setStrikerRunsFn((prev) => prev + runs);
+        setAllBowlerStats((prevStats) => {
+          const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+          return {
+            ...prevStats,
+            [bowler]: { ...curr, runs: curr.runs + runs + 1 },
+          };
+        });
+        if (runs > 0) setAllBatterStats((prevStats) => {
+          const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+          return {
+            ...prevStats,
+            [strikerId]: {
+              runs: curr.runs + runs,
+              balls: curr.balls,
+              fours: curr.fours + (runs === 4 ? 1 : 0),
+              sixes: curr.sixes + (runs === 6 ? 1 : 0),
+            },
+          };
+        });
+        setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Nb${runs}`]);
         if ((runs + 1) % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+        if (isCountNoBall) {
+          finishBallAndCheckOver(runs + 1);
         }
       } else if (title === "Byes") {
         // Byes: team only, ball counts; rotate strike on odd byes
         setInningsRuns((prev) => prev + runs);
         setCurrentOverRuns((prev) => prev + runs);
-        setStrikerBallsFn((prev) => prev + 1);
+        setAllBatterStats((prevStats) => {
+          const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+          return {
+            ...prevStats,
+            [strikerId]: { ...curr, balls: curr.balls + 1 },
+          };
+        });
         setOverBallHistory((prev) => [...prev, `B${runs}`]);
 
         // Close over if needed (LOCK only)
-        updateBallsAndOver(runs);
+        finishBallAndCheckOver(runs);
 
         if (runs % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
@@ -718,8 +767,20 @@ async function onCreatePlayer(e) {
     } else if (value === "W" && title === "Normal Runs") {
       // Wicket on a legal delivery
       setInningsWickets((prev) => prev + 1);
-      setBowlerWickets((prev) => prev + 1);
-      setStrikerBallsFn((prev) => prev + 1);
+      setAllBowlerStats((prevStats) => {
+        const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+        return {
+          ...prevStats,
+          [bowler]: { ...curr, wickets: curr.wickets + 1 },
+        };
+      });
+      setAllBatterStats((prevStats) => {
+        const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+        return {
+          ...prevStats,
+          [strikerId]: { ...curr, balls: curr.balls + 1 },
+        };
+      });
 
       // Log wicket in current over
       setOverBallHistory((prev) => [...prev, "W"]);
@@ -741,50 +802,148 @@ async function onCreatePlayer(e) {
       }
 
       // Close over if needed (LOCK only)
-      updateBallsAndOver(0);
+      finishBallAndCheckOver(0);
     }
   };
 
-  
+  // Run-out handler: ball counts, batter out, no bowler wicket or runs
+  const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
+    if (scoringLocked) return;
 
-// Run-out handler: ball counts, batter out, no bowler wicket or runs
-const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
-  if (scoringLocked) return;
- 
-  const outId = who === "batsman1" ? batsman1 : batsman2;
-  if (!outId) return;
- 
-  // Ball counts to the striker on a legal delivery
-  if (onStrike === "batsman1") {
-    setBatsman1Balls((b) => b + 1);
-  } else {
-    setBatsman2Balls((b) => b + 1);
-  }
- 
-  // Team wicket + history (no change to bowler wickets or runs)
-  setInningsWickets((w) => w + 1);
-  setOverBallHistory((prev) => [...prev, "RO"]);
- 
-  // Mark dismissed so they don't appear again
-  setDismissedBatterIds((prev) => {
-    const next = new Set(prev.map(String));
-    next.add(String(outId));
-    return Array.from(next);
-  });
- 
-  // Clear the dismissed batter slot and adjust strike only if striker was out
-  if (who === "batsman1") {
+    // Snapshot current state for undo
+    const snapshot = {
+      inningsRuns,
+      inningsWickets,
+      overs,
+      balls,
+      currentOverRuns,
+      onStrike,
+      batsman1,
+      batsman2,
+      dismissedBatterIds: [...dismissedBatterIds],
+      overBallHistory: [...overBallHistory],
+      scoringLocked,
+      allBatterStats: { ...allBatterStats },
+      allBowlerStats: { ...allBowlerStats },
+    };
+    setHistory((prev) => [...prev, snapshot]);
+
+    const outId = who === "batsman1" ? batsman1 : batsman2;
+    if (!outId) return;
+
+    // Ball counts to the striker on a legal delivery
+    const strikerId = onStrike === "batsman1" ? batsman1 : batsman2;
+    setAllBatterStats((prevStats) => {
+      const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      return {
+        ...prevStats,
+        [strikerId]: { ...curr, balls: curr.balls + 1 },
+      };
+    });
+
+    // Team wicket + history (no change to bowler wickets or runs)
+    setInningsWickets((w) => w + 1);
+    setOverBallHistory((prev) => [...prev, "RO"]);
+
+    // Mark dismissed so they don't appear again
+    setDismissedBatterIds((prev) => {
+      const next = new Set(prev.map(String));
+      next.add(String(outId));
+      return Array.from(next);
+    });
+
+    // Clear the dismissed batter slot and adjust strike only if striker was out
+    if (who === "batsman1") {
+      setBatsman1("");
+      if (onStrike === "batsman1") setOnStrike("batsman2");
+    } else {
+      setBatsman2("");
+      if (onStrike === "batsman2") setOnStrike("batsman1");
+    }
+
+    // Legal delivery completed (no runs for maiden calc)
+    finishBallAndCheckOver(0);
+  };
+
+  // Undo last action
+  const handleUndo = () => {
+    if (history.length === 0) return;
+
+    const last = history[history.length - 1];
+    setHistory((prev) => prev.slice(0, -1));
+
+    setInningsRuns(last.inningsRuns);
+    setInningsWickets(last.inningsWickets);
+    setOvers(last.overs);
+    setBalls(last.balls);
+    setCurrentOverRuns(last.currentOverRuns);
+    setOnStrike(last.onStrike);
+    setBatsman1(last.batsman1);
+    setBatsman2(last.batsman2);
+    setDismissedBatterIds(last.dismissedBatterIds);
+    setOverBallHistory(last.overBallHistory);
+    setScoringLocked(last.scoringLocked);
+    setAllBatterStats(last.allBatterStats);
+    setAllBowlerStats(last.allBowlerStats);
+  };
+
+  // End current innings
+  const handleEndInnings = () => {
+    const batterStatsWithNames = Object.keys(allBatterStats).map((id) => ({
+      id,
+      name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
+      ...allBatterStats[id],
+    }));
+    const bowlerStatsWithNames = Object.keys(allBowlerStats).map((id) => ({
+      id,
+      name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
+      ...allBowlerStats[id],
+    }));
+
+    const inningsData = {
+      battingTeamId,
+      bowlingTeamId,
+      runs: inningsRuns,
+      wickets: inningsWickets,
+      totalOvers: `${overs}.${balls}`,
+      batterStatsWithNames,
+      bowlerStatsWithNames,
+    };
+
+    if (currentInnings === 1) {
+      setInnings1(inningsData);
+      // Swap teams for 2nd innings
+      const prevBatting = battingTeamId;
+      setBattingTeamId(bowlingTeamId);
+      setBowlingTeamId(prevBatting);
+      // Effects will reload batters and bowlers
+    } else if (currentInnings === 2) {
+      setInnings2(inningsData);
+      setCurrentInnings("completed");
+      setScoringLocked(true); // Lock everything after match ends
+    }
+
+    // Reset current innings states
+    setInningsRuns(0);
+    setInningsWickets(0);
+    setOvers(0);
+    setBalls(0);
+    setCurrentOverRuns(0);
+    setAllBatterStats({});
+    setAllBowlerStats({});
     setBatsman1("");
-    if (onStrike === "batsman1") setOnStrike("batsman2");
-  } else {
     setBatsman2("");
-    if (onStrike === "batsman2") setOnStrike("batsman1");
-  }
- 
-  // Legal delivery completed (no runs for maiden calc)
-  finishBallAndCheckOver(0);
-};
+    setBowler("");
+    setOnStrike("batsman1");
+    setScoringLocked(false);
+    setDismissedBatterIds([]);
+    setHistory([]);
+    setOverBallHistory([]);
 
+    if (currentInnings === 1) {
+      setCurrentInnings(2);
+    }
+  };
 
   // ---------- PUSH SCOREBAR DATA TO BACKEND FOR OBS ----------
   const postOverlay = async () => {
@@ -838,9 +997,8 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
   // Push overlay whenever scoring-relevant state changes
   useEffect(() => {
     postOverlay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-line react-hooks/exhaustive-deps
   }, [
-    // match/team context
     battingTeamId,
     bowlingTeamId,
     battingTeamLogo,
@@ -848,14 +1006,10 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
     battingTeamCode,
     bowlingTeamCode,
     overType,
-
-    // inning summary
     inningsRuns,
     inningsWickets,
     overs,
     balls,
-
-    // players / strike
     onStrike,
     strikerName,
     nonStrikerName,
@@ -863,21 +1017,17 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
     strikerBalls,
     nonStrikerRuns,
     nonStrikerBalls,
-
-    // bowler
     bowlerName,
     bowlerOvers,
     bowlerRuns,
     bowlerWickets,
-
-    // current over visuals
     overBallHistory,
   ]);
 
   // Also push whenever match header loaded (logos/names/ground ready)
   useEffect(() => {
     postOverlay();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-line react-hooks/exhaustive-deps
   }, [currentMatchDetails]);
 
   // 3x3 scoring table
@@ -1012,6 +1162,143 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
         ? Number(currentMatch.team2Id)
         : Number(currentMatch.team1Id);
     setBattingTeamId(other);
+  };
+
+  const handleBatsman1Change = (e) => {
+    setBatsman1(String(e.target.value));
+  };
+
+  const handleBatsman2Change = (e) => {
+    setBatsman2(String(e.target.value));
+  };
+
+  // Render innings summary table for batting
+  const renderBattingTable = (teamName, batterStats) => (
+    <>
+      <Typography
+        variant="subtitle2"
+        fontWeight={800}
+        gutterBottom
+        color="primary"
+      >
+        {teamName} Batting
+      </Typography>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Player</TableCell>
+            <TableCell align="right">Runs</TableCell>
+            <TableCell align="right">Balls</TableCell>
+            <TableCell align="right">4s</TableCell>
+            <TableCell align="right">6s</TableCell>
+            <TableCell align="right">SR</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {batterStats.map((stats) => {
+            const sr = stats.balls > 0 ? (stats.runs / stats.balls * 100).toFixed(2) : "0.00";
+            return (
+              <TableRow key={stats.id}>
+                <TableCell>{stats.name}</TableCell>
+                <TableCell align="right">{stats.runs ?? 0}</TableCell>
+                <TableCell align="right">{stats.balls ?? 0}</TableCell>
+                <TableCell align="right">{stats.fours ?? 0}</TableCell>
+                <TableCell align="right">{stats.sixes ?? 0}</TableCell>
+                <TableCell align="right">{sr}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </>
+  );
+
+  // Render innings summary table for bowling
+  const renderBowlingTable = (teamName, bowlerStats) => (
+    <>
+      <Typography
+        variant="subtitle2"
+        fontWeight={800}
+        gutterBottom
+        color="secondary"
+      >
+        {teamName} Bowling
+      </Typography>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Player</TableCell>
+            <TableCell align="right">Overs</TableCell>
+            <TableCell align="right">Runs</TableCell>
+            <TableCell align="right">Wkts</TableCell>
+            <TableCell align="right">Econ</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {bowlerStats.map((stats) => {
+            const econ = stats.overs > 0 ? (stats.runs / stats.overs).toFixed(2) : "0.00";
+            return (
+              <TableRow key={stats.id}>
+                <TableCell>{stats.name}</TableCell>
+                <TableCell align="right">{stats.overs}</TableCell>
+                <TableCell align="right">{stats.runs ?? 0}</TableCell>
+                <TableCell align="right">{stats.wickets ?? 0}</TableCell>
+                <TableCell align="right">{econ}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </>
+  );
+
+  // Render full match summary
+  const renderFullMatchSummary = () => {
+    if (!innings1 || !innings2) return null;
+
+    const firstBattingTeamName = innings1.battingTeamId === team1Id ? team1Name : team2Name;
+    const secondBattingTeamName = innings2.battingTeamId === team1Id ? team1Name : team2Name;
+
+    const firstBowlingTeamName = innings1.bowlingTeamId === team1Id ? team1Name : team2Name;
+    const secondBowlingTeamName = innings2.bowlingTeamId === team1Id ? team1Name : team2Name;
+
+    return (
+      <Card
+        variant="outlined"
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          mb: 2.5,
+          borderColor: "divider",
+          bgcolor: "background.paper",
+        }}
+      >
+        <CardHeader
+          titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
+          title="Full Match Summary"
+          sx={{ py: 1.25, px: 1.5 }}
+        />
+        <Divider />
+        <CardContent sx={{ p: 1.5 }}>
+          <Stack spacing={3}>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                1st Innings: {firstBattingTeamName} {innings1.runs}/{innings1.wickets} ({innings1.totalOvers} overs)
+              </Typography>
+              {renderBattingTable(firstBattingTeamName, innings1.batterStatsWithNames)}
+              {renderBowlingTable(firstBowlingTeamName, innings1.bowlerStatsWithNames)}
+            </Box>
+            <Box>
+              <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+                2nd Innings: {secondBattingTeamName} {innings2.runs}/{innings2.wickets} ({innings2.totalOvers} overs)
+              </Typography>
+              {renderBattingTable(secondBattingTeamName, innings2.batterStatsWithNames)}
+              {renderBowlingTable(secondBowlingTeamName, innings2.bowlerStatsWithNames)}
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -1453,36 +1740,58 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
                     />
                   </Grid>
                 </Grid>
+                <Grid container spacing={1.25} sx={{ mt: 1 }}>
+                  <Grid item xs={6}>
+                    <TextField
+                      size="small"
+                      label="Count Wide Ball"
+                      value={isCountWideBall ? "Yes" : "No"}
+                      fullWidth
+                      disabled
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      size="small"
+                      label="Count No Ball"
+                      value={isCountNoBall ? "Yes" : "No"}
+                      fullWidth
+                      disabled
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                </Grid>
               </CardContent>
             </Card>
 
             {/* Players */}
             <Box sx={{ mb: 2 }}>
-               <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-    <Typography variant="body2" fontWeight={800} color="text.secondary">
-      Players
-    </Typography>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+                <Typography variant="body2" fontWeight={800} color="text.secondary">
+                  Players
+                </Typography>
 
-    <Fab
-      size="small"
-      color="primary"
-      aria-label="add player"
-      onClick={() => {
-        // default the team to currently selected batting team if present,
-        // otherwise bowling team, otherwise blank
-        const defaultTeam =
-          (battingTeamId && String(battingTeamId)) ||
-          (bowlingTeamId && String(bowlingTeamId)) ||
-          "";
-        setPlayerForm((p) => ({ ...emptyPlayerForm, teamId: defaultTeam }));
-        setFormErrors({});
-        setAddOpen(true);
-      }}
-      sx={{ boxShadow: "none" }}
-    >
-      <AddIcon fontSize="small" />
-    </Fab>
-  </Stack>
+                <Fab
+                  size="small"
+                  color="primary"
+                  aria-label="add player"
+                  onClick={() => {
+                    // default the team to currently selected batting team if present,
+                    // otherwise bowling team, otherwise blank
+                    const defaultTeam =
+                      (battingTeamId && String(battingTeamId)) ||
+                      (bowlingTeamId && String(bowlingTeamId)) ||
+                      "";
+                    setPlayerForm((p) => ({ ...emptyPlayerForm, teamId: defaultTeam }));
+                    setFormErrors({});
+                    setAddOpen(true);
+                  }}
+                  sx={{ boxShadow: "none" }}
+                >
+                  <AddIcon fontSize="small" />
+                </Fab>
+              </Stack>
               <Grid container spacing={1.25}>
                 {/* Batsman 1 */}
                 <Grid item xs={12} md={4}>
@@ -1504,7 +1813,7 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
                       <FormControl
                         fullWidth
                         sx={{ mt: 0.25 }}
-                        disabled={!battingTeamId}
+                        disabled={!battingTeamId || currentInnings === "completed"}
                         size="small"
                       >
                         <InputLabel id="batsman1-label" shrink>
@@ -1566,7 +1875,7 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
                       <FormControl
                         fullWidth
                         sx={{ mt: 0.25 }}
-                        disabled={!battingTeamId}
+                        disabled={!battingTeamId || currentInnings === "completed"}
                         size="small"
                       >
                         <InputLabel id="batsman2-label" shrink>
@@ -1628,7 +1937,7 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
                       <FormControl
                         fullWidth
                         sx={{ mt: 0.25 }}
-                        disabled={!bowlingTeamId}
+                        disabled={!bowlingTeamId || currentInnings === "completed"}
                         size="small"
                       >
                         <InputLabel id="bowler-label" shrink>
@@ -1683,6 +1992,15 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
                           <Button variant="contained" color="success" size="small" disabled>
                             Save
                           </Button>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={handleEndInnings}
+                            disabled={currentInnings === "completed"}
+                          >
+                            End Innings
+                          </Button>
                         </Stack>
                       }
                       sx={{ py: 1, px: 1.25 }}
@@ -1714,7 +2032,7 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
                           variant="contained"
                           size="small"
                           fullWidth
-                          disabled={scoringLocked}
+                          disabled={scoringLocked || currentInnings === "completed"}
                           sx={{
                             bgcolor: "#ef5350",
                             color: "white",
@@ -1725,37 +2043,46 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
                           Wicket
                         </Button>
 
-                       <Button
-                        variant="contained"
-                        size="small"
-                        fullWidth
-                        disabled={scoringLocked}
-                        sx={{
-                          bgcolor: "#d32f2f",
-                          color: "white",
-                          "&:hover": { bgcolor: "#c62828" },
-                        }}
-                        onClick={() => handleRunOut("batsman1")}
-                      >
-                        Run out (Batsman 1)
-                      </Button>
- 
-                      <Button
-                        variant="contained"
-                        size="small"
-                        fullWidth
-                        disabled={scoringLocked}
-                        sx={{
-                          bgcolor: "#b71c1c",
-                          color: "white",
-                          "&:hover": { bgcolor: "#7f0000" },
-                        }}
-                        onClick={() => handleRunOut("batsman2")}
-                      >
-                        Run out (Batsman 2)
-                      </Button>
- 
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          disabled={scoringLocked || currentInnings === "completed"}
+                          sx={{
+                            bgcolor: "#d32f2f",
+                            color: "white",
+                            "&:hover": { bgcolor: "#c62828" },
+                          }}
+                          onClick={() => handleRunOut("batsman1")}
+                        >
+                          Run out (Batsman 1)
+                        </Button>
 
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          disabled={scoringLocked || currentInnings === "completed"}
+                          sx={{
+                            bgcolor: "#b71c1c",
+                            color: "white",
+                            "&:hover": { bgcolor: "#7f0000" },
+                          }}
+                          onClick={() => handleRunOut("batsman2")}
+                        >
+                          Run out (Batsman 2)
+                        </Button>
+
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          size="small"
+                          fullWidth
+                          onClick={handleUndo}
+                          disabled={history.length === 0 || currentInnings === "completed"}
+                        >
+                          Undo Last Action
+                        </Button>
 
                       </Stack>
                     </CardContent>
@@ -1767,7 +2094,7 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
         </Grid>
 
         <Grid item xs={12} md={6} pt={2}>
-          <Container-fluid>
+          <Container maxWidth={false} disableGutters>
             <Card
               variant="outlined"
               sx={{
@@ -1794,264 +2121,250 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
               <Divider />
               <CardContent sx={{ p: 1.5 }}>
                 <Grid container spacing={2}>
-                  {/* Batting Team Table */}
-                  <Grid item xs={12} md={6}>
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight={800}
-                      gutterBottom
-                      color="primary"
-                    >
-                      {battingTeamId
-                        ? `${
-                            battingTeamId === Number(currentMatch?.team1Id)
-                              ? team1Name
-                              : team2Name
-                          } Batting`
-                        : "Batting Team"}
-                    </Typography>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Player</TableCell>
-                          <TableCell align="right">Runs</TableCell>
-                          <TableCell align="right">Balls</TableCell>
-                          <TableCell align="right">4s</TableCell>
-                          <TableCell align="right">6s</TableCell>
-                          <TableCell align="right">SR</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {batters.map((p) => (
-                          <TableRow key={p.id}>
-                            <TableCell>{getPlayerName(p)}</TableCell>
-                            <TableCell align="right">{p.runs ?? 0}</TableCell>
-                            <TableCell align="right">{p.balls ?? 0}</TableCell>
-                            <TableCell align="right">{p.fours ?? 0}</TableCell>
-                            <TableCell align="right">{p.sixes ?? 0}</TableCell>
-                            <TableCell align="right">
-                              {p.balls > 0
-                                ? ((p.runs / p.balls) * 100).toFixed(2)
-                                : "0.00"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Grid>
+                  {/* 1st Innings Summary */}
+                  {(currentInnings > 1 || currentInnings === 1) && (
+                    <Grid item xs={12}>
+                      <Typography variant="h6" gutterBottom>
+                        1st Innings Summary
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          {currentInnings === 1
+                            ? renderBattingTable(
+                                battingTeamName,
+                                Object.keys(allBatterStats).map((id) => ({
+                                  id,
+                                  name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
+                                  ...allBatterStats[id],
+                                }))
+                              )
+                            : innings1 && renderBattingTable(
+                                innings1.battingTeamId === team1Id ? team1Name : team2Name,
+                                innings1.batterStatsWithNames
+                              )}
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          {currentInnings === 1
+                            ? renderBowlingTable(
+                                bowlingTeamName,
+                                Object.keys(allBowlerStats).map((id) => ({
+                                  id,
+                                  name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
+                                  ...allBowlerStats[id],
+                                }))
+                              )
+                            : innings1 && renderBowlingTable(
+                                innings1.bowlingTeamId === team1Id ? team1Name : team2Name,
+                                innings1.bowlerStatsWithNames
+                              )}
+                        </Grid>
+                      </Grid>
+                    </Grid>
+                  )}
 
-                  {/* Bowling Team Table */}
-                  <Grid item xs={12} md={6}>
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight={800}
-                      gutterBottom
-                      color="secondary"
-                    >
-                      {bowlingTeamId
-                        ? `${
-                            bowlingTeamId === Number(currentMatch?.team1Id)
-                              ? team1Name
-                              : team2Name
-                          } Bowling`
-                        : "Bowling Team"}
-                    </Typography>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Player</TableCell>
-                          <TableCell align="right">Overs</TableCell>
-                          <TableCell align="right">Runs</TableCell>
-                          <TableCell align="right">Wkts</TableCell>
-                          <TableCell align="right">Econ</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {bowlers.map((p) => (
-                          <TableRow key={p.id}>
-                            <TableCell>{getPlayerName(p)}</TableCell>
-                            <TableCell align="right">{p.overs ?? 0}</TableCell>
-                            <TableCell align="right">{p.runs ?? 0}</TableCell>
-                            <TableCell align="right">
-                              {p.wickets ?? 0}
-                            </TableCell>
-                            <TableCell align="right">
-                              {p.overs > 0
-                                ? (p.runs / p.overs).toFixed(2)
-                                : "0.00"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </Grid>
+                  {/* 2nd Innings Summary */}
+                  {currentInnings === 2 || currentInnings === "completed" ? (
+                    <Grid item xs={12}>
+                      <Typography variant="h6" gutterBottom>
+                        2nd Innings Summary
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12} md={6}>
+                          {currentInnings === 2
+                            ? renderBattingTable(
+                                battingTeamName,
+                                Object.keys(allBatterStats).map((id) => ({
+                                  id,
+                                  name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
+                                  ...allBatterStats[id],
+                                }))
+                              )
+                            : innings2 && renderBattingTable(
+                                innings2.battingTeamId === team1Id ? team1Name : team2Name,
+                                innings2.batterStatsWithNames
+                              )}
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          {currentInnings === 2
+                            ? renderBowlingTable(
+                                bowlingTeamName,
+                                Object.keys(allBowlerStats).map((id) => ({
+                                  id,
+                                  name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
+                                  ...allBowlerStats[id],
+                                }))
+                              )
+                            : innings2 && renderBowlingTable(
+                                innings2.bowlingTeamId === team1Id ? team1Name : team2Name,
+                                innings2.bowlerStatsWithNames
+                              )}
+                        </Grid>
+                      </Grid>
+                    </Grid>
+                  ) : null}
                 </Grid>
               </CardContent>
             </Card>
-          </Container-fluid>
+            {currentInnings === "completed" && renderFullMatchSummary()}
+          </Container>
         </Grid>
       </Grid>
 
-
-
-      
       {/* Player Registration Dialog */}
-<Dialog
-  open={addOpen}
-  onClose={() => setAddOpen(false)}
-  fullWidth
-  maxWidth="sm"
-  PaperProps={{ sx: { borderRadius: 3 } }}
->
-  <DialogTitle sx={{ fontWeight: 800 }}>Register Player</DialogTitle>
-  <DialogContent dividers>
-    <Stack
-      component="form"
-      id="playerCreateForm"
-      spacing={2}
-      onSubmit={onCreatePlayer}
-      sx={{ pt: 1 }}
-    >
-      {/* TEAM */}
-      <FormControl size="small" fullWidth error={Boolean(formErrors.teamId)}>
-        <InputLabel id="add-team-label">Team</InputLabel>
-        <Select
-          labelId="add-team-label"
-          label="Team"
-          name="teamId"
-          value={playerForm.teamId}
-          onChange={onPlayerField}
-        >
-          {teams.map((t) => (
-            <MenuItem key={t.id} value={String(t.id)}>
-              {t.teamName} (#{t.id})
-            </MenuItem>
-          ))}
-        </Select>
-        {formErrors.teamId && (
-          <FormHelperText>{formErrors.teamId}</FormHelperText>
-        )}
-      </FormControl>
+      <Dialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800 }}>Register Player</DialogTitle>
+        <DialogContent dividers>
+          <Stack
+            component="form"
+            id="playerCreateForm"
+            spacing={2}
+            onSubmit={onCreatePlayer}
+            sx={{ pt: 1 }}
+          >
+            {/* TEAM */}
+            <FormControl size="small" fullWidth error={Boolean(formErrors.teamId)}>
+              <InputLabel id="add-team-label">Team</InputLabel>
+              <Select
+                labelId="add-team-label"
+                label="Team"
+                name="teamId"
+                value={playerForm.teamId}
+                onChange={onPlayerField}
+              >
+                {teams.map((t) => (
+                  <MenuItem key={t.id} value={String(t.id)}>
+                    {t.teamName} (#{t.id})
+                  </MenuItem>
+                ))}
+              </Select>
+              {formErrors.teamId && (
+                <FormHelperText>{formErrors.teamId}</FormHelperText>
+              )}
+            </FormControl>
 
-      {/* NAME / POSITION */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-        <TextField
-          size="small"
-          label="Player Name"
-          name="playerName"
-          value={playerForm.playerName}
-          onChange={onPlayerField}
-          error={Boolean(formErrors.playerName)}
-          helperText={formErrors.playerName}
-          fullWidth
-        />
-        <TextField
-          size="small"
-          label="Position (0–11)"
-          type="number"
-          name="position"
-          value={playerForm.position}
-          onChange={(e) => {
-            let v = e.target.value;
-            if (v !== "") {
-              const n = Number(v);
-              if (!Number.isNaN(n)) {
-                if (n < 0) v = "0";
-                if (n > 11) v = "11";
-              }
-            }
-            onPlayerField({ target: { name: "position", value: v, type: "text" } });
-          }}
-          error={Boolean(formErrors.position)}
-          helperText={formErrors.position}
-          inputProps={{ min: 0, max: 11, step: 1 }}
-          sx={{ width: { sm: 180 } }}
-        />
-      </Stack>
+            {/* NAME / POSITION */}
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                size="small"
+                label="Player Name"
+                name="playerName"
+                value={playerForm.playerName}
+                onChange={onPlayerField}
+                error={Boolean(formErrors.playerName)}
+                helperText={formErrors.playerName}
+                fullWidth
+              />
+              <TextField
+                size="small"
+                label="Position (0–11)"
+                type="number"
+                name="position"
+                value={playerForm.position}
+                onChange={(e) => {
+                  let v = e.target.value;
+                  if (v !== "") {
+                    const n = Number(v);
+                    if (!Number.isNaN(n)) {
+                      if (n < 0) v = "0";
+                      if (n > 11) v = "11";
+                    }
+                  }
+                  onPlayerField({ target: { name: "position", value: v, type: "text" } });
+                }}
+                error={Boolean(formErrors.position)}
+                helperText={formErrors.position}
+                inputProps={{ min: 0, max: 11, step: 1 }}
+                sx={{ width: { sm: 180 } }}
+              />
+            </Stack>
 
-      {/* PHONE / ADDRESS */}
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-        <TextField
-          size="small"
-          label="Phone"
-          name="phone"
-          value={playerForm.phone}
-          onChange={onPlayerField}
-          fullWidth
-        />
-        <TextField
-          size="small"
-          label="Address"
-          name="playerAddress"
-          value={playerForm.playerAddress}
-          onChange={onPlayerField}
-          fullWidth
-        />
-      </Stack>
+            {/* PHONE / ADDRESS */}
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                size="small"
+                label="Phone"
+                name="phone"
+                value={playerForm.phone}
+                onChange={onPlayerField}
+                fullWidth
+              />
+              <TextField
+                size="small"
+                label="Address"
+                name="playerAddress"
+                value={playerForm.playerAddress}
+                onChange={onPlayerField}
+                fullWidth
+              />
+            </Stack>
 
-      {/* ROLES */}
-      <FormGroup row>
-        <FormControlLabel
-          control={
-            <Checkbox
-              name="isBatter"
-              checked={playerForm.isBatter}
-              onChange={onPlayerField}
-            />
-          }
-          label="Batter"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              name="isBaller"
-              checked={playerForm.isBaller}
-              onChange={onPlayerField}
-            />
-          }
-          label="Bowler"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              name="isWk"
-              checked={playerForm.isWk}
-              onChange={onPlayerField}
-            />
-          }
-          label="Wicket Keeper"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              name="isCaptain"
-              checked={playerForm.isCaptain}
-              onChange={onPlayerField}
-            />
-          }
-          label="Captain"
-        />
-      </FormGroup>
-      {formErrors.roles && (
-        <Typography variant="caption" color="error">
-          {formErrors.roles}
-        </Typography>
-      )}
-    </Stack>
-  </DialogContent>
+            {/* ROLES */}
+            <FormGroup row>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="isBatter"
+                    checked={playerForm.isBatter}
+                    onChange={onPlayerField}
+                  />
+                }
+                label="Batter"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="isBaller"
+                    checked={playerForm.isBaller}
+                    onChange={onPlayerField}
+                  />
+                }
+                label="Bowler"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="isWk"
+                    checked={playerForm.isWk}
+                    onChange={onPlayerField}
+                  />
+                }
+                label="Wicket Keeper"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="isCaptain"
+                    checked={playerForm.isCaptain}
+                    onChange={onPlayerField}
+                  />
+                }
+                label="Captain"
+              />
+            </FormGroup>
+            {formErrors.roles && (
+              <Typography variant="caption" color="error">
+                {formErrors.roles}
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
 
-  <DialogActions sx={{ p: 2 }}>
-    <Button onClick={() => setAddOpen(false)} color="inherit">
-      Cancel
-    </Button>
-    <Button type="submit" form="playerCreateForm" variant="contained">
-      Create
-    </Button>
-  </DialogActions>
-</Dialog>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setAddOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button type="submit" form="playerCreateForm" variant="contained">
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
 
     </Box>
-
-    
   );
 }
