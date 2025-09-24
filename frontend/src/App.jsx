@@ -7,6 +7,9 @@ import PlayersPage from "./pages/PlayersPage.jsx";
 import MatchesPage from "./pages/MatchesPage.jsx";
 import ScoreDashboard from "./pages/ScoreDashboard.jsx";
 
+// NEW: Draw Builder page
+import DrawBuilder from "./pages/DrawBuilder.jsx";
+
 export default function App() {
   return (
     <Layout>
@@ -17,6 +20,10 @@ export default function App() {
         <Route path="/players" element={<PlayersPage />} />
         <Route path="/matches" element={<MatchesPage />} />
         <Route path="/scoreboard" element={<ScoreDashboard />} />
+
+        {/* NEW ROUTE */}
+        <Route path="/draw" element={<DrawBuilder />} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
