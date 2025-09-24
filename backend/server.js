@@ -429,6 +429,103 @@ app.get("/overlay/six", (_req, res) => {
 </html>`);
 });
 
+
+// ---------- Event overlays (FREE HIT) ----------
+app.get("/overlay/freehit", (_req, res) => {
+  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FREE HIT</title>
+<style>
+  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+  .stage{position:fixed;inset:0;display:grid;place-items:center;
+         background:radial-gradient(70vmin 70vmin at 50% 50%,rgba(0,255,128,.12),transparent 70%)}
+  .badge{
+    --glow:#22ff88;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    font-weight:1000;font-size:14vmin;line-height:1;color:#fff;letter-spacing:.06em;
+    padding:.25em .8em;border-radius:2.5rem;border:6px solid rgba(34,255,136,.9);
+    background:linear-gradient(135deg,#004d2e 0%,#007a4d 50%,#00331f 100%);
+    text-shadow:0 0 20px rgba(34,255,136,.6),0 0 50px rgba(34,255,136,.4);
+    box-shadow:0 0 0 0 var(--glow),0 0 40px 8px rgba(34,255,136,.3) inset,
+               0 14px 45px rgba(0,0,0,.6);
+    transform:scale(.2) rotate(-12deg);
+    filter:drop-shadow(0 8px 24px rgba(0,0,0,.6));
+    animation:enter .7s cubic-bezier(.18,.89,.32,1.28) forwards,
+             glow 1.6s ease-in-out .8s infinite alternate,
+             pulse 1.8s ease-in-out 1.2s infinite;
+  }
+  .label{
+    font:900 4.2vmin system-ui;
+    color:#bbffd8;
+    text-align:center;
+    margin-top:14px;
+    text-shadow:0 3px 12px rgba(0,0,0,.55),0 0 18px rgba(34,255,136,.6);
+    letter-spacing:.12em;
+  }
+  .rings{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .ring{
+    position:absolute;border:4px solid rgba(34,255,136,.7);border-radius:50%;
+    width:20vmin;height:20vmin;top:50%;left:50%;
+    transform:translate(-50%,-50%) scale(.2);opacity:0;
+    animation:ring 1.6s ease-out forwards;
+  }
+  .ring:nth-child(2){animation-delay:.25s}
+  .ring:nth-child(3){animation-delay:.5s}
+  .ring:nth-child(4){animation-delay:.75s}
+  .stars{position:absolute;inset:0;pointer-events:none}
+  .s{
+    position:absolute;width:1.4vmin;height:1.4vmin;border-radius:50%;
+    background:#22ff88;opacity:0;transform:scale(.4);
+    animation:twinkle 1.8s ease-in-out forwards;
+  }
+  @keyframes enter{to{transform:scale(1) rotate(0)}}
+  @keyframes glow{to{box-shadow:0 0 26px 8px var(--glow),0 0 65px 14px rgba(34,255,136,.4) inset}}
+  @keyframes pulse{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.05) rotate(1deg)}}
+  @keyframes ring{
+    0%{transform:translate(-50%,-50%) scale(.2);opacity:1}
+    80%{opacity:0.8}
+    100%{transform:translate(-50%,-50%) scale(2.4);opacity:0}
+  }
+  @keyframes twinkle{
+    0%{opacity:0;transform:scale(.4)}
+    20%{opacity:1;transform:scale(1)}
+    100%{opacity:0;transform:scale(.2)}
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div>
+      <div class="badge">FREE HIT</div>
+      <div class="label">DON'T MISS!</div>
+    </div>
+    <div class="rings" id="rings"></div>
+    <div class="stars" id="stars"></div>
+  </div>
+<script>
+  const r=document.getElementById('rings');
+  for(let i=0;i<4;i++){
+    const ring=document.createElement('div');
+    ring.className='ring';
+    r.appendChild(ring);
+  }
+  const s=document.getElementById('stars');
+  for(let i=0;i<30;i++){
+    const star=document.createElement('div');
+    star.className='s';
+    star.style.left=(Math.random()*100)+'%';
+    star.style.top=(Math.random()*100)+'%';
+    star.style.animationDelay=(0.3+Math.random()*1.2)+'s';
+    s.appendChild(star);
+  }
+</script>
+</body></html>`);
+});
+
+
 app.get("/overlay/wicket", (_req, res) => {
   res
     .set("Content-Type", "text/html; charset=utf-8")
@@ -1099,4 +1196,5 @@ app.listen(PORT, () => {
   console.log(`Overlay (FOUR)    → http://localhost:${PORT}/overlay/four`);
   console.log(`Overlay (SIX)     → http://localhost:${PORT}/overlay/six`);
   console.log(`Overlay (WICKET)  → http://localhost:${PORT}/overlay/wicket`);
+  console.log(`Overlay (FREEHIT) → http://localhost:${PORT}/overlay/freehit`);
 });
