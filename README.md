@@ -18,8 +18,9 @@ Overlay (for OBS): http://localhost:4000/overlay
 
 ### 2) Start the frontend
 ```bash
-npm install @mui/icons-material
+
 cd ../frontend
+npm install @mui/icons-material
 npm install
 npm run dev
 ```
