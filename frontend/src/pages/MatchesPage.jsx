@@ -492,18 +492,20 @@ export default function MatchesPage() {
                                 <td>{m.date?.slice(0, 10)}</td>
                                 <td>{m.startTime}</td>
                                 <td className="text-end">
-                                  <button
-                                    className="btn btn-sm btn-outline-primary me-2"
-                                    onClick={() => onEdit(m)}
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => onDelete(m.id ?? m._id)}
-                                  >
-                                    Delete
-                                  </button>
+                                  <div className="d-inline-flex gap-2">
+                                    <button
+                                      className="btn btn-sm btn-outline-primary"
+                                      onClick={() => onEdit(m)}
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      className="btn btn-sm btn-outline-danger"
+                                      onClick={() => onDelete(m.id ?? m._id)}
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             ))}

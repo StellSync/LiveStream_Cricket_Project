@@ -13,7 +13,7 @@ const emptyForm = {
   playerName: "",
   playerAddress: "",
   phone: "",
-  position: 0,
+  position: "", // keep as string in the form for easier validation
   isBatter: false,
   isBaller: false,
   isWk: false,
@@ -32,6 +32,12 @@ export default function PlayersPage() {
   const [filterTeamId, setFilterTeamId] = useState(""); // '' = all
   const [query, setQuery] = useState(""); // optional player search
 
+  // NEW: remember the last selected team for convenience
+  const [lastTeamId, setLastTeamId] = useState("");
+
+  // NEW: form validation state
+  const [errors, setErrors] = useState({});
+
   async function load() {
     const [playersRes, teamsRes] = await Promise.all([
       getPlayers(),
@@ -44,40 +50,112 @@ export default function PlayersPage() {
     load();
   }, []);
 
+  // --- Validation helpers ---
+  function validate(values) {
+    const e = {};
+
+    // Team required
+    if (!values.teamId) {
+      e.teamId = "Please select a team.";
+    }
+
+    // Player Name required (min 2 chars)
+    const name = (values.playerName || "").trim();
+    if (!name) {
+      e.playerName = "Player name is required.";
+    } else if (name.length < 2) {
+      e.playerName = "Player name must be at least 2 characters.";
+    }
+
+    // Position: required, integer, 0..11
+    let posMsg = "";
+    const raw = values.position;
+    if (raw === "" || raw === null || raw === undefined) {
+      posMsg = "Position is required.";
+    } else {
+      const num = Number(raw);
+      if (!Number.isInteger(num)) posMsg = "Position must be an integer.";
+      else if (num < 0 || num > 11) posMsg = "Position must be between 0 and 11.";
+    }
+    if (posMsg) e.position = posMsg;
+
+    // At least one role among Batter/Bowler/WK
+    if (!values.isBatter && !values.isBaller && !values.isWk) {
+      e.roles = "Select at least one role: Batter, Bowler, or Wicket Keeper.";
+    }
+
+    return e;
+  }
+
   function onChange(e) {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
+    const next = {
+      ...form,
       [name]: type === "checkbox" ? checked : value,
-    }));
+    };
+
+    // If team changed by admin, remember it as last selection
+    if (name === "teamId") {
+      setLastTeamId(value);
+    }
+
+    setForm(next);
+    setErrors((prev) => {
+      // re-validate the single field (and dependent 'roles' group if relevant)
+      const fresh = validate(next);
+      return { ...prev, [name]: fresh[name], ...(name.startsWith("is") ? { roles: fresh.roles } : {}) };
+    });
   }
 
   async function onSubmit(e) {
     e.preventDefault();
+
+    const freshErrors = validate(form);
+    setErrors(freshErrors);
+    if (Object.keys(freshErrors).length > 0) {
+      return; // don't submit if invalid
+    }
+
+    // Build payload with proper types
     const payload = {
       ...form,
       teamId: Number(form.teamId),
+      position: Number(form.position),
     };
+
     if (editingId) await updatePlayer(editingId, payload);
     else await createPlayer(payload);
+
+    // Remember the team used on successful submit
+    const usedTeamId = String(payload.teamId);
+    setLastTeamId(usedTeamId);
+
+    // Reset form BUT keep previously selected team as default
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      teamId: usedTeamId,
+    });
+    setErrors({}); // clear errors
     load();
   }
 
   function onEdit(p) {
     setEditingId(p.id);
+    const tid = p.teamId ? String(p.teamId) : "";
+    setLastTeamId(tid); // make this the remembered team as well
     setForm({
-      teamId: p.teamId ? String(p.teamId) : "",
+      teamId: tid,
       playerName: p.playerName || "",
       playerAddress: p.playerAddress || "",
       phone: p.phone || "",
-      position: p.position || 0,
+      position: (p.position ?? "") === "" ? "" : String(p.position),
       isBatter: !!p.isBatter,
       isBaller: !!p.isBaller,
       isWk: !!p.isWk,
       isCaptain: !!p.isCaptain,
     });
+    setErrors({});
   }
 
   async function onDelete(id) {
@@ -102,8 +180,10 @@ export default function PlayersPage() {
     if (!q) return true;
     return (
       p.playerName?.toLowerCase().includes(q) ||
-      p.phone?.toLowerCase().includes(q) ||
-      p.position?.toLowerCase().includes(q) ||
+      (p.phone ? String(p.phone).toLowerCase().includes(q) : false) ||
+      (p.position !== undefined && p.position !== null
+        ? String(p.position).toLowerCase().includes(q)
+        : false) ||
       teamName(p.teamId)?.toLowerCase().includes(q)
     );
   };
@@ -143,6 +223,9 @@ export default function PlayersPage() {
     return arr;
   }, [visiblePlayers, teamMap]);
 
+  // utility: Bootstrap invalid state helper
+  const invalid = (key) => Boolean(errors[key]);
+
   return (
     <div className="row g-4">
       {/* LEFT: create / edit form */}
@@ -152,13 +235,13 @@ export default function PlayersPage() {
             <h5 className="card-title">
               {editingId ? "Edit Player" : "Add Player"}
             </h5>
-            <form onSubmit={onSubmit} className="row g-3">
+            <form onSubmit={onSubmit} className="row g-3" noValidate>
               <div className="col-12">
                 <label className="form-label">Team</label>
                 <select
                   name="teamId"
-                  className="form-select"
-                  value={form.teamId}
+                  className={`form-select ${invalid("teamId") ? "is-invalid" : ""}`}
+                  value={form.teamId || lastTeamId /* safety: show remembered if form empty */}
                   onChange={onChange}
                   required
                 >
@@ -169,28 +252,55 @@ export default function PlayersPage() {
                     </option>
                   ))}
                 </select>
+                {invalid("teamId") && (
+                  <div className="invalid-feedback">{errors.teamId}</div>
+                )}
               </div>
 
               <div className="col-6">
                 <label className="form-label">Player Name</label>
                 <input
                   name="playerName"
-                  className="form-control"
+                  className={`form-control ${invalid("playerName") ? "is-invalid" : ""}`}
                   value={form.playerName}
                   onChange={onChange}
                   required
                 />
+                {invalid("playerName") && (
+                  <div className="invalid-feedback">{errors.playerName}</div>
+                )}
               </div>
+
               <div className="col-6">
                 <label className="form-label">Position</label>
                 <input
                   type="number"
                   name="position"
-                  className="form-control"
+                  className={`form-control ${invalid("position") ? "is-invalid" : ""}`}
                   value={form.position}
-                  onChange={onChange}
+                  onChange={(e) => {
+                    // keep as string but clamp visually
+                    let v = e.target.value;
+                    // allow empty (so required kicks in), otherwise clamp
+                    if (v !== "") {
+                      const n = Number(v);
+                      if (!Number.isNaN(n)) {
+                        if (n < 0) v = "0";
+                        if (n > 11) v = "11";
+                      }
+                    }
+                    onChange({ target: { name: "position", value: v, type: "text", checked: undefined } });
+                  }}
+                  min={0}
+                  max={11}
+                  step={1}
+                  required
                 />
+                {invalid("position") && (
+                  <div className="invalid-feedback">{errors.position}</div>
+                )}
               </div>
+
               <div className="col-6">
                 <label className="form-label">Phone</label>
                 <input
@@ -198,8 +308,10 @@ export default function PlayersPage() {
                   className="form-control"
                   value={form.phone}
                   onChange={onChange}
+                  placeholder=""
                 />
               </div>
+
               <div className="col-6">
                 <label className="form-label">Address</label>
                 <input
@@ -263,10 +375,15 @@ export default function PlayersPage() {
                     Captain
                   </label>
                 </div>
+
+                {/* Roles validation message */}
+                {invalid("roles") && (
+                  <div className="text-danger small mt-1">{errors.roles}</div>
+                )}
               </div>
 
               <div className="col-12 d-flex gap-2">
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" type="submit">
                   {editingId ? "Update" : "Create"}
                 </button>
                 {editingId && (
@@ -275,7 +392,9 @@ export default function PlayersPage() {
                     className="btn btn-secondary"
                     onClick={() => {
                       setEditingId(null);
-                      setForm(emptyForm);
+                      // Keep last selected team as default when cancelling
+                      setForm({ ...emptyForm, teamId: lastTeamId || "" });
+                      setErrors({});
                     }}
                   >
                     Cancel
@@ -290,10 +409,7 @@ export default function PlayersPage() {
       {/* RIGHT: grouped sections by team with dual scrollers */}
       <div className="col-lg-7">
         <div className="card shadow-sm" style={{ height: MAIN_PANEL_HEIGHT }}>
-          <div
-            className="card-body d-flex flex-column"
-            style={{ height: "90%" }}
-          >
+          <div className="card-body d-flex flex-column" style={{ height: "90%" }}>
             {/* Top bar: filters */}
             <div className="d-flex flex-wrap align-items-center justify-content-between mb-3">
               <h5 className="card-title mb-0">Players</h5>
@@ -340,16 +456,14 @@ export default function PlayersPage() {
                     {/* Section header */}
                     <div className="d-flex align-items-center justify-content-between bg-light px-3 py-2 rounded border">
                       <div className="fw-semibold">
-                        {grp.name}{" "}
-                        <span className="text-muted">#{grp.teamId}</span>
+                        {grp.name} <span className="text-muted">#{grp.teamId}</span>
                       </div>
                       <div className="small text-muted">
-                        {grp.rows.length} player
-                        {grp.rows.length === 1 ? "" : "s"}
+                        {grp.rows.length} player{grp.rows.length === 1 ? "" : "s"}
                       </div>
                     </div>
 
-                    {/* TEAMWISE SCROLLER (players inside a fixed height area) */}
+                    {/* TEAMWISE SCROLLER */}
                     <div
                       className="mt-2"
                       style={{
@@ -366,6 +480,7 @@ export default function PlayersPage() {
                             <th style={{ width: 70 }}>ID</th>
                             <th>Name</th>
                             <th style={{ width: 120 }}>Phone</th>
+                            <th style={{ width: 120 }}>Address</th>
                             <th style={{ width: 140 }}>Position</th>
                             <th style={{ width: 160 }}>Roles</th>
                             <th style={{ width: 140 }}></th>
@@ -377,44 +492,39 @@ export default function PlayersPage() {
                               <td>{p.id}</td>
                               <td>{p.playerName}</td>
                               <td className="text-nowrap">{p.phone || "-"}</td>
+                              <td className="text-nowrap">{p.playerAddress}</td>
                               <td className="text-nowrap">
-                                {p.position || "-"}
+                                {p.position ?? "-"}
                               </td>
                               <td>
                                 {p.isCaptain && (
-                                  <span className="badge text-bg-warning me-1">
-                                    C
-                                  </span>
+                                  <span className="badge text-bg-warning me-1">C</span>
                                 )}
                                 {p.isWk && (
-                                  <span className="badge text-bg-info me-1">
-                                    WK
-                                  </span>
+                                  <span className="badge text-bg-info me-1">WK</span>
                                 )}
                                 {p.isBatter && (
-                                  <span className="badge text-bg-primary me-1">
-                                    Bat
-                                  </span>
+                                  <span className="badge text-bg-primary me-1">Bat</span>
                                 )}
                                 {p.isBaller && (
-                                  <span className="badge text-bg-success me-1">
-                                    Bowl
-                                  </span>
+                                  <span className="badge text-bg-success me-1">Bowl</span>
                                 )}
                               </td>
                               <td className="text-end">
-                                <button
-                                  className="btn btn-sm btn-outline-primary me-2"
-                                  onClick={() => onEdit(p)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="btn btn-sm btn-outline-danger"
-                                  onClick={() => onDelete(p.id)}
-                                >
-                                  Delete
-                                </button>
+                                <div className="d-inline-flex gap-2">
+                                  <button
+                                    className="btn btn-sm btn-outline-primary"
+                                    onClick={() => onEdit(p)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="btn btn-sm btn-outline-danger"
+                                    onClick={() => onDelete(p.id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}

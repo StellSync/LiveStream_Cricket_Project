@@ -30,7 +30,17 @@ import {
   CardHeader,
   CardContent,
   Container,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormGroup,
+  FormHelperText,
+  Fab   // ✅ add this line
 } from "@mui/material";
+
+
+import AddIcon from "@mui/icons-material/Add";
 
 import {
   getMatches,
@@ -38,6 +48,9 @@ import {
   getTournament,
   setCurrentMatch,
   getCurrentMatch,
+  getTeams,
+  createPlayer ,
+
 } from "../lib/api";
 
 export default function ScoreDashboard() {
@@ -80,6 +93,158 @@ export default function ScoreDashboard() {
   const [bowlerRuns, setBowlerRuns] = useState(0);
   const [bowlerWickets, setBowlerWickets] = useState(0);
 
+
+  
+
+
+// --- Player Registration Dialog state ---
+const [addOpen, setAddOpen] = useState(false);
+const [teams, setTeams] = useState([]);
+
+const emptyPlayerForm = {
+  teamId: "",
+  playerName: "",
+  playerAddress: "",
+  phone: "",
+  position: "", // keep as string
+  isBatter: false,
+  isBaller: false,
+  isWk: false,
+  isCaptain: false,
+};
+const [playerForm, setPlayerForm] = useState(emptyPlayerForm);
+const [formErrors, setFormErrors] = useState({});
+
+
+useEffect(() => {
+  (async () => {
+    try {
+      const res = await getTeams();
+      setTeams(res?.data || []);
+    } catch (e) {
+      console.warn("Failed to load teams", e);
+      setTeams([]);
+    }
+  })();
+}, []);
+
+
+
+async function reloadBatters() {
+  if (battingTeamId == null) return;
+  try {
+    const { data } = await getPlayers(battingTeamId);
+    const list = Array.isArray(data) ? data : [];
+    const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(battingTeamId));
+    const onlyBatters = byTeam.filter(isPlayerBatter);
+    setBatters(onlyBatters.length ? onlyBatters : byTeam);
+  } catch (e) {
+    console.warn("Failed to reload batters", e);
+  }
+}
+
+async function reloadBowlers() {
+  if (bowlingTeamId == null) return;
+  try {
+    const { data } = await getPlayers(bowlingTeamId);
+    const list = Array.isArray(data) ? data : [];
+    const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(bowlingTeamId));
+    const onlyBowlers = byTeam.filter(isPlayerBowler);
+    setBowlers(onlyBowlers.length ? onlyBowlers : byTeam);
+  } catch (e) {
+    console.warn("Failed to reload bowlers", e);
+  }
+}
+
+function validatePlayer(values) {
+  const e = {};
+
+  if (!values.teamId) e.teamId = "Please select a team.";
+
+  const name = (values.playerName || "").trim();
+  if (!name) e.playerName = "Player name is required.";
+  else if (name.length < 2) e.playerName = "Name must be at least 2 characters.";
+
+  // position: required int 0..11
+  const raw = values.position;
+  if (raw === "" || raw === null || raw === undefined) {
+    e.position = "Position is required.";
+  } else {
+    const num = Number(raw);
+    if (!Number.isInteger(num)) e.position = "Position must be an integer.";
+    else if (num < 0 || num > 11) e.position = "Position must be 0–11.";
+  }
+
+  if (!values.isBatter && !values.isBaller && !values.isWk) {
+    e.roles = "Select at least one role.";
+  }
+
+  return e;
+}
+
+function onPlayerField(e) {
+  const { name, value, type, checked } = e.target;
+  const next = {
+    ...playerForm,
+    [name]: type === "checkbox" ? checked : value,
+  };
+  setPlayerForm(next);
+
+  // live-validate the changed field
+  const fresh = validatePlayer(next);
+  setFormErrors((prev) => ({
+    ...prev,
+    [name]: fresh[name],
+    ...(name.startsWith("is") ? { roles: fresh.roles } : {}),
+  }));
+}
+
+async function onCreatePlayer(e) {
+  e.preventDefault();
+
+  const errs = validatePlayer(playerForm);
+  setFormErrors(errs);
+  if (Object.keys(errs).length > 0) return;
+
+  const payload = {
+    ...playerForm,
+    teamId: Number(playerForm.teamId),
+    position: Number(playerForm.position),
+  };
+
+  try {
+    await createPlayer(payload);
+
+    // refresh whichever list(s) needed
+    if (payload.teamId === Number(battingTeamId)) {
+      await reloadBatters();
+    }
+    if (payload.teamId === Number(bowlingTeamId)) {
+      await reloadBowlers();
+    }
+
+    // clear + close
+    setPlayerForm(emptyPlayerForm);
+    setFormErrors({});
+    setAddOpen(false);
+  } catch (err) {
+    console.warn("Create player failed:", err);
+  }
+}
+
+
+
+
+
+  // Balling card
+  const [overBallHistory, setOverBallHistory] = useState([]);
+
+  // Lock scoring when an over completes until bowler changes
+  const [scoringLocked, setScoringLocked] = useState(false);
+
+  // Track dismissed batters so they don't appear again in dropdowns
+  const [dismissedBatterIds, setDismissedBatterIds] = useState([]);
+
   useEffect(() => {
     // load existing active match when page loads
     getCurrentMatch().then((data) => setCurrentMatchState(data));
@@ -92,15 +257,14 @@ export default function ScoreDashboard() {
       tournamentLogo: match.tournamentLogo || match.tournament?.logo || "",
       ground: match.tournamentPlace,
       team1: match.team1Name,
-      team1Logo: match.team1Logo || "", // ✅ FIXED
+      team1Logo: match.team1Logo || "",
       team2: match.team2Name,
-      team2Logo: match.team2Logo || "", // ✅ FIXED
+      team2Logo: match.team2Logo || "",
       matchNumber: match.matchNumber,
       overType: match.overType,
       noOfOvers: match.noOfOvers,
     };
 
-    console.log("Selected Data", match);
     setCurrentMatch(matchInfo);
     setCurrentMatchState(matchInfo);
   };
@@ -174,7 +338,7 @@ export default function ScoreDashboard() {
 
     // reset readonly
     setGround("");
-    setOverType(""); // Reset to empty, will be set by match data
+    setOverType("");
     setNoOfOvers("");
 
     // reset scores
@@ -192,10 +356,13 @@ export default function ScoreDashboard() {
     setBowlerRuns(0);
     setBowlerWickets(0);
 
+    setScoringLocked(false);
+    setDismissedBatterIds([]);
+
     (async () => {
       if (!currentMatch) return;
 
-      setOverType(currentMatch.overType ?? "6"); // Default to 6 if no overType provided
+      setOverType(currentMatch.overType ?? "6");
       setNoOfOvers(
         currentMatch.noOfOvers != null && currentMatch.noOfOvers !== ""
           ? String(currentMatch.noOfOvers)
@@ -242,12 +409,17 @@ export default function ScoreDashboard() {
   }, [batsman2]);
 
   useEffect(() => {
+    // bowler changed -> unlock scoring for next over
     setBowlerOvers(0);
     setBowlerMaidens(0);
     setBowlerRuns(0);
     setBowlerWickets(0);
     setCurrentOverRuns(0);
     setBalls(0);
+    setScoringLocked(false);
+
+    // clear last over's ball history now that new bowler is set
+    setOverBallHistory([]);
   }, [bowler]);
 
   useEffect(() => {
@@ -264,6 +436,8 @@ export default function ScoreDashboard() {
     setBowlerMaidens(0);
     setBowlerRuns(0);
     setBowlerWickets(0);
+    setScoringLocked(false);
+    setDismissedBatterIds([]);
   }, [battingTeamId]);
 
   const normalizeBool = (v) =>
@@ -369,8 +543,8 @@ export default function ScoreDashboard() {
     bowlingTeamId === team1Id
       ? currentMatch?.team1Logo
       : currentMatch?.team2Logo;
-  const battingTeamCode = battingTeamName.substring(0, 3).toUpperCase();
-  const bowlingTeamCode = bowlingTeamName.substring(0, 3).toUpperCase();
+  const battingTeamCode = (battingTeamName || "").substring(0, 3).toUpperCase();
+  const bowlingTeamCode = (bowlingTeamName || "").substring(0, 3).toUpperCase();
 
   // Derived player info
   const batsman1Obj = batters.find((p) => String(p.id) === batsman1);
@@ -388,7 +562,7 @@ export default function ScoreDashboard() {
   const nonStrikerBalls =
     onStrike === "batsman1" ? batsman2Balls : batsman1Balls;
 
-  // Build a fixed-size 3x3 grid (9 cells). Truncates extras and pads with "" if short.
+  // Build a fixed-size 3x3 grid (9 cells)
   const makeGrid = (items, total = 9) => {
     const padded = [...items].slice(0, total);
     while (padded.length < total) padded.push("");
@@ -396,82 +570,315 @@ export default function ScoreDashboard() {
   };
 
   // 3x3 button sets
-  const runButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7"]); // keep W in this grid
+  const runButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7"]);
   const wideButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
   const noBallButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
+  const byesButtons = makeGrid(["0", "1", "2", "3", "4", "5", "6", "7", "-"]);
+
+  const ballsPerOver = Number(overType || 6);
+
+  // Filtered dropdown options
+  const availableForBatsman1 = useMemo(
+    () =>
+      batters.filter(
+        (p) =>
+          String(p.id) !== String(batsman2) &&
+          !dismissedBatterIds.includes(String(p.id))
+      ),
+    [batters, batsman2, dismissedBatterIds]
+  );
+
+  const availableForBatsman2 = useMemo(
+    () =>
+      batters.filter(
+        (p) =>
+          String(p.id) !== String(batsman1) &&
+          !dismissedBatterIds.includes(String(p.id))
+      ),
+    [batters, batsman1, dismissedBatterIds]
+  );
+
+  // Ensure two dropdowns never end up with same player
+  useEffect(() => {
+    if (batsman1 && batsman2 && String(batsman1) === String(batsman2)) {
+      setBatsman2("");
+    }
+  }, [batsman1, batsman2]);
+  useEffect(() => {
+    if (batsman1 && batsman2 && String(batsman1) === String(batsman2)) {
+      setBatsman1("");
+    }
+  }, [batsman2, batsman1]);
+
+  // Helper to finish a legal ball and lock if over finished
+  const finishBallAndCheckOver = (addedRunsForMaidens = 0) => {
+    setBalls((prev) => {
+      const newBalls = prev + 1;
+      if (newBalls === ballsPerOver) {
+        // maiden if over had no runs this over (bat or byes)
+        if (currentOverRuns + addedRunsForMaidens === 0) {
+          setBowlerMaidens((m) => m + 1);
+        }
+        setBowlerOvers((o) => o + 1);
+        setOvers((o) => o + 1);
+        setCurrentOverRuns(0);
+        setScoringLocked(true); // Lock scoring until bowler is changed
+        return 0;
+      }
+      return newBalls;
+    });
+  };
 
   const handleScore = (title, value) => {
-    if (value === "-") return; // TODO: Implement cancel if needed
+    if (value === "-") return;
+    if (scoringLocked) return; // guard if UI didn't already prevent it
 
     const runs = Number(value);
-
     const ballsPerOver = Number(overType || 6);
 
-    const setStrikerRuns =
+    const setStrikerRunsFn =
       onStrike === "batsman1" ? setBatsman1Runs : setBatsman2Runs;
-    const setStrikerBalls =
+    const setStrikerBallsFn =
       onStrike === "batsman1" ? setBatsman1Balls : setBatsman2Balls;
 
-    if (!isNaN(runs)) {
-      if (title === "Normal Runs") {
-        setStrikerRuns((prev) => prev + runs);
-        setStrikerBalls((prev) => prev + 1);
-        setInningsRuns((prev) => prev + runs);
-        setBowlerRuns((prev) => prev + runs);
-        setCurrentOverRuns((prev) => prev + runs);
+    const strikerId = onStrike === "batsman1" ? batsman1 : batsman2;
 
-        setBalls((prev) => {
-          const newBalls = prev + 1;
-          if (newBalls === ballsPerOver) {
-            if (currentOverRuns + runs === 0) {
-              setBowlerMaidens((m) => m + 1);
-            }
-            setBowlerOvers((o) => o + 1);
-            setOvers((o) => o + 1);
-            setCurrentOverRuns(0);
-            return 0;
-          }
-          return newBalls;
-        });
+    // inside handleScore, replace updateBallsAndOver with this:
+    const updateBallsAndOver = (maidensRunsThisBall = 0) => {
+      setBalls((prevBalls) => {
+        const newBalls = prevBalls + 1;
 
-        if (runs % 2 === 1) {
-          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
-        }
-      } else if (title === "Wides") {
-        setInningsRuns((prev) => prev + runs + 1);
-        if (runs % 2 === 1) {
-          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
-        }
-      } else if (title === "No Balls") {
-        setInningsRuns((prev) => prev + runs + 1);
-        setBowlerRuns((prev) => prev + runs);
-        if (runs > 0) {
-          setStrikerRuns((prev) => prev + runs);
-        }
-        if ((runs + 1) % 2 === 1) {
-          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
-        }
-      }
-    } else if (value === "W" && title === "Normal Runs") {
-      setInningsWickets((prev) => prev + 1);
-      setBowlerWickets((prev) => prev + 1);
-      setStrikerBalls((prev) => prev + 1);
-
-      setBalls((prev) => {
-        const newBalls = prev + 1;
         if (newBalls === ballsPerOver) {
-          if (currentOverRuns === 0) {
+          // Over completed on this legal delivery
+          if (currentOverRuns + maidensRunsThisBall === 0) {
             setBowlerMaidens((m) => m + 1);
           }
           setBowlerOvers((o) => o + 1);
           setOvers((o) => o + 1);
+
+          // keep the overBallHistory visible (DO NOT reset here)
           setCurrentOverRuns(0);
-          return 0;
+          setScoringLocked(true); // lock until bowler changes
+          return 0; // .0 balls of next over
         }
+
         return newBalls;
       });
+    };
+
+    if (!isNaN(runs)) {
+      if (title === "Normal Runs") {
+        // Normal runs: add to batsman, bowler, team; ball counts
+        setStrikerRunsFn((prev) => prev + runs);
+        setStrikerBallsFn((prev) => prev + 1);
+        setInningsRuns((prev) => prev + runs);
+        setBowlerRuns((prev) => prev + runs);
+        setCurrentOverRuns((prev) => prev + runs);
+
+        // Log this legal ball in the current over
+        setOverBallHistory((prev) => [...prev, String(runs)]);
+
+        // Close over if needed (LOCK only)
+        updateBallsAndOver(runs);
+
+        // Swap strike on odd runs
+        if (runs % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "Wides") {
+        // Wides: team only (+1 base wide plus extra wides), NO ball
+        setInningsRuns((prev) => prev + runs + 1);
+        setOverBallHistory((prev) => [...prev, `Wd${runs}`]);
+        if ((runs + 1) % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "No Balls") {
+        // No-balls: team +1 and (optional bat runs), NO ball
+        setInningsRuns((prev) => prev + runs + 1);
+        setBowlerRuns((prev) => prev + runs);
+        if (runs > 0) setStrikerRunsFn((prev) => prev + runs);
+        setOverBallHistory((prev) => [...prev, `Nb${runs}`]);
+        if ((runs + 1) % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      } else if (title === "Byes") {
+        // Byes: team only, ball counts; rotate strike on odd byes
+        setInningsRuns((prev) => prev + runs);
+        setCurrentOverRuns((prev) => prev + runs);
+        setStrikerBallsFn((prev) => prev + 1);
+        setOverBallHistory((prev) => [...prev, `B${runs}`]);
+
+        // Close over if needed (LOCK only)
+        updateBallsAndOver(runs);
+
+        if (runs % 2 === 1) {
+          setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
+        }
+      }
+    } else if (value === "W" && title === "Normal Runs") {
+      // Wicket on a legal delivery
+      setInningsWickets((prev) => prev + 1);
+      setBowlerWickets((prev) => prev + 1);
+      setStrikerBallsFn((prev) => prev + 1);
+
+      // Log wicket in current over
+      setOverBallHistory((prev) => [...prev, "W"]);
+
+      // Mark striker dismissed and remove from dropdowns
+      if (strikerId) {
+        setDismissedBatterIds((prev) => {
+          const next = new Set(prev.map(String));
+          next.add(String(strikerId));
+          return Array.from(next);
+        });
+      }
+      if (onStrike === "batsman1") {
+        setBatsman1("");
+        setOnStrike("batsman2");
+      } else {
+        setBatsman2("");
+        setOnStrike("batsman1");
+      }
+
+      // Close over if needed (LOCK only)
+      updateBallsAndOver(0);
     }
   };
+
+  
+
+// Run-out handler: ball counts, batter out, no bowler wicket or runs
+const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
+  if (scoringLocked) return;
+ 
+  const outId = who === "batsman1" ? batsman1 : batsman2;
+  if (!outId) return;
+ 
+  // Ball counts to the striker on a legal delivery
+  if (onStrike === "batsman1") {
+    setBatsman1Balls((b) => b + 1);
+  } else {
+    setBatsman2Balls((b) => b + 1);
+  }
+ 
+  // Team wicket + history (no change to bowler wickets or runs)
+  setInningsWickets((w) => w + 1);
+  setOverBallHistory((prev) => [...prev, "RO"]);
+ 
+  // Mark dismissed so they don't appear again
+  setDismissedBatterIds((prev) => {
+    const next = new Set(prev.map(String));
+    next.add(String(outId));
+    return Array.from(next);
+  });
+ 
+  // Clear the dismissed batter slot and adjust strike only if striker was out
+  if (who === "batsman1") {
+    setBatsman1("");
+    if (onStrike === "batsman1") setOnStrike("batsman2");
+  } else {
+    setBatsman2("");
+    if (onStrike === "batsman2") setOnStrike("batsman1");
+  }
+ 
+  // Legal delivery completed (no runs for maiden calc)
+  finishBallAndCheckOver(0);
+};
+
+
+  // ---------- PUSH SCOREBAR DATA TO BACKEND FOR OBS ----------
+  const postOverlay = async () => {
+    try {
+      if (!battingTeamId || !bowlingTeamId) return;
+
+      const bpo = Number(overType) || 6;
+      const totalOversFloat = overs + (balls / bpo || 0);
+      const runRate =
+        totalOversFloat > 0 ? (inningsRuns / totalOversFloat).toFixed(2) : "0.00";
+
+      await fetch("/api/overlay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          battingTeam: battingTeamCode,
+          battingTeamLogo,
+          bowlingTeam: bowlingTeamCode,
+          bowlingTeamLogo,
+
+          runs: inningsRuns,
+          wickets: inningsWickets,
+          overs,
+          balls,
+          ballsPerOver: bpo,
+
+          runRate,
+
+          striker: { name: strikerName, runs: strikerRuns, balls: strikerBalls },
+          nonStriker: {
+            name: nonStrikerName,
+            runs: nonStrikerRuns,
+            balls: nonStrikerBalls,
+          },
+
+          bowler: {
+            name: bowlerName,
+            wickets: bowlerWickets,
+            overs: bowlerOvers,
+            runs: bowlerRuns,
+          },
+
+          overBalls: overBallHistory, // e.g., ["1","1","Wd1","Nb0","W","4"]
+        }),
+      });
+    } catch (err) {
+      console.warn("Failed to push overlay:", err);
+    }
+  };
+
+  // Push overlay whenever scoring-relevant state changes
+  useEffect(() => {
+    postOverlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    // match/team context
+    battingTeamId,
+    bowlingTeamId,
+    battingTeamLogo,
+    bowlingTeamLogo,
+    battingTeamCode,
+    bowlingTeamCode,
+    overType,
+
+    // inning summary
+    inningsRuns,
+    inningsWickets,
+    overs,
+    balls,
+
+    // players / strike
+    onStrike,
+    strikerName,
+    nonStrikerName,
+    strikerRuns,
+    strikerBalls,
+    nonStrikerRuns,
+    nonStrikerBalls,
+
+    // bowler
+    bowlerName,
+    bowlerOvers,
+    bowlerRuns,
+    bowlerWickets,
+
+    // current over visuals
+    overBallHistory,
+  ]);
+
+  // Also push whenever match header loaded (logos/names/ground ready)
+  useEffect(() => {
+    postOverlay();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentMatchDetails]);
 
   // 3x3 scoring table
   const renderTable = (title, items) => (
@@ -491,7 +898,7 @@ export default function ScoreDashboard() {
           overflow: "hidden",
           border: "1px solid",
           borderColor: "divider",
-          bgcolor: "background.paper",
+          bgcolor: scoringLocked ? "action.disabledBackground" : "background.paper",
         }}
       >
         <Table
@@ -518,7 +925,11 @@ export default function ScoreDashboard() {
                     >
                       <Tooltip
                         title={
-                          value ? `Add ${title.toLowerCase()} ${value}` : ""
+                          scoringLocked
+                            ? "Over complete — change bowler to continue"
+                            : value
+                            ? `Add ${title.toLowerCase()} ${value}`
+                            : ""
                         }
                       >
                         <span>
@@ -526,7 +937,7 @@ export default function ScoreDashboard() {
                             fullWidth
                             size="small"
                             variant="text"
-                            disabled={!value}
+                            disabled={!value || scoringLocked}
                             onClick={() => handleScore(title, value)}
                             sx={{
                               minWidth: 40,
@@ -537,11 +948,12 @@ export default function ScoreDashboard() {
                               borderRadius: 0,
                               color: isDanger ? "error.main" : "text.primary",
                               "&:hover": {
-                                backgroundColor: value
-                                  ? "action.hover"
-                                  : "transparent",
+                                backgroundColor:
+                                  value && !scoringLocked
+                                    ? "action.hover"
+                                    : "transparent",
                               },
-                              "&.Mui-disabled": { opacity: 0.4 },
+                              "&.Mui-disabled": { opacity: 0.5 },
                             }}
                           >
                             {value}
@@ -567,6 +979,8 @@ export default function ScoreDashboard() {
     setBatsman2("");
     setBowler("");
     setOnStrike("batsman1");
+    setScoringLocked(false);
+    setDismissedBatterIds([]);
 
     if (val == null || !currentMatch) {
       setBowlingTeamId(null);
@@ -587,6 +1001,7 @@ export default function ScoreDashboard() {
     setBatsman2("");
     setBowler("");
     setOnStrike("batsman1");
+    setScoringLocked(false);
 
     if (val == null || !currentMatch) {
       setBattingTeamId(null);
@@ -622,27 +1037,6 @@ export default function ScoreDashboard() {
           borderColor: "divider",
         }}
       >
-        {/* <Toolbar variant="dense" sx={{ gap: 1, minHeight: 48 }}>
-          <Typography variant="subtitle2" fontWeight={800} letterSpacing={0.2}>
-            Live Scoring Console
-          </Typography>
-          <Divider flexItem orientation="vertical" sx={{ mx: 1 }} />
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Chip
-              size="small"
-              variant="outlined"
-              label={team1Name || "Team 1"}
-            />
-            <Typography variant="caption" color="text.secondary">
-              vs
-            </Typography>
-            <Chip
-              size="small"
-              variant="outlined"
-              label={team2Name || "Team 2"}
-            />
-          </Stack>
-        </Toolbar> */}
         {/* OBS Overlay Preview */}
         <Card
           variant="outlined"
@@ -727,6 +1121,7 @@ export default function ScoreDashboard() {
             )}
           </CardContent>
         </Card>
+
         {/* Score Ticker Preview */}
         <Card
           variant="outlined"
@@ -747,12 +1142,7 @@ export default function ScoreDashboard() {
           <CardHeader
             titleTypographyProps={{ variant: "h6", fontWeight: 800 }}
             title="Score Ticker Preview"
-            sx={{
-              py: 1.5,
-              px: 2,
-
-              color: "black",
-            }}
+            sx={{ py: 1.5, px: 2, color: "black" }}
           />
           <Divider />
           <CardContent sx={{ p: 0 }}>
@@ -768,54 +1158,107 @@ export default function ScoreDashboard() {
                 fontWeight: 700,
                 textAlign: "center",
                 gap: 1,
+                flexDirection: "column", // stack score + over balls
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
-                {battingTeamLogo && (
-                  <Box
-                    component="img"
-                    src={battingTeamLogo}
-                    alt=""
-                    sx={{ height: 24, mr: 1, borderRadius: "4px" }}
-                  />
-                )}
-                <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
-                  {battingTeamCode} {inningsRuns}-{inningsWickets} ({overs}.
-                  {balls})
+              {/* Score Row */}
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  gap: 1,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
+                  {battingTeamLogo && (
+                    <Box
+                      component="img"
+                      src={battingTeamLogo}
+                      alt=""
+                      sx={{ height: 24, mr: 1, borderRadius: "4px" }}
+                    />
+                  )}
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>
+                    {battingTeamCode} {inningsRuns}-{inningsWickets} ({overs}.
+                    {balls})
+                  </Typography>
+                </Box>
+
+                <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+                  (RR:{" "}
+                  {(() => {
+                    const ballsPerOver = Number(overType) || 6;
+                    const totalOvers = overs + balls / ballsPerOver;
+                    return inningsRuns >= 0 &&
+                      !isNaN(totalOvers) &&
+                      totalOvers > 0
+                      ? (inningsRuns / totalOvers).toFixed(2)
+                      : "0.00";
+                  })()}
+                  )
                 </Typography>
+
+                <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+                  {strikerName.toUpperCase()} {strikerRuns} ({strikerBalls})
+                </Typography>
+
+                <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+                  {nonStrikerName.toUpperCase()} {nonStrikerRuns} (
+                  {nonStrikerBalls})
+                </Typography>
+
+                <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
+                  {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-
+                  {bowlerRuns}
+                </Typography>
+
+                <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
+                  {bowlingTeamLogo && (
+                    <Box
+                      component="img"
+                      src={bowlingTeamLogo}
+                      alt=""
+                      sx={{ height: 24, ml: 1, borderRadius: "4px" }}
+                    />
+                  )}
+                </Box>
               </Box>
-              <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                (RR:{" "}
-                {(() => {
-                  const ballsPerOver = Number(overType) || 6; // Convert to number, default to 6 if invalid
-                  const totalOvers = overs + balls / ballsPerOver;
-                  return inningsRuns >= 0 &&
-                    !isNaN(totalOvers) &&
-                    totalOvers > 0
-                    ? (inningsRuns / totalOvers).toFixed(2)
-                    : "0.00";
-                })()}
-                )
-              </Typography>
-              <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                {strikerName.toUpperCase()} {strikerRuns} ({strikerBalls})
-              </Typography>
-              <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                {nonStrikerName.toUpperCase()} {nonStrikerRuns} (
-                {nonStrikerBalls})
-              </Typography>
-              <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-
-                {bowlerRuns}
-              </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
-                {bowlingTeamLogo && (
-                  <Box
-                    component="img"
-                    src={bowlingTeamLogo}
-                    alt=""
-                    sx={{ height: 24, ml: 1, borderRadius: "4px" }}
-                  />
+
+              {/* Current Over Balls Strip */}
+              <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
+                {overBallHistory.length > 0 ? (
+                  overBallHistory.map((ball, i) => (
+                    <Box
+                      key={i}
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: "50%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: "bold",
+                        fontSize: 13,
+                        bgcolor:
+                          ball === "W"
+                            ? "error.main"
+                            : ball.startsWith("Wd")
+                            ? "orange"
+                            : ball.startsWith("Nb")
+                            ? "purple"
+                            : "primary.main",
+                        color: "#fff",
+                      }}
+                    >
+                      {ball}
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No balls yet
+                  </Typography>
                 )}
               </Box>
             </Box>
@@ -827,14 +1270,14 @@ export default function ScoreDashboard() {
       <Grid container spacing={2} sx={{ px: 2, pb: 2 }}>
         <Grid item xs={12} md={6}>
           <Container
-            maxWidth={false} // disable maxWidth constraint
-            disableGutters // remove left & right padding
+            maxWidth={false}
+            disableGutters
             sx={{
               flex: 1,
               py: 2,
               display: "flex",
               flexDirection: "column",
-              alignItems: "flex-start", // align content left
+              alignItems: "flex-start",
             }}
           >
             {/* Match Setup */}
@@ -1015,34 +1458,43 @@ export default function ScoreDashboard() {
 
             {/* Players */}
             <Box sx={{ mb: 2 }}>
-              <Typography
-                variant="body2"
-                fontWeight={800}
-                mb={1}
-                color="text.secondary"
-              >
-                Players
-              </Typography>
+               <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+    <Typography variant="body2" fontWeight={800} color="text.secondary">
+      Players
+    </Typography>
+
+    <Fab
+      size="small"
+      color="primary"
+      aria-label="add player"
+      onClick={() => {
+        // default the team to currently selected batting team if present,
+        // otherwise bowling team, otherwise blank
+        const defaultTeam =
+          (battingTeamId && String(battingTeamId)) ||
+          (bowlingTeamId && String(bowlingTeamId)) ||
+          "";
+        setPlayerForm((p) => ({ ...emptyPlayerForm, teamId: defaultTeam }));
+        setFormErrors({});
+        setAddOpen(true);
+      }}
+      sx={{ boxShadow: "none" }}
+    >
+      <AddIcon fontSize="small" />
+    </Fab>
+  </Stack>
               <Grid container spacing={1.25}>
                 {/* Batsman 1 */}
                 <Grid item xs={12} md={4}>
-                  <Card
-                    variant="outlined"
-                    sx={{ borderRadius: 3, height: "100%" }}
-                  >
+                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
                     <CardHeader
-                      titleTypographyProps={{
-                        variant: "body2",
-                        fontWeight: 700,
-                      }}
+                      titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
                       title="Batsman 1"
                       action={
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={
-                            battingTeamId ? `T:${battingTeamId}` : "No team"
-                          }
+                          label={battingTeamId ? `T:${battingTeamId}` : "No team"}
                         />
                       }
                       sx={{ py: 1, px: 1.25 }}
@@ -1069,7 +1521,7 @@ export default function ScoreDashboard() {
                           <MenuItem value="">
                             <em>Select player</em>
                           </MenuItem>
-                          {batters.map((p) => (
+                          {availableForBatsman1.map((p) => (
                             <MenuItem key={p.id} value={p.id}>
                               {getPlayerName(p)}
                             </MenuItem>
@@ -1096,23 +1548,15 @@ export default function ScoreDashboard() {
 
                 {/* Batsman 2 */}
                 <Grid item xs={12} md={4}>
-                  <Card
-                    variant="outlined"
-                    sx={{ borderRadius: 3, height: "100%" }}
-                  >
+                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
                     <CardHeader
-                      titleTypographyProps={{
-                        variant: "body2",
-                        fontWeight: 700,
-                      }}
+                      titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
                       title="Batsman 2"
                       action={
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={
-                            battingTeamId ? `T:${battingTeamId}` : "No team"
-                          }
+                          label={battingTeamId ? `T:${battingTeamId}` : "No team"}
                         />
                       }
                       sx={{ py: 1, px: 1.25 }}
@@ -1139,7 +1583,7 @@ export default function ScoreDashboard() {
                           <MenuItem value="">
                             <em>Select player</em>
                           </MenuItem>
-                          {batters.map((p) => (
+                          {availableForBatsman2.map((p) => (
                             <MenuItem key={p.id} value={p.id}>
                               {getPlayerName(p)}
                             </MenuItem>
@@ -1166,23 +1610,15 @@ export default function ScoreDashboard() {
 
                 {/* Bowler */}
                 <Grid item xs={12} md={4}>
-                  <Card
-                    variant="outlined"
-                    sx={{ borderRadius: 3, height: "100%" }}
-                  >
+                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
                     <CardHeader
-                      titleTypographyProps={{
-                        variant: "body2",
-                        fontWeight: 700,
-                      }}
+                      titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
                       title="Bowler"
                       action={
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={
-                            bowlingTeamId ? `T:${bowlingTeamId}` : "No team"
-                          }
+                          label={bowlingTeamId ? `T:${bowlingTeamId}` : "No team"}
                         />
                       }
                       sx={{ py: 1, px: 1.25 }}
@@ -1222,28 +1658,29 @@ export default function ScoreDashboard() {
 
                 {/* Scoring + Wickets */}
                 <Grid item xs={12} md={8}>
-                  <Card
-                    variant="outlined"
-                    sx={{ borderRadius: 3, height: "100%" }}
-                  >
+                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
                     <CardHeader
-                      titleTypographyProps={{
-                        variant: "body2",
-                        fontWeight: 800,
-                      }}
+                      titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
                       title="Scoring"
                       subheaderTypographyProps={{ variant: "caption" }}
-                      subheader="Tap a value to record runs or extras."
+                      subheader={
+                        scoringLocked
+                          ? "Over complete — change bowler to continue"
+                          : "Tap a value to record runs or extras."
+                      }
                       action={
-                        <Stack direction="row" spacing={1}>
-                          <Button variant="outlined" size="small">
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          {scoringLocked && (
+                            <Chip
+                              color="warning"
+                              size="small"
+                              label="Locked — change bowler"
+                            />
+                          )}
+                          <Button variant="outlined" size="small" disabled>
                             Edit
                           </Button>
-                          <Button
-                            variant="contained"
-                            color="success"
-                            size="small"
-                          >
+                          <Button variant="contained" color="success" size="small" disabled>
                             Save
                           </Button>
                         </Stack>
@@ -1256,22 +1693,17 @@ export default function ScoreDashboard() {
                         {renderTable("Normal Runs", runButtons)}
                         {renderTable("Wides", wideButtons)}
                         {renderTable("No Balls", noBallButtons)}
+                        {renderTable("Byes", byesButtons)}
                       </Grid>
                     </CardContent>
                   </Card>
                 </Grid>
 
-                {/* RunOuts */}
+                {/* Wickets */}
                 <Grid item xs={12} md={4}>
-                  <Card
-                    variant="outlined"
-                    sx={{ borderRadius: 3, height: "100%" }}
-                  >
+                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
                     <CardHeader
-                      titleTypographyProps={{
-                        variant: "body2",
-                        fontWeight: 800,
-                      }}
+                      titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
                       title="Wickets"
                       sx={{ py: 1, px: 1.25 }}
                     />
@@ -1282,41 +1714,49 @@ export default function ScoreDashboard() {
                           variant="contained"
                           size="small"
                           fullWidth
+                          disabled={scoringLocked}
                           sx={{
-                            bgcolor: "#ef5350", // light red
+                            bgcolor: "#ef5350",
                             color: "white",
                             "&:hover": { bgcolor: "#e53935" },
                           }}
-                          onClick={(e) => handleScore("Normal Runs", "W")}
+                          onClick={() => handleScore("Normal Runs", "W")}
                         >
                           Wicket
                         </Button>
 
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          sx={{
-                            bgcolor: "#d32f2f", // medium red
-                            color: "white",
-                            "&:hover": { bgcolor: "#c62828" },
-                          }}
-                        >
-                          Run out (Batsman 1)
-                        </Button>
+                       <Button
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={scoringLocked}
+                        sx={{
+                          bgcolor: "#d32f2f",
+                          color: "white",
+                          "&:hover": { bgcolor: "#c62828" },
+                        }}
+                        onClick={() => handleRunOut("batsman1")}
+                      >
+                        Run out (Batsman 1)
+                      </Button>
+ 
+                      <Button
+                        variant="contained"
+                        size="small"
+                        fullWidth
+                        disabled={scoringLocked}
+                        sx={{
+                          bgcolor: "#b71c1c",
+                          color: "white",
+                          "&:hover": { bgcolor: "#7f0000" },
+                        }}
+                        onClick={() => handleRunOut("batsman2")}
+                      >
+                        Run out (Batsman 2)
+                      </Button>
+ 
 
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          sx={{
-                            bgcolor: "#b71c1c", // dark red
-                            color: "white",
-                            "&:hover": { bgcolor: "#7f0000" },
-                          }}
-                        >
-                          Run out (Batsman 2)
-                        </Button>
+
                       </Stack>
                     </CardContent>
                   </Card>
@@ -1451,6 +1891,167 @@ export default function ScoreDashboard() {
           </Container-fluid>
         </Grid>
       </Grid>
+
+
+
+      
+      {/* Player Registration Dialog */}
+<Dialog
+  open={addOpen}
+  onClose={() => setAddOpen(false)}
+  fullWidth
+  maxWidth="sm"
+  PaperProps={{ sx: { borderRadius: 3 } }}
+>
+  <DialogTitle sx={{ fontWeight: 800 }}>Register Player</DialogTitle>
+  <DialogContent dividers>
+    <Stack
+      component="form"
+      id="playerCreateForm"
+      spacing={2}
+      onSubmit={onCreatePlayer}
+      sx={{ pt: 1 }}
+    >
+      {/* TEAM */}
+      <FormControl size="small" fullWidth error={Boolean(formErrors.teamId)}>
+        <InputLabel id="add-team-label">Team</InputLabel>
+        <Select
+          labelId="add-team-label"
+          label="Team"
+          name="teamId"
+          value={playerForm.teamId}
+          onChange={onPlayerField}
+        >
+          {teams.map((t) => (
+            <MenuItem key={t.id} value={String(t.id)}>
+              {t.teamName} (#{t.id})
+            </MenuItem>
+          ))}
+        </Select>
+        {formErrors.teamId && (
+          <FormHelperText>{formErrors.teamId}</FormHelperText>
+        )}
+      </FormControl>
+
+      {/* NAME / POSITION */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+        <TextField
+          size="small"
+          label="Player Name"
+          name="playerName"
+          value={playerForm.playerName}
+          onChange={onPlayerField}
+          error={Boolean(formErrors.playerName)}
+          helperText={formErrors.playerName}
+          fullWidth
+        />
+        <TextField
+          size="small"
+          label="Position (0–11)"
+          type="number"
+          name="position"
+          value={playerForm.position}
+          onChange={(e) => {
+            let v = e.target.value;
+            if (v !== "") {
+              const n = Number(v);
+              if (!Number.isNaN(n)) {
+                if (n < 0) v = "0";
+                if (n > 11) v = "11";
+              }
+            }
+            onPlayerField({ target: { name: "position", value: v, type: "text" } });
+          }}
+          error={Boolean(formErrors.position)}
+          helperText={formErrors.position}
+          inputProps={{ min: 0, max: 11, step: 1 }}
+          sx={{ width: { sm: 180 } }}
+        />
+      </Stack>
+
+      {/* PHONE / ADDRESS */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+        <TextField
+          size="small"
+          label="Phone"
+          name="phone"
+          value={playerForm.phone}
+          onChange={onPlayerField}
+          fullWidth
+        />
+        <TextField
+          size="small"
+          label="Address"
+          name="playerAddress"
+          value={playerForm.playerAddress}
+          onChange={onPlayerField}
+          fullWidth
+        />
+      </Stack>
+
+      {/* ROLES */}
+      <FormGroup row>
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isBatter"
+              checked={playerForm.isBatter}
+              onChange={onPlayerField}
+            />
+          }
+          label="Batter"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isBaller"
+              checked={playerForm.isBaller}
+              onChange={onPlayerField}
+            />
+          }
+          label="Bowler"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isWk"
+              checked={playerForm.isWk}
+              onChange={onPlayerField}
+            />
+          }
+          label="Wicket Keeper"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isCaptain"
+              checked={playerForm.isCaptain}
+              onChange={onPlayerField}
+            />
+          }
+          label="Captain"
+        />
+      </FormGroup>
+      {formErrors.roles && (
+        <Typography variant="caption" color="error">
+          {formErrors.roles}
+        </Typography>
+      )}
+    </Stack>
+  </DialogContent>
+
+  <DialogActions sx={{ p: 2 }}>
+    <Button onClick={() => setAddOpen(false)} color="inherit">
+      Cancel
+    </Button>
+    <Button type="submit" form="playerCreateForm" variant="contained">
+      Create
+    </Button>
+  </DialogActions>
+</Dialog>
+
     </Box>
+
+    
   );
 }
