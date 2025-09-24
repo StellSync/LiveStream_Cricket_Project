@@ -12,7 +12,7 @@ export default function Layout({ children }) {
       >
         <div className="container">
           <Link className="navbar-brand fw-bold fs-4" to="/">
-            🏏📊 Scoreboard Admin
+             Scoreboard Admin
           </Link>
 
           <button
