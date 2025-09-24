@@ -8,13 +8,14 @@ import {
   getTeams,
   getTournaments,
 } from "../lib/api.js";
+import { Autocomplete, TextField } from "@mui/material";
 
 const emptyForm = {
   tournamentId: "",
   team1Id: "",
   team2Id: "",
   matchNumber: "",
-  overType: "",                  // numeric string in form; cast on submit
+  overType: "",
   noOfOvers: "",
   date: "",
   startTime: "",
@@ -24,9 +25,10 @@ const emptyForm = {
 
 // Fixed scrollable area height for the right card (px)
 const MATCHES_PANEL_HEIGHT = 850;
-
 // inner per-tournament section scroll height (px)
 const GROUP_TABLE_MAX_HEIGHT = 320;
+// MUI list max height
+const LISTBOX_MAX_HEIGHT = 280;
 
 export default function MatchesPage() {
   const [items, setItems] = useState([]);
@@ -46,26 +48,53 @@ export default function MatchesPage() {
     setTeams(teamsData || []);
     setTournaments(tourData || []);
   }
+  useEffect(() => {
+    load();
+  }, []);
 
-  useEffect(() => { load(); }, []);
-
-  // --- Ensure team2 never equals team1 ---
+  // Ensure team2 never equals team1
   useEffect(() => {
     if (form.team1Id && form.team1Id === form.team2Id) {
       setForm((prev) => ({ ...prev, team2Id: "" }));
     }
-  }, [form.team1Id]); // runs when team1 changes
+  }, [form.team1Id]);
 
-  // Filtered list for Team 2 (excludes Team 1)
+  // ---- Options for Autocomplete ----
+  const tournamentOptions = useMemo(() => {
+    const arr = (tournaments || []).slice();
+    arr.sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
+    );
+    return arr.map((t) => ({ id: String(t.id), label: t.name }));
+  }, [tournaments]);
+
+  const teamOptionsAll = useMemo(() => {
+    const arr = (teams || []).slice();
+    arr.sort((a, b) =>
+      (a.teamName || "").localeCompare(b.teamName || "", undefined, { sensitivity: "base" })
+    );
+    return arr.map((t) => ({ id: String(t.id), label: t.teamName }));
+  }, [teams]);
+
   const team2Options = useMemo(() => {
-    if (!form.team1Id) return teams;
-    return teams.filter((t) => String(t.id) !== String(form.team1Id));
-  }, [teams, form.team1Id]);
+    if (!form.team1Id) return teamOptionsAll;
+    return teamOptionsAll.filter((o) => o.id !== String(form.team1Id));
+  }, [teamOptionsAll, form.team1Id]);
 
+  // ---- Helpers to resolve names in lists ----
+  const teamName = (id, fallbackName) =>
+    fallbackName ||
+    teams.find((t) => String(t.id) === String(id))?.teamName ||
+    `#${id}`;
+
+  const tournamentName = (id, fallbackName) =>
+    fallbackName ||
+    tournaments.find((t) => String(t.id) === String(id))?.name ||
+    `#${id}`;
+
+  // ---- Form change ----
   function onChange(e) {
     const { name, value, type, checked } = e.target;
-
-    // Special handling for team1Id: also clear team2Id if same
     if (name === "team1Id") {
       setForm((prev) => {
         const next = { ...prev, team1Id: value };
@@ -74,7 +103,6 @@ export default function MatchesPage() {
       });
       return;
     }
-
     setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   }
 
@@ -133,12 +161,6 @@ export default function MatchesPage() {
       load();
     }
   }
-
-  const teamName = (id, fallbackName) =>
-    fallbackName || teams.find((t) => t.id === id)?.teamName || `#${id}`;
-
-  const tournamentName = (id, fallbackName) =>
-    fallbackName || tournaments.find((t) => t.id === id)?.name || `#${id}`;
 
   // -------- Filtered items by tournament ----------
   const filteredItems = useMemo(() => {
@@ -200,8 +222,27 @@ export default function MatchesPage() {
     return arr;
   }, [filteredItems, tournaments, groupSort]);
 
+  // ---- Selected option mapping for Autocomplete (form) ----
+  const selectedTournamentOpt =
+    tournamentOptions.find((o) => o.id === (form.tournamentId || "")) || null;
+  const selectedTeam1Opt =
+    teamOptionsAll.find((o) => o.id === (form.team1Id || "")) || null;
+  const selectedTeam2Opt =
+    team2Options.find((o) => o.id === (form.team2Id || "")) || null;
+
+  // ---- Selected option mapping for Autocomplete (filters) ----
+  const selectedFilterTournamentOpt =
+    tournamentOptions.find((o) => o.id === (filterTournamentId || "")) || null;
+
+  // ---- Order filter options ----
+  const orderOptions = [
+    { id: "latest", label: "Latest entered first" },
+    { id: "oldest", label: "Oldest first" },
+  ];
+  const selectedOrderOpt =
+    orderOptions.find((o) => o.id === (groupSort || "")) || orderOptions[0];
+
   return (
-    // full-width, minimal outer padding; bigger gutter between the two cards
     <div className="container-fluid px-2 px-md-3">
       <div className="row gy-3 gx-5">
         {/* Form (wider: 5/12) */}
@@ -214,58 +255,49 @@ export default function MatchesPage() {
 
               <form onSubmit={onSubmit} className="row g-3">
                 <div className="col-12">
-                  <label className="form-label">Tournament</label>
-                  <select
-                    name="tournamentId"
-                    className="form-select"
-                    value={form.tournamentId}
-                    onChange={onChange}
-                    required
-                  >
-                    <option value="">-- Select Tournament --</option>
-                    {tournaments.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} (#{t.id})
-                      </option>
-                    ))}
-                  </select>
+                  <Autocomplete
+                    options={tournamentOptions}
+                    value={selectedTournamentOpt}
+                    onChange={(_, v) =>
+                      onChange({ target: { name: "tournamentId", value: v ? v.id : "", type: "text" } })
+                    }
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Tournament" required />
+                    )}
+                    ListboxProps={{ style: { maxHeight: LISTBOX_MAX_HEIGHT, overflowY: "auto" } }}
+                  />
                 </div>
 
                 <div className="col-6">
-                  <label className="form-label">Team 1</label>
-                  <select
-                    name="team1Id"
-                    className="form-select"
-                    value={form.team1Id}
-                    onChange={onChange}
-                    required
-                  >
-                    <option value="">-- Select Team 1 --</option>
-                    {teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.teamName} (#{t.id})
-                      </option>
-                    ))}
-                  </select>
+                  <Autocomplete
+                    options={teamOptionsAll}
+                    value={selectedTeam1Opt}
+                    onChange={(_, v) =>
+                      onChange({ target: { name: "team1Id", value: v ? v.id : "", type: "text" } })
+                    }
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Team 1" required />
+                    )}
+                    ListboxProps={{ style: { maxHeight: LISTBOX_MAX_HEIGHT, overflowY: "auto" } }}
+                  />
                 </div>
 
                 <div className="col-6">
-                  <label className="form-label">Team 2</label>
-                  <select
-                    name="team2Id"
-                    className="form-select"
-                    value={form.team2Id}
-                    onChange={onChange}
-                    required
-                  >
-                    <option value="">-- Select Team 2 --</option>
-                    {team2Options.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.teamName} (#{t.id})
-                      </option>
-                    ))}
-                  </select>
-                  {/* If team1 not chosen yet, team2 shows all. Once team1 picked, that team disappears here. */}
+                  <Autocomplete
+                    options={team2Options}
+                    value={selectedTeam2Opt}
+                    onChange={(_, v) =>
+                      onChange({ target: { name: "team2Id", value: v ? v.id : "", type: "text" } })
+                    }
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Team 2" required />
+                    )}
+                    ListboxProps={{ style: { maxHeight: LISTBOX_MAX_HEIGHT, overflowY: "auto" } }}
+                  />
+                  {/* Team 2 list updates automatically when Team 1 changes */}
                 </div>
 
                 <div className="col-6">
@@ -397,38 +429,33 @@ export default function MatchesPage() {
               <div className="d-flex flex-wrap align-items-center justify-content-between mb-3">
                 <h5 className="card-title mb-0">Matches</h5>
 
-                <div className="d-flex gap-2 flex-wrap">
-                  {/* Tournament filter */}
-                  <div className="d-flex align-items-center gap-2">
-                    <label className="form-label mb-0">Tournament:</label>
-                    <select
-                      className="form-select"
-                      style={{ minWidth: 220 }}
-                      value={filterTournamentId}
-                      onChange={(e) => setFilterTournamentId(e.target.value)}
-                    >
-                      <option value="">All tournaments</option>
-                      {tournaments.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="d-flex gap-2 flex-wrap align-items-center">
+                  {/* Tournament filter (clear = All tournaments) */}
+                  <Autocomplete
+                    options={tournamentOptions}
+                    value={selectedFilterTournamentOpt}
+                    onChange={(_, v) => setFilterTournamentId(v ? v.id : "")}
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                    clearOnEscape
+                    renderInput={(params) => (
+                      <TextField {...params} label="Tournament" placeholder="All tournaments" />
+                    )}
+                    ListboxProps={{ style: { maxHeight: LISTBOX_MAX_HEIGHT, overflowY: "auto" } }}
+                    sx={{ minWidth: 240 }}
+                  />
 
-                  {/* Group order filter */}
-                  <div className="d-flex align-items-center gap-2">
-                    <label className="form-label mb-0">Order:</label>
-                    <select
-                      className="form-select"
-                      style={{ minWidth: 200 }}
-                      value={groupSort}
-                      onChange={(e) => setGroupSort(e.target.value)}
-                    >
-                      <option value="latest">Latest entered first</option>
-                      <option value="oldest">Oldest first</option>
-                    </select>
-                  </div>
+                  {/* Order filter */}
+                  <Autocomplete
+                    options={orderOptions}
+                    value={selectedOrderOpt}
+                    onChange={(_, v) => setGroupSort(v ? v.id : "latest")}
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Order" />
+                    )}
+                    ListboxProps={{ style: { maxHeight: LISTBOX_MAX_HEIGHT, overflowY: "auto" } }}
+                    sx={{ minWidth: 220 }}
+                  />
                 </div>
               </div>
 
