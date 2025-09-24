@@ -23,8 +23,11 @@ function CardRow({ title, items }) {
 }
 
 function OverlayCard({ path, label, blurb, emoji, openInSameTab = false }) {
+  // Always point overlays to the backend (port 5000)
   const base =
-    typeof window !== "undefined" ? window.location.origin : "http://localhost:5000";
+    typeof window !== "undefined"
+      ? `${window.location.protocol}//${window.location.hostname}:5000`
+      : "http://localhost:5000";
   const url = `${base}${path}`;
 
   return (
@@ -128,6 +131,12 @@ export default function Home() {
       label: "WICKET!",
       blurb: "Flash + drop + shake + shards.",
       emoji: "⚡",
+    },
+    {
+      path: "/overlay/freehit",
+      label: "FREE HIT",
+      blurb: "Green rings + twinkling stars animation.",
+      emoji: "🟢",
     },
   ];
 

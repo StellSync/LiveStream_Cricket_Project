@@ -16,9 +16,8 @@ function initials(name = "") {
     .join("");
 }
 
-// helpers for phone validation/standardization
+// helpers for phone standardization (optional)
 const digitsOnly = (s) => (s || "").replace(/\D/g, "");
-const isTenDigits = (s) => digitsOnly(s).length === 10;
 
 export default function TeamsPage() {
   const [items, setItems] = useState([]);
@@ -49,24 +48,15 @@ export default function TeamsPage() {
     load();
   }, []);
 
+  // ✅ Only Team Name is required now
   function validate(next) {
     const e = {};
-    // Team name required
     if (!next.teamName.trim()) {
       e.teamName = "Team name is required.";
     } else if (next.teamName.trim().length < 2) {
       e.teamName = "Team name must be at least 2 characters.";
     }
-
-    // Phone required, must be exactly 10 digits (allow formatting while typing)
-   
-
-    // Address optional (add a simple check if you want)
-    // if (next.address && next.address.trim().length < 3) e.address = "Address is too short.";
-
-    // Logo optional (you can enforce required by uncommenting)
-    // if (!next.logo.trim()) e.logo = "Logo is required.";
-
+    // Phone, Address, Logo are optional → no checks
     return e;
   }
 
@@ -88,13 +78,12 @@ export default function TeamsPage() {
     setErrors(freshErrors);
     if (Object.keys(freshErrors).length > 0) return;
 
-    const standardizedPhone = digitsOnly(form.contactNo); // store clean 10 digits
-
+    // Optional fields can be empty; store trimmed values
     const payload = {
       teamName: form.teamName.trim(),
-      logo: form.logo.trim(),
-      contactNo: standardizedPhone,
-      address: form.address.trim(),
+      logo: form.logo?.trim() || "",
+      contactNo: digitsOnly(form.contactNo), // store digits only if provided
+      address: form.address?.trim() || "",
       ...(form.logoKey && { logoKey: form.logoKey }),
     };
 
@@ -117,14 +106,16 @@ export default function TeamsPage() {
       logoKey: t.logoKey || "",
     });
     setPreviewOk(true);
-    // surface any validation issues when loading existing data
-    setErrors(validate({
-      teamName: t.teamName || "",
-      logo: t.logo || "",
-      contactNo: t.contactNo || "",
-      address: t.address || "",
-      logoKey: t.logoKey || "",
-    }));
+    // Only team name validation remains
+    setErrors(
+      validate({
+        teamName: t.teamName || "",
+        logo: t.logo || "",
+        contactNo: t.contactNo || "",
+        address: t.address || "",
+        logoKey: t.logoKey || "",
+      })
+    );
   }
 
   async function onDeleteClick(id) {
@@ -295,13 +286,10 @@ export default function TeamsPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
+                  className="form-control" // optional
                   onChange={handleLogoFile}
                   disabled={uploading}
                 />
-                {invalid("logo") && (
-                  <div className="invalid-feedback">{errors.logo}</div>
-                )}
                 {uploadPct > 0 && uploadPct < 100 && (
                   <div className="progress mt-2">
                     <div
@@ -311,7 +299,7 @@ export default function TeamsPage() {
                     >
                       {uploadPct}%
                     </div>
-                    </div>
+                  </div>
                 )}
                 {form.logoKey && (
                   <div className="form-text">
@@ -334,7 +322,7 @@ export default function TeamsPage() {
                   <span className="input-group-text">URL</span>
                   <input
                     name="logo"
-                    className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
+                    className="form-control" // optional
                     value={form.logo}
                     onChange={onChange}
                     placeholder="Paste an image URL or leave blank"
@@ -358,34 +346,22 @@ export default function TeamsPage() {
                   type="tel"
                   name="contactNo"
                   inputMode="numeric"
-                  // pattern enforces 10 digits if user presses Enter on the field, but we also do JS validation
-                  pattern="\d{10}"
-                  className={`form-control ${invalid("contactNo") ? "is-invalid" : ""}`}
+                  className="form-control" // optional, no pattern validation
                   value={form.contactNo}
-                  onChange={(e) => {
-                    // allow formatting while typing; if you want to force digits only, replace with digitsOnly(e.target.value)
-                    onChange(e);
-                  }}
+                  onChange={onChange}
                   placeholder="e.g. 0771234567"
-                  
                 />
-                {invalid("contactNo") && (
-                  <div className="invalid-feedback">{errors.contactNo}</div>
-                )}
               </div>
 
               <div className="col-md-6">
                 <label className="form-label">Address</label>
                 <input
                   name="address"
-                  className={`form-control ${invalid("address") ? "is-invalid" : ""}`}
+                  className="form-control" // optional
                   value={form.address}
                   onChange={onChange}
                   placeholder="City / Ground"
                 />
-                {invalid("address") && (
-                  <div className="invalid-feedback">{errors.address}</div>
-                )}
               </div>
 
               <div className="col-12 d-flex gap-2">
