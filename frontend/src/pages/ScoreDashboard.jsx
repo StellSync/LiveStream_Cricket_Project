@@ -883,63 +883,106 @@ export default function ScoreDashboard() {
     setAllBowlerStats(last.allBowlerStats);
   };
 
+
+
+  // ---- summary helpers (send to /api/summary after 2nd innings) ----
+const buildMatchHeader = () => ({
+  tournamentName:
+    currentMatchDetails?.tournamentName || currentMatch?.tournamentName || "",
+  tournamentLogo:
+    currentMatchDetails?.tournamentLogo ||
+    currentMatch?.tournamentLogo ||
+    currentMatch?.tournament?.logo ||
+    "",
+  ground: currentMatchDetails?.ground || ground || "",
+  team1Id: team1Id ?? currentMatch?.team1Id ?? null,
+  team1:
+    currentMatchDetails?.team1 || currentMatch?.team1Name || `#${team1Id ?? ""}`,
+  team1Logo: currentMatchDetails?.team1Logo || currentMatch?.team1Logo || "",
+  team2Id: team2Id ?? currentMatch?.team2Id ?? null,
+  team2:
+    currentMatchDetails?.team2 || currentMatch?.team2Name || `#${team2Id ?? ""}`,
+  team2Logo: currentMatchDetails?.team2Logo || currentMatch?.team2Logo || "",
+});
+
+async function postSummary(inn1, inn2) {
+  if (!inn1 || !inn2) return; // need both innings to post
+  const payload = {
+    match: buildMatchHeader(),
+    innings1: inn1,
+    innings2: inn2,
+  };
+  try {
+    await fetch("/api/summary", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    console.warn("POST /api/summary failed:", e);
+  }
+}
+
+
   // End current innings
   const handleEndInnings = () => {
-    const batterStatsWithNames = Object.keys(allBatterStats).map((id) => ({
-      id,
-      name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
-      ...allBatterStats[id],
-    }));
-    const bowlerStatsWithNames = Object.keys(allBowlerStats).map((id) => ({
-      id,
-      name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
-      ...allBowlerStats[id],
-    }));
+  const batterStatsWithNames = Object.keys(allBatterStats).map((id) => ({
+    id,
+    name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
+    ...allBatterStats[id],
+  }));
+  const bowlerStatsWithNames = Object.keys(allBowlerStats).map((id) => ({
+    id,
+    name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
+    ...allBowlerStats[id],
+  }));
 
-    const inningsData = {
-      battingTeamId,
-      bowlingTeamId,
-      runs: inningsRuns,
-      wickets: inningsWickets,
-      totalOvers: `${overs}.${balls}`,
-      batterStatsWithNames,
-      bowlerStatsWithNames,
-    };
-
-    if (currentInnings === 1) {
-      setInnings1(inningsData);
-      // Swap teams for 2nd innings
-      const prevBatting = battingTeamId;
-      setBattingTeamId(bowlingTeamId);
-      setBowlingTeamId(prevBatting);
-      // Effects will reload batters and bowlers
-    } else if (currentInnings === 2) {
-      setInnings2(inningsData);
-      setCurrentInnings("completed");
-      setScoringLocked(true); // Lock everything after match ends
-    }
-
-    // Reset current innings states
-    setInningsRuns(0);
-    setInningsWickets(0);
-    setOvers(0);
-    setBalls(0);
-    setCurrentOverRuns(0);
-    setAllBatterStats({});
-    setAllBowlerStats({});
-    setBatsman1("");
-    setBatsman2("");
-    setBowler("");
-    setOnStrike("batsman1");
-    setScoringLocked(false);
-    setDismissedBatterIds([]);
-    setHistory([]);
-    setOverBallHistory([]);
-
-    if (currentInnings === 1) {
-      setCurrentInnings(2);
-    }
+  const inningsData = {
+    battingTeamId,
+    bowlingTeamId,
+    runs: inningsRuns,
+    wickets: inningsWickets,
+    totalOvers: `${overs}.${balls}`,
+    batterStatsWithNames,
+    bowlerStatsWithNames,
   };
+
+  if (currentInnings === 1) {
+    setInnings1(inningsData);
+    // Swap teams for 2nd innings
+    const prevBatting = battingTeamId;
+    setBattingTeamId(bowlingTeamId);
+    setBowlingTeamId(prevBatting);
+  } else if (currentInnings === 2) {
+    setInnings2(inningsData);
+    setCurrentInnings("completed");
+    setScoringLocked(true);
+    // push full match summary to backend for /summary overlay
+    postSummary(innings1, inningsData);
+  }
+
+  // Reset current innings states
+  setInningsRuns(0);
+  setInningsWickets(0);
+  setOvers(0);
+  setBalls(0);
+  setCurrentOverRuns(0);
+  setAllBatterStats({});
+  setAllBowlerStats({});
+  setBatsman1("");
+  setBatsman2("");
+  setBowler("");
+  setOnStrike("batsman1");
+  setScoringLocked(false);
+  setDismissedBatterIds([]);
+  setHistory([]);
+  setOverBallHistory([]);
+
+  if (currentInnings === 1) {
+    setCurrentInnings(2);
+  }
+};
+
 
   // ---------- PUSH SCOREBAR DATA TO BACKEND FOR OBS ----------
   const postOverlay = async () => {
@@ -952,39 +995,43 @@ export default function ScoreDashboard() {
         totalOversFloat > 0 ? (inningsRuns / totalOversFloat).toFixed(2) : "0.00";
 
       await fetch("/api/overlay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          battingTeam: battingTeamCode,
-          battingTeamLogo,
-          bowlingTeam: bowlingTeamCode,
-          bowlingTeamLogo,
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    battingTeam: battingTeamCode,
+    battingTeamLogo,
+    bowlingTeam: bowlingTeamCode,
+    bowlingTeamLogo,
 
-          runs: inningsRuns,
-          wickets: inningsWickets,
-          overs,
-          balls,
-          ballsPerOver: bpo,
+    runs: inningsRuns,
+    wickets: inningsWickets,
+    overs,
+    balls,
+    ballsPerOver: bpo,
 
-          runRate,
+    runRate,
 
-          striker: { name: strikerName, runs: strikerRuns, balls: strikerBalls },
-          nonStriker: {
-            name: nonStrikerName,
-            runs: nonStrikerRuns,
-            balls: nonStrikerBalls,
-          },
+    // 👉 NEW: include second-innings target (or null)
+    target: chaseTarget ?? null,
 
-          bowler: {
-            name: bowlerName,
-            wickets: bowlerWickets,
-            overs: bowlerOvers,
-            runs: bowlerRuns,
-          },
+    striker: { name: strikerName, runs: strikerRuns, balls: strikerBalls },
+    nonStriker: {
+      name: nonStrikerName,
+      runs: nonStrikerRuns,
+      balls: nonStrikerBalls,
+    },
 
-          overBalls: overBallHistory, // e.g., ["1","1","Wd1","Nb0","W","4"]
-        }),
-      });
+    bowler: {
+      name: bowlerName,
+      wickets: bowlerWickets,
+      overs: bowlerOvers,
+      runs: bowlerRuns,
+    },
+
+    overBalls: overBallHistory, // e.g., ["1","1","Wd1","Nb0","W","4"]
+  }),
+});
+
     } catch (err) {
       console.warn("Failed to push overlay:", err);
     }
@@ -992,33 +1039,34 @@ export default function ScoreDashboard() {
 
   // Push overlay whenever scoring-relevant state changes
   useEffect(() => {
-    postOverlay();
-    // eslint-disable-line react-hooks/exhaustive-deps
-  }, [
-    battingTeamId,
-    bowlingTeamId,
-    battingTeamLogo,
-    bowlingTeamLogo,
-    battingTeamCode,
-    bowlingTeamCode,
-    overType,
-    inningsRuns,
-    inningsWickets,
-    overs,
-    balls,
-    onStrike,
-    strikerName,
-    nonStrikerName,
-    strikerRuns,
-    strikerBalls,
-    nonStrikerRuns,
-    nonStrikerBalls,
-    bowlerName,
-    bowlerOvers,
-    bowlerRuns,
-    bowlerWickets,
-    overBallHistory,
-  ]);
+  postOverlay();
+  // eslint-disable-line react-hooks/exhaustive-deps
+}, [
+  battingTeamId,
+  bowlingTeamId,
+  battingTeamLogo,
+  bowlingTeamLogo,
+  battingTeamCode,
+  bowlingTeamCode,
+  overType,
+  inningsRuns,
+  inningsWickets,
+  overs,
+  balls,
+  onStrike,
+  strikerName,
+  nonStrikerName,
+  strikerRuns,
+  strikerBalls,
+  nonStrikerRuns,
+  nonStrikerBalls,
+  bowlerName,
+  bowlerOvers,
+  bowlerRuns,
+  bowlerWickets,
+  overBallHistory,
+]);
+
 
   // Also push whenever match header loaded (logos/names/ground ready)
   useEffect(() => {
