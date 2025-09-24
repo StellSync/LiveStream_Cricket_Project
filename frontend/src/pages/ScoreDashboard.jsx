@@ -1,3 +1,4 @@
+// frontend/src/pages/ScoreDashboard.jsx
 import { useEffect, useMemo, useState } from "react";
 import {
   Box,
@@ -399,15 +400,10 @@ export default function ScoreDashboard() {
   }, [currentMatchId]); // eslint-disable-line
 
   useEffect(() => {
-    // bowler changed -> unlock scoring for next over
     setCurrentOverRuns(0);
     setBalls(0);
     setScoringLocked(false);
-
-    // clear last over's ball history now that new bowler is set
     setOverBallHistory([]);
-
-    // reset undo history for new bowler
     setHistory([]);
   }, [bowler]);
 
@@ -1030,6 +1026,14 @@ export default function ScoreDashboard() {
     // eslint-disable-line react-hooks/exhaustive-deps
   }, [currentMatchDetails]);
 
+  // ---------- NEW: Target to chase during 2nd innings ----------
+  const chaseTarget = useMemo(() => {
+    if (currentInnings === 2 && innings1) {
+      return (Number(innings1.runs) || 0) + 1;
+    }
+    return null;
+  }, [currentInnings, innings1]);
+
   // 3x3 scoring table
   const renderTable = (title, items) => (
     <Grid item xs={12} sm={4}>
@@ -1240,7 +1244,7 @@ export default function ScoreDashboard() {
             return (
               <TableRow key={stats.id}>
                 <TableCell>{stats.name}</TableCell>
-                <TableCell align="right">{stats.overs}</TableCell>
+                <TableCell align="right">{stats.overs/2}</TableCell>
                 <TableCell align="right">{stats.runs ?? 0}</TableCell>
                 <TableCell align="right">{stats.wickets ?? 0}</TableCell>
                 <TableCell align="right">{econ}</TableCell>
@@ -1473,19 +1477,28 @@ export default function ScoreDashboard() {
                   </Typography>
                 </Box>
 
-                <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                  (RR:{" "}
-                  {(() => {
-                    const ballsPerOver = Number(overType) || 6;
-                    const totalOvers = overs + balls / ballsPerOver;
-                    return inningsRuns >= 0 &&
-                      !isNaN(totalOvers) &&
-                      totalOvers > 0
-                      ? (inningsRuns / totalOvers).toFixed(2)
-                      : "0.00";
-                  })()}
-                  )
-                </Typography>
+                {/* REPLACED: Run Rate block -> now stacked with Target (when 2nd innings) */}
+                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 120 }}>
+                  <Typography variant="subtitle1">
+                    (RR:{" "}
+                    {(() => {
+                      const ballsPerOver = Number(overType) || 6;
+                      const totalOvers = overs + balls / ballsPerOver;
+                      return inningsRuns >= 0 &&
+                        !isNaN(totalOvers) &&
+                        totalOvers > 0
+                        ? (inningsRuns / totalOvers).toFixed(2)
+                        : "0.00";
+                    })()}
+                    )
+                  </Typography>
+
+                  {chaseTarget != null && (
+                    <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                      Target: {chaseTarget}
+                    </Typography>
+                  )}
+                </Box>
 
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
                   {strikerName.toUpperCase()} {strikerRuns} ({strikerBalls})
@@ -1497,7 +1510,7 @@ export default function ScoreDashboard() {
                 </Typography>
 
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                  {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-
+                  {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers/2}-
                   {bowlerRuns}
                 </Typography>
 
@@ -1986,12 +1999,7 @@ export default function ScoreDashboard() {
                               label="Locked — change bowler"
                             />
                           )}
-                          <Button variant="outlined" size="small" disabled>
-                            Edit
-                          </Button>
-                          <Button variant="contained" color="success" size="small" disabled>
-                            Save
-                          </Button>
+                         
                           <Button
                             variant="contained"
                             color="primary"
