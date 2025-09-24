@@ -11,6 +11,7 @@ import {
   Radio,
   RadioGroup,
   FormControlLabel,
+  Checkbox,
   Typography,
   Paper,
   Table,
@@ -23,12 +24,23 @@ import {
   Chip,
   Stack,
   AppBar,
+  Toolbar,
   Tooltip,
   Card,
   CardHeader,
   CardContent,
   Container,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormGroup,
+  FormHelperText,
+  Fab   // ✅ add this line
 } from "@mui/material";
+
+
+import AddIcon from "@mui/icons-material/Add";
 
 import {
   getMatches,
@@ -36,6 +48,9 @@ import {
   getTournament,
   setCurrentMatch,
   getCurrentMatch,
+  getTeams,
+  createPlayer ,
+
 } from "../lib/api";
 
 export default function ScoreDashboard() {
@@ -77,6 +92,149 @@ export default function ScoreDashboard() {
   const [bowlerMaidens, setBowlerMaidens] = useState(0);
   const [bowlerRuns, setBowlerRuns] = useState(0);
   const [bowlerWickets, setBowlerWickets] = useState(0);
+
+
+  
+
+
+// --- Player Registration Dialog state ---
+const [addOpen, setAddOpen] = useState(false);
+const [teams, setTeams] = useState([]);
+
+const emptyPlayerForm = {
+  teamId: "",
+  playerName: "",
+  playerAddress: "",
+  phone: "",
+  position: "", // keep as string
+  isBatter: false,
+  isBaller: false,
+  isWk: false,
+  isCaptain: false,
+};
+const [playerForm, setPlayerForm] = useState(emptyPlayerForm);
+const [formErrors, setFormErrors] = useState({});
+
+
+useEffect(() => {
+  (async () => {
+    try {
+      const res = await getTeams();
+      setTeams(res?.data || []);
+    } catch (e) {
+      console.warn("Failed to load teams", e);
+      setTeams([]);
+    }
+  })();
+}, []);
+
+
+
+async function reloadBatters() {
+  if (battingTeamId == null) return;
+  try {
+    const { data } = await getPlayers(battingTeamId);
+    const list = Array.isArray(data) ? data : [];
+    const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(battingTeamId));
+    const onlyBatters = byTeam.filter(isPlayerBatter);
+    setBatters(onlyBatters.length ? onlyBatters : byTeam);
+  } catch (e) {
+    console.warn("Failed to reload batters", e);
+  }
+}
+
+async function reloadBowlers() {
+  if (bowlingTeamId == null) return;
+  try {
+    const { data } = await getPlayers(bowlingTeamId);
+    const list = Array.isArray(data) ? data : [];
+    const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(bowlingTeamId));
+    const onlyBowlers = byTeam.filter(isPlayerBowler);
+    setBowlers(onlyBowlers.length ? onlyBowlers : byTeam);
+  } catch (e) {
+    console.warn("Failed to reload bowlers", e);
+  }
+}
+
+function validatePlayer(values) {
+  const e = {};
+
+  if (!values.teamId) e.teamId = "Please select a team.";
+
+  const name = (values.playerName || "").trim();
+  if (!name) e.playerName = "Player name is required.";
+  else if (name.length < 2) e.playerName = "Name must be at least 2 characters.";
+
+  // position: required int 0..11
+  const raw = values.position;
+  if (raw === "" || raw === null || raw === undefined) {
+    e.position = "Position is required.";
+  } else {
+    const num = Number(raw);
+    if (!Number.isInteger(num)) e.position = "Position must be an integer.";
+    else if (num < 0 || num > 11) e.position = "Position must be 0–11.";
+  }
+
+  if (!values.isBatter && !values.isBaller && !values.isWk) {
+    e.roles = "Select at least one role.";
+  }
+
+  return e;
+}
+
+function onPlayerField(e) {
+  const { name, value, type, checked } = e.target;
+  const next = {
+    ...playerForm,
+    [name]: type === "checkbox" ? checked : value,
+  };
+  setPlayerForm(next);
+
+  // live-validate the changed field
+  const fresh = validatePlayer(next);
+  setFormErrors((prev) => ({
+    ...prev,
+    [name]: fresh[name],
+    ...(name.startsWith("is") ? { roles: fresh.roles } : {}),
+  }));
+}
+
+async function onCreatePlayer(e) {
+  e.preventDefault();
+
+  const errs = validatePlayer(playerForm);
+  setFormErrors(errs);
+  if (Object.keys(errs).length > 0) return;
+
+  const payload = {
+    ...playerForm,
+    teamId: Number(playerForm.teamId),
+    position: Number(playerForm.position),
+  };
+
+  try {
+    await createPlayer(payload);
+
+    // refresh whichever list(s) needed
+    if (payload.teamId === Number(battingTeamId)) {
+      await reloadBatters();
+    }
+    if (payload.teamId === Number(bowlingTeamId)) {
+      await reloadBowlers();
+    }
+
+    // clear + close
+    setPlayerForm(emptyPlayerForm);
+    setFormErrors({});
+    setAddOpen(false);
+  } catch (err) {
+    console.warn("Create player failed:", err);
+  }
+}
+
+
+
+
 
   // Balling card
   const [overBallHistory, setOverBallHistory] = useState([]);
@@ -1300,14 +1458,31 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
 
             {/* Players */}
             <Box sx={{ mb: 2 }}>
-              <Typography
-                variant="body2"
-                fontWeight={800}
-                mb={1}
-                color="text.secondary"
-              >
-                Players
-              </Typography>
+               <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+    <Typography variant="body2" fontWeight={800} color="text.secondary">
+      Players
+    </Typography>
+
+    <Fab
+      size="small"
+      color="primary"
+      aria-label="add player"
+      onClick={() => {
+        // default the team to currently selected batting team if present,
+        // otherwise bowling team, otherwise blank
+        const defaultTeam =
+          (battingTeamId && String(battingTeamId)) ||
+          (bowlingTeamId && String(bowlingTeamId)) ||
+          "";
+        setPlayerForm((p) => ({ ...emptyPlayerForm, teamId: defaultTeam }));
+        setFormErrors({});
+        setAddOpen(true);
+      }}
+      sx={{ boxShadow: "none" }}
+    >
+      <AddIcon fontSize="small" />
+    </Fab>
+  </Stack>
               <Grid container spacing={1.25}>
                 {/* Batsman 1 */}
                 <Grid item xs={12} md={4}>
@@ -1716,6 +1891,167 @@ const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
           </Container-fluid>
         </Grid>
       </Grid>
+
+
+
+      
+      {/* Player Registration Dialog */}
+<Dialog
+  open={addOpen}
+  onClose={() => setAddOpen(false)}
+  fullWidth
+  maxWidth="sm"
+  PaperProps={{ sx: { borderRadius: 3 } }}
+>
+  <DialogTitle sx={{ fontWeight: 800 }}>Register Player</DialogTitle>
+  <DialogContent dividers>
+    <Stack
+      component="form"
+      id="playerCreateForm"
+      spacing={2}
+      onSubmit={onCreatePlayer}
+      sx={{ pt: 1 }}
+    >
+      {/* TEAM */}
+      <FormControl size="small" fullWidth error={Boolean(formErrors.teamId)}>
+        <InputLabel id="add-team-label">Team</InputLabel>
+        <Select
+          labelId="add-team-label"
+          label="Team"
+          name="teamId"
+          value={playerForm.teamId}
+          onChange={onPlayerField}
+        >
+          {teams.map((t) => (
+            <MenuItem key={t.id} value={String(t.id)}>
+              {t.teamName} (#{t.id})
+            </MenuItem>
+          ))}
+        </Select>
+        {formErrors.teamId && (
+          <FormHelperText>{formErrors.teamId}</FormHelperText>
+        )}
+      </FormControl>
+
+      {/* NAME / POSITION */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+        <TextField
+          size="small"
+          label="Player Name"
+          name="playerName"
+          value={playerForm.playerName}
+          onChange={onPlayerField}
+          error={Boolean(formErrors.playerName)}
+          helperText={formErrors.playerName}
+          fullWidth
+        />
+        <TextField
+          size="small"
+          label="Position (0–11)"
+          type="number"
+          name="position"
+          value={playerForm.position}
+          onChange={(e) => {
+            let v = e.target.value;
+            if (v !== "") {
+              const n = Number(v);
+              if (!Number.isNaN(n)) {
+                if (n < 0) v = "0";
+                if (n > 11) v = "11";
+              }
+            }
+            onPlayerField({ target: { name: "position", value: v, type: "text" } });
+          }}
+          error={Boolean(formErrors.position)}
+          helperText={formErrors.position}
+          inputProps={{ min: 0, max: 11, step: 1 }}
+          sx={{ width: { sm: 180 } }}
+        />
+      </Stack>
+
+      {/* PHONE / ADDRESS */}
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+        <TextField
+          size="small"
+          label="Phone"
+          name="phone"
+          value={playerForm.phone}
+          onChange={onPlayerField}
+          fullWidth
+        />
+        <TextField
+          size="small"
+          label="Address"
+          name="playerAddress"
+          value={playerForm.playerAddress}
+          onChange={onPlayerField}
+          fullWidth
+        />
+      </Stack>
+
+      {/* ROLES */}
+      <FormGroup row>
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isBatter"
+              checked={playerForm.isBatter}
+              onChange={onPlayerField}
+            />
+          }
+          label="Batter"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isBaller"
+              checked={playerForm.isBaller}
+              onChange={onPlayerField}
+            />
+          }
+          label="Bowler"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isWk"
+              checked={playerForm.isWk}
+              onChange={onPlayerField}
+            />
+          }
+          label="Wicket Keeper"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              name="isCaptain"
+              checked={playerForm.isCaptain}
+              onChange={onPlayerField}
+            />
+          }
+          label="Captain"
+        />
+      </FormGroup>
+      {formErrors.roles && (
+        <Typography variant="caption" color="error">
+          {formErrors.roles}
+        </Typography>
+      )}
+    </Stack>
+  </DialogContent>
+
+  <DialogActions sx={{ p: 2 }}>
+    <Button onClick={() => setAddOpen(false)} color="inherit">
+      Cancel
+    </Button>
+    <Button type="submit" form="playerCreateForm" variant="contained">
+      Create
+    </Button>
+  </DialogActions>
+</Dialog>
+
     </Box>
+
+    
   );
 }
