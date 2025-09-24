@@ -18,6 +18,7 @@ Overlay (for OBS): http://localhost:4000/overlay
 
 ### 2) Start the frontend
 ```bash
+npm install @mui/icons-material
 cd ../frontend
 npm install
 npm run dev
@@ -36,3 +37,6 @@ curl -X POST http://localhost:4000/api/score   -H "Content-Type: application/jso
 Changes appear instantly on the overlay via SSE.
 
 > Note: This is a **demo**. No auth, in-memory state only.
+
+
+
