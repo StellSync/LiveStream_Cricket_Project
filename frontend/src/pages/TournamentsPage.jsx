@@ -85,10 +85,10 @@ export default function TournamentsPage() {
   }
   useEffect(() => { load(); }, []);
 
+  // ✅ Only Name and Date are required now
   function validate(nextForm) {
     const e = {};
     if (!nextForm.name.trim()) e.name = "Name is required.";
-    if (!nextForm.place.trim()) e.place = "Ground is required.";
 
     if (!nextForm.date) {
       e.date = "Date is required.";
@@ -96,7 +96,7 @@ export default function TournamentsPage() {
       e.date = "Please select today or a future date.";
     }
 
-    if (!nextForm.logo.trim()) e.logo = "Tournament logo is required.";
+    // Ground (place) and Logo are optional now → no errors
     return e;
   }
 
@@ -119,8 +119,9 @@ export default function TournamentsPage() {
     const payload = {
       name: form.name.trim(),
       date: form.date, // already validated to be >= today
-      place: form.place.trim(),
-      logo: form.logo.trim(),
+      // optional fields: allow blank
+      place: form.place?.trim() || "",
+      logo: form.logo?.trim() || "",
       ...(form.logoKey && { logoKey: form.logoKey }),
     };
 
@@ -291,7 +292,6 @@ export default function TournamentsPage() {
                   min={todayStr}
                   required
                 />
-
                 {invalid("date") && (
                   <div className="invalid-feedback">{errors.date}</div>
                 )}
@@ -301,14 +301,11 @@ export default function TournamentsPage() {
                 <label className="form-label">Ground</label>
                 <input
                   name="place"
-                  className={`form-control ${invalid("place") ? "is-invalid" : ""}`}
+                  className="form-control" // optional now
                   value={form.place}
                   onChange={onChange}
-                  required
                 />
-                {invalid("place") && (
-                  <div className="invalid-feedback">{errors.place}</div>
-                )}
+                {/* no validation/error for Ground */}
               </div>
 
               {/* Upload to Firebase RTDB as Data URL */}
@@ -317,13 +314,11 @@ export default function TournamentsPage() {
                 <input
                   type="file"
                   accept="image/*"
-                  className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
+                  className="form-control" // optional now
                   onChange={handleLogoFile}
                   disabled={uploading}
                 />
-                {invalid("logo") && (
-                  <div className="invalid-feedback">{errors.logo}</div>
-                )}
+                {/* no validation/error for Logo */}
                 {uploadPct > 0 && uploadPct < 100 && (
                   <div className="progress mt-2">
                     <div
@@ -356,7 +351,7 @@ export default function TournamentsPage() {
                   <span className="input-group-text">URL</span>
                   <input
                     name="logo"
-                    className={`form-control ${invalid("logo") ? "is-invalid" : ""}`}
+                    className="form-control" // optional now
                     value={form.logo}
                     onChange={onChange}
                     placeholder="Paste an image URL or leave blank"
