@@ -1527,6 +1527,188 @@ function renderSummaryOverlayHtml() {
 }
 
 
+// ============================================================================
+// SCOREBAR THEME #3 (Aurora Glass) → /overlay/scorebar-aurora
+// ============================================================================
+// ============================================================================
+// SCOREBAR THEME #3 (Aurora Glass) → /overlay/scorebar-aurora  (with scale=?)
+// ============================================================================
+app.get("/overlay/scorebar-aurora", (_req, res) => {
+  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Scorebar Aurora</title>
+<style>
+  html,body{margin:0;background:transparent}
+  *{box-sizing:border-box}
+  :root{
+    /* Base size for the whole bar (increase to make everything bigger uniformly) */
+    font-size: 16px;
+
+    --aurora1:#00ffd1; --aurora2:#7cf6ff; --aurora3:#a78bfa; --aurora4:#22d3ee;
+    --panel: rgba(255,255,255,.10);
+    --stroke: rgba(255,255,255,.22);
+    --mut:#b8c6db; --txt:#f7fbff;
+    --chip:#0ea5e9; --chip-wd:#f59e0b; --chip-nb:#a855f7; --chip-w:#ef4444;
+    --shadow: 0 12px 40px rgba(0,0,0,.40);
+  }
+
+  /* Root wrapper we can scale with transform so it fills any OBS size */
+  #root{ transform-origin: top left; }
+
+  .wrap{
+    width:100vw; padding:0.75rem 1rem;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--txt);
+    display:flex; align-items:center; justify-content:center; gap:0.875rem;
+    background:
+      radial-gradient(60vmin 40vmin at 10% 20%, rgba(124,246,255,.16), transparent 60%),
+      radial-gradient(60vmin 40vmin at 90% 80%, rgba(167,139,250,.12), transparent 60%);
+    backdrop-filter: blur(10px) saturate(1.2);
+  }
+  .card{display:flex;align-items:center;gap:0.75rem;min-width:19rem;padding:0.625rem 0.75rem;border-radius:1rem;background:var(--panel);border:1px solid var(--stroke);box-shadow:var(--shadow)}
+  .teamlogo,.opp-logo{width:2.75rem;height:2.75rem;border-radius:0.75rem;background:#0b0f17;object-fit:contain;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 6px 18px rgba(0,0,0,.35)}
+  .bats{display:flex;flex-direction:column;gap:0.2rem;min-width:0}
+  .line{display:flex;align-items:center;gap:0.5rem;white-space:nowrap}
+  .nm{font-weight:900;font-size:0.9rem;max-width:18ch;overflow:hidden;text-overflow:ellipsis}
+  .fig{font-weight:900;font-size:0.9rem}
+  .mut{color:var(--mut)}
+  .strike{width:0.5rem;height:0.5rem;border-radius:50%;background:var(--aurora1);box-shadow:0 0 18px rgba(0,255,209,.55)}
+  .center{display:flex;flex-direction:column;align-items:center;gap:0.5rem;flex:1 1 auto;min-width:32rem}
+  .pill{position:relative;display:flex;align-items:center;gap:0;overflow:hidden;border-radius:1.125rem;color:#001014;border:1px solid rgba(255,255,255,.26);box-shadow:var(--shadow);background:linear-gradient(120deg,rgba(0,255,209,.95),rgba(124,246,255,.95) 45%,rgba(167,139,250,.95))}
+  .glow{position:absolute;inset:0;opacity:.28;background:radial-gradient(40vmin 18vmin at 15% 35%, rgba(255,255,255,.35), transparent 60%),radial-gradient(40vmin 18vmin at 85% 65%, rgba(255,255,255,.28), transparent 60%);pointer-events:none}
+  .match{padding:0.6rem 0.75rem;font-weight:900;font-size:0.85rem;letter-spacing:.05em;color:#00272a;background:rgba(255,255,255,.14)}
+  .score{display:flex;align-items:center;gap:0.625rem;padding:0.5rem 0.875rem;font-weight:1000;font-size:1.4rem;letter-spacing:.02em}
+  .ov{font:900 0.7rem/1 system-ui;background:rgba(255,255,255,.22);padding:0.4rem 0.6rem;border-radius:0.75rem}
+  .target{font:900 0.7rem/1 system-ui;background:rgba(0,0,0,.12);color:#001014;padding:0.4rem 0.6rem;border-radius:0.75rem;border:1px solid rgba(0,0,0,.12)}
+  .score.pulse{animation:pulse .9s ease}@keyframes pulse{0%{transform:scale(1.02)}100%{transform:scale(1)}}
+  .chips{display:flex;align-items:center;gap:0.4rem;min-height:1.5rem}
+  .chip{width:1.5rem;height:1.5rem;border-radius:0.5rem;display:grid;place-items:center;font:1000 0.7rem/1 system-ui;color:#001014;box-shadow:0 2px 10px rgba(0,0,0,.35);transform:translateY(-6px);opacity:0;animation:drop .25s ease forwards}
+  .chip.r{background:linear-gradient(135deg,var(--chip),#38bdf8)}
+  .chip.wd{background:linear-gradient(135deg,var(--chip-wd),#ffd166)}
+  .chip.nb{background:linear-gradient(135deg,var(--chip-nb),#c084fc);color:#14001a}
+  .chip.w{background:linear-gradient(135deg,var(--chip-w),#ff6b6b)}
+  @keyframes drop{to{transform:translateY(0);opacity:1}}
+  .rr{background:linear-gradient(90deg,rgba(255,255,255,.10),rgba(255,255,255,.14));color:#eafff8;border-radius:0.6rem;padding:0.4rem 0.75rem;font-weight:900;font-size:0.75rem;letter-spacing:.08em;border:1px solid rgba(255,255,255,.18);box-shadow:var(--shadow)}
+</style>
+</head>
+<body>
+  <div id="root">
+    <div class="wrap">
+      <div class="card">
+        <img id="bLogo" class="teamlogo" alt="">
+        <div class="bats">
+          <div class="line">
+            <span class="strike" id="strikeDot" style="visibility:hidden"></span>
+            <span class="nm" id="b1Name">—</span>
+            <span class="fig" id="b1Fig">0 (0)</span>
+          </div>
+          <div class="line mut">
+            <span class="nm" id="b2Name">—</span>
+            <span class="fig" id="b2Fig">0 (0)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="center">
+        <div class="pill">
+          <span class="glow"></span>
+          <div class="match" id="mt">— v —</div>
+          <div class="score" id="scorePill">
+            <span id="tot">0-0</span>
+            <span class="ov" id="ovb">0.0 ov</span>
+            <span class="target" id="tg" style="display:none">TARGET —</span>
+          </div>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="rr" id="rr">RUN RATE 0.00</div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;flex-direction:column;gap:0.2rem;min-width:0">
+          <div class="line">
+            <span class="nm" id="bowlerName">—</span>
+            <span class="fig" id="bowlerFig">0-0-0</span>
+          </div>
+          <div class="line mut"><span id="fieldTeam">—</span></div>
+        </div>
+        <img id="fLogo" class="opp-logo" alt="">
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ---- SCALE SUPPORT: /overlay/scorebar-aurora?scale=1.8
+  (function(){
+    const s = parseFloat(new URLSearchParams(location.search).get('scale')||'1');
+    const root = document.getElementById('root');
+    if (!Number.isNaN(s) && s !== 1) root.style.transform = 'scale(' + s + ')';
+  })();
+
+  const $=id=>document.getElementById(id);
+  const bLogo=$('bLogo'), b1Name=$('b1Name'), b1Fig=$('b1Fig'),
+        b2Name=$('b2Name'), b2Fig=$('b2Fig'), strikeDot=$('strikeDot');
+  const mt=$('mt'), tot=$('tot'), ovb=$('ovb'), rr=$('rr'), chips=$('chips');
+  const bowlerName=$('bowlerName'), bowlerFig=$('bowlerFig'),
+        fieldTeam=$('fieldTeam'), fLogo=$('fLogo'), scorePill=$('scorePill'), tg=$('tg');
+
+  let last={runs:0,wickets:0};
+
+  function mkChip(label,i){
+    const d=document.createElement('div'); d.className='chip r'; d.textContent=label;
+    d.style.animationDelay=(i*60)+'ms';
+    if(label==='W') d.className='chip w';
+    else if(label.startsWith('Wd')) d.className='chip wd';
+    else if(label.startsWith('Nb')) d.className='chip nb';
+    return d;
+  }
+
+  function render(s){
+    const batCode=(s.battingTeam||'').toUpperCase();
+    const fldCode=(s.bowlingTeam||'').toUpperCase();
+    mt.textContent=batCode+' v '+fldCode;
+
+    if(s.runs!==last.runs || s.wickets!==last.wickets){
+      scorePill.classList.remove('pulse'); void scorePill.offsetWidth; scorePill.classList.add('pulse');
+      last={runs:s.runs, wickets:s.wickets};
+    }
+
+    tot.textContent=(s.runs||0)+'-'+(s.wickets||0);
+    ovb.textContent=(s.overs||0)+'.'+(s.balls||0)+' ov';
+    rr.textContent='RUN RATE '+(s.runRate||'0.00');
+
+    const target=s.target ?? s.chaseTarget;
+    if(typeof target==='number' && !Number.isNaN(target)){
+      tg.style.display='inline-block'; tg.textContent='TARGET '+target;
+    }else{ tg.style.display='none'; }
+
+    chips.innerHTML='';
+    (s.overBalls||[]).forEach((b,i)=>chips.appendChild(mkChip(b,i)));
+
+    const st=s.striker||{}, ns=s.nonStriker||{};
+    strikeDot.style.visibility=(st.name?'visible':'hidden');
+    b1Name.textContent=(st.name||'').toUpperCase();
+    b1Fig.textContent=(st.runs||0)+' ('+(st.balls||0)+')';
+    b2Name.textContent=(ns.name||'').toUpperCase();
+    b2Fig.textContent=(ns.runs||0)+' ('+(ns.balls||0)+')';
+
+    bLogo.src=s.battingTeamLogo||'';
+    fLogo.src=s.bowlingTeamLogo||'';
+
+    bowlerName.textContent=(s.bowler?.name||'').toUpperCase();
+    bowlerFig.textContent=(s.bowler?.wickets||0)+'-'+(s.bowler?.overs||0)+'-'+(s.bowler?.runs||0);
+    fieldTeam.textContent=fldCode||'—';
+  }
+
+  const es=new EventSource('/sse-overlay');
+  es.onmessage=e=>render(JSON.parse(e.data));
+</script>
+</body>
+</html>`);
+});
+
 
 
 
