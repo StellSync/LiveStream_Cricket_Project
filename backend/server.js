@@ -318,450 +318,6 @@ app.get("/overlay/match", (_req, res) => {
 });
 
 
-
-// ---------- Event overlays (UPGRADED ANIMATIONS) ----------
-app.get("/overlay/four", (_req, res) => {
-  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FOUR</title>
-<style>
-  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  .stage{position:fixed;inset:0;display:grid;place-items:center;
-         background:radial-gradient(60vmin 60vmin at 50% 50%,rgba(0,200,255,.15),transparent 70%)}
-  .badge{
-    --glow: #00e1ff;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    font-weight:1000;font-size:22vmin;line-height:1;color:#fff;letter-spacing:.02em;
-    padding:.15em .6em;border-radius:2rem;border:5px solid rgba(0,225,255,.9);
-    background:
-      radial-gradient(120% 180% at 0% 0%,#003048 0%,#005a93 45%,#002033 100%);
-    box-shadow:0 0 0 0 var(--glow),0 0 40px 6px rgba(0,225,255,.25) inset,0 10px 35px rgba(0,0,0,.55);
-    transform:scale(.2) rotate(-8deg);
-    filter:drop-shadow(0 8px 24px rgba(0,0,0,.55));
-    animation:enter .55s cubic-bezier(.18,.89,.32,1.28) forwards,
-             glow 2s ease-in-out .6s infinite alternate,
-             wobble 2.2s ease-in-out 1.1s infinite;
-  }
-  .label{font:900 3.8vmin system-ui;color:#dff9ff;text-align:center;margin-top:10px;
-         text-shadow:0 2px 10px rgba(0,0,0,.45);letter-spacing:.08em}
-  .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-  .p{
-    position:absolute;top:50%;left:50%;width:1vmin;height:3.6vmin;border-radius:.3vmin;
-    transform-origin:center -8vmin;opacity:0;
-    animation:shoot 1.15s ease-out forwards;
-  }
-  .p:nth-child(odd){height:2.8vmin}
-  .p:nth-child(3n){height:4vmin}
-  .trail{position:absolute;inset:0;pointer-events:none}
-  .meteor{
-    position:absolute;width:1.2vmin;height:1.2vmin;border-radius:50%;background:#fff;
-    box-shadow:0 0 16px 6px rgba(255,255,255,.6);
-    opacity:0; animation:meteor 1.1s ease-out forwards;
-  }
-  .p.c1{background:#00e1ff}.p.c2{background:#ffde59}.p.c3{background:#ff4d6d}.p.c4{background:#7cff87}
-  @keyframes shoot{
-    0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--r)) scale(.3)}
-    12%{opacity:1}
-    100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(var(--r)) scale(1)}
-  }
-  @keyframes enter{to{transform:scale(1) rotate(0)}}
-  @keyframes glow{to{box-shadow:0 0 22px 6px var(--glow),0 0 60px 10px rgba(0,225,255,.35) inset}}
-  @keyframes wobble{0%,100%{transform:rotate(0)}50%{transform:rotate(.8deg)}}
-  @keyframes meteor{
-    0%{opacity:0;transform:translate(10%,110%) scale(.5)}
-    10%{opacity:1}
-    100%{opacity:0;transform:translate(80%,-20%) scale(1)}
-  }
-</style></head>
-<body>
-  <div class="stage">
-    <div>
-      <div class="badge">4</div>
-      <div class="label">FOUR!</div>
-    </div>
-    <div class="confetti" id="c"></div>
-    <div class="trail" id="t"></div>
-  </div>
-<script>
-  const c = document.getElementById('c');
-  const t = document.getElementById('t');
-  const N = 80;
-  for (let i=0;i<N;i++){
-    const p = document.createElement('div');
-    p.className = 'p c'+(1+(i%4));
-    const a = (i/N)*Math.PI*2, r = 20 + Math.random()*35;
-    p.style.setProperty('--r', (a*180/Math.PI)+'deg');
-    p.style.setProperty('--dx',  Math.cos(a)*r+'vmin');
-    p.style.setProperty('--dy',  Math.sin(a)*r+'vmin');
-    p.style.animationDelay = (Math.random()*0.25)+'s';
-    c.appendChild(p);
-  }
-  for(let i=0;i<14;i++){
-    const s=document.createElement('div'); s.className='meteor';
-    s.style.left = (6 + i*7)+'%'; s.style.top = (100 - i*9)+'%';
-    s.style.animationDelay = (i*0.05)+'s';
-    t.appendChild(s);
-  }
-</script>
-</body></html>`);
-});
-
-// ---------- Event overlays (SIX - Upgraded Cosmic Burst) ----------
-app.get("/overlay/six", (_req, res) => {
-  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SIX</title>
-<style>
-  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  .sky{position:fixed;inset:0;display:grid;place-items:center;
-       background:radial-gradient(70vmin 70vmin at 50% 50%,rgba(255,255,255,.08),transparent 70%)}
-
-  /* Rippling colorful rings */
-  .ring{position:absolute;border-radius:50%;border:7px solid transparent;animation:pulse 1.8s ease-out infinite}
-  .r1{width:40vmin;height:40vmin;border-color:rgba(255,0,200,.35)}
-  .r2{width:60vmin;height:60vmin;animation-delay:.25s;border-color:rgba(0,200,255,.35)}
-  .r3{width:80vmin;height:80vmin;animation-delay:.5s;border-color:rgba(255,255,0,.35)}
-  .r4{width:100vmin;height:100vmin;animation-delay:.75s;border-color:rgba(255,100,50,.35)}
-  @keyframes pulse{from{transform:scale(.6);opacity:.7}to{transform:scale(1.4);opacity:0}}
-
-  /* Badge */
-  .badge{
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    font-weight:1000;font-size:26vmin;color:#fff;letter-spacing:.02em;
-    padding:.15em .7em;border-radius:2rem;border:6px solid rgba(255,255,255,.8);
-    background: radial-gradient(
-  circle at center,
-  #00ff66 0%,   /* bright neon */
-  #00cc44 40%,  /* emerald */
-  #009933 80%   /* deep green edge */
-);
-
-    background-size:200% 200%;animation:bgshift 4s linear infinite;
-    text-shadow:0 0 30px rgba(60, 60, 60, 0.7),0 8px 26px rgba(0,0,0,.6);
-    filter:drop-shadow(0 12px 30px rgba(0,0,0,.6));
-    transform:scale(.25) rotate(-10deg);
-    position:relative;overflow:hidden;
-    animation:pop .55s cubic-bezier(.18,.89,.32,1.28) forwards,
-             wobble 2.2s ease-in-out .7s infinite;
-  }
-  /* Shine sweep */
-  .badge::after{
-    content:"";position:absolute;inset:0;
-    background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.8) 50%,transparent 70%);
-    transform:translateX(-100%) skewX(-20deg);
-    animation:sweep 2.5s ease-in-out 1s infinite;
-  }
-
-  .label{font:900 3.8vmin system-ui;color: #b7fdb7ff;text-align:center;margin-top:10px;
-         letter-spacing:.1em;text-shadow:0 3px 12px rgba(0,0,0,.6)}
-
-  @keyframes pop{to{transform:scale(1) rotate(0)}}
-  @keyframes wobble{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.05) rotate(.8deg)}}
-  @keyframes bgshift{to{background-position:200% 200%}}
-  @keyframes sweep{to{transform:translateX(200%) skewX(-20deg)}}
-
-  /* Star trail */
-  .trail{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-  .star{position:absolute;width:1.4vmin;height:1.4vmin;background:#fff;border-radius:50%;
-        box-shadow:0 0 18px 7px rgba(255,255,255,.6);
-        transform:translate(-50%,-50%);opacity:0;animation:fly 1.1s ease-out forwards}
-  @keyframes fly{
-    0%{opacity:0;transform:translate(15%,115%) scale(.4)}
-    10%{opacity:1}
-    100%{opacity:0;transform:translate(85%,-20%) scale(1.1)}
-  }
-
-  /* Sparks explosion */
-  .sparks {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.spark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 1.8vmin;  /* bigger sparks (was 0.8vmin) */
-  height: 1.8vmin;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff 30%, #ffffffff 70%, transparent 100%);
-  box-shadow: 0 0 12px 6px rgba(160, 255, 174, 0.85), 
-              0 0 24px 12px rgba(100, 255, 121, 0.5);
-  opacity: 0;
-  animation: spark 1.25s ease-out forwards;
-}
-
-@keyframes spark {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.4);
-  }
-  15% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-    transform: translate(calc(-50% + var(--sx)), calc(-50% + var(--sy))) scale(1.3);
-  }
-}
-
-
-  /* Meteors */
-  .meteors{position:absolute;inset:0;pointer-events:none}
-  .meteor{
-    position:absolute;width:1vmin;height:1vmin;border-radius:50%;background:#fff;
-    box-shadow:0 0 10px 4px rgba(255,255,255,.6);
-    opacity:0; animation:meteor 1.3s ease-out forwards;
-  }
-  @keyframes meteor{
-    0%{opacity:0;transform:translate(-10%,120%) scale(.5)}
-    20%{opacity:1}
-    100%{opacity:0;transform:translate(110%,-20%) scale(1.1)}
-  }
-</style></head>
-<body>
-  <div class="sky">
-    <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div class="ring r4"></div>
-    <div>
-      <div class="badge">6</div>
-      <div class="label">HUGE SIX!</div>
-    </div>
-    <div class="trail" id="t"></div>
-    <div class="sparks" id="sp"></div>
-    <div class="meteors" id="m"></div>
-  </div>
-<script>
-  const t = document.getElementById('t');
-  for(let i=0;i<14;i++){
-    const s=document.createElement('div'); s.className='star';
-    s.style.left = (8 + i*7)+'%'; s.style.top = (100 - i*8)+'%';
-    s.style.animationDelay = (i*0.05)+'s';
-    t.appendChild(s);
-  }
-  const sp = document.getElementById('sp');
-  for(let i=0;i<50;i++){
-    const s=document.createElement('div'); s.className='spark';
-    const ang = (i/50)*Math.PI*2, dist = 14 + Math.random()*26;
-    s.style.setProperty('--sx', Math.cos(ang)*dist+'vmin');
-    s.style.setProperty('--sy', Math.sin(ang)*dist+'vmin');
-    s.style.animationDelay = (Math.random()*0.25)+'s';
-    sp.appendChild(s);
-  }
-  const m=document.getElementById('m');
-  for(let i=0;i<6;i++){
-    const s=document.createElement('div'); s.className='meteor';
-    s.style.left = (10+i*15)+'%'; s.style.top = (100 - i*12)+'%';
-    s.style.animationDelay = (i*0.15)+'s';
-    m.appendChild(s);
-  }
-</script>
-</body>
-</html>`);
-});
-
-
-
-// ---------- Event overlays (FREE HIT) ----------
-app.get("/overlay/freehit", (_req, res) => {
-  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FREE HIT</title>
-<style>
-  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  .stage{position:fixed;inset:0;display:grid;place-items:center;
-         background:radial-gradient(70vmin 70vmin at 50% 50%,rgba(0,255,128,.12),transparent 70%)}
-  .badge{
-    --glow:#22ff88;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    font-weight:1000;font-size:14vmin;line-height:1;color:#fff;letter-spacing:.06em;
-    padding:.25em .8em;border-radius:2.5rem;border:6px solid rgba(34,255,136,.9);
-    background:linear-gradient(135deg,#004d2e 0%,#007a4d 50%,#00331f 100%);
-    text-shadow:0 0 20px rgba(34,255,136,.6),0 0 50px rgba(34,255,136,.4);
-    box-shadow:0 0 0 0 var(--glow),0 0 40px 8px rgba(34,255,136,.3) inset,
-               0 14px 45px rgba(0,0,0,.6);
-    transform:scale(.2) rotate(-12deg);
-    filter:drop-shadow(0 8px 24px rgba(0,0,0,.6));
-    animation:enter .7s cubic-bezier(.18,.89,.32,1.28) forwards,
-             glow 1.6s ease-in-out .8s infinite alternate,
-             pulse 1.8s ease-in-out 1.2s infinite;
-  }
-  .label{
-    font:900 4.2vmin system-ui;
-    color:#bbffd8;
-    text-align:center;
-    margin-top:14px;
-    text-shadow:0 3px 12px rgba(0,0,0,.55),0 0 18px rgba(34,255,136,.6);
-    letter-spacing:.12em;
-  }
-  .rings{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-  .ring{
-    position:absolute;border:4px solid rgba(34,255,136,.7);border-radius:50%;
-    width:20vmin;height:20vmin;top:50%;left:50%;
-    transform:translate(-50%,-50%) scale(.2);opacity:0;
-    animation:ring 1.6s ease-out forwards;
-  }
-  .ring:nth-child(2){animation-delay:.25s}
-  .ring:nth-child(3){animation-delay:.5s}
-  .ring:nth-child(4){animation-delay:.75s}
-  .stars{position:absolute;inset:0;pointer-events:none}
-  .s{
-    position:absolute;width:1.4vmin;height:1.4vmin;border-radius:50%;
-    background:#22ff88;opacity:0;transform:scale(.4);
-    animation:twinkle 1.8s ease-in-out forwards;
-  }
-  @keyframes enter{to{transform:scale(1) rotate(0)}}
-  @keyframes glow{to{box-shadow:0 0 26px 8px var(--glow),0 0 65px 14px rgba(34,255,136,.4) inset}}
-  @keyframes pulse{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.05) rotate(1deg)}}
-  @keyframes ring{
-    0%{transform:translate(-50%,-50%) scale(.2);opacity:1}
-    80%{opacity:0.8}
-    100%{transform:translate(-50%,-50%) scale(2.4);opacity:0}
-  }
-  @keyframes twinkle{
-    0%{opacity:0;transform:scale(.4)}
-    20%{opacity:1;transform:scale(1)}
-    100%{opacity:0;transform:scale(.2)}
-  }
-</style>
-</head>
-<body>
-  <div class="stage">
-    <div>
-      <div class="badge">FREE HIT</div>
-      <div class="label">DON'T MISS!</div>
-    </div>
-    <div class="rings" id="rings"></div>
-    <div class="stars" id="stars"></div>
-  </div>
-<script>
-  const r=document.getElementById('rings');
-  for(let i=0;i<4;i++){
-    const ring=document.createElement('div');
-    ring.className='ring';
-    r.appendChild(ring);
-  }
-  const s=document.getElementById('stars');
-  for(let i=0;i<30;i++){
-    const star=document.createElement('div');
-    star.className='s';
-    star.style.left=(Math.random()*100)+'%';
-    star.style.top=(Math.random()*100)+'%';
-    star.style.animationDelay=(0.3+Math.random()*1.2)+'s';
-    s.appendChild(star);
-  }
-</script>
-</body></html>`);
-});
-
-
-app.get("/overlay/wicket", (_req, res) => {
-  res
-    .set("Content-Type", "text/html; charset=utf-8")
-    .send(`<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WICKET</title>
-<style>
-  html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-  .field{
-    position:fixed;inset:0;display:grid;place-items:center;
-    background:
-      radial-gradient(65vmin 65vmin at 50% 50%,rgba(255,0,76,.18),transparent 70%),
-      radial-gradient(30vmin 30vmin at 20% 85%,rgba(255,80,120,.15),transparent 70%),
-      radial-gradient(30vmin 30vmin at 80% 20%,rgba(255,80,120,.12),transparent 70%);
-  }
-  .badge{
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    font-weight:1000;letter-spacing:.08em;
-    font-size:16vmin;color:#fff;
-    padding:.35em 1.1em;border-radius:1.6rem;border:5px solid rgba(255,86,120,.95);
-    background:linear-gradient(135deg,#2a0000,#b0002b 55%,#510010 100%);
-    text-shadow:0 6px 22px rgba(0,0,0,.55);
-    filter:drop-shadow(0 12px 26px rgba(0,0,0,.6));
-    transform:translateY(-28px) scale(.96);
-    animation:drop .5s cubic-bezier(.2,.9,.25,1.4) forwards,
-             quake 1s ease-in-out .5s 1,
-             pulse 1.4s ease-in-out 1.4s 3;
-  }
-  .label{ font:900 3.4vmin system-ui;color:#ffd6df;text-align:center;margin-top:10px;letter-spacing:.1em }
-  @keyframes drop{to{transform:translateY(0) scale(1)}}
-  @keyframes quake{
-    0%,100%{transform:translate(0,0)}
-    20%{transform:translate(-10px,0) rotate(-1.4deg)}
-    40%{transform:translate(10px,0) rotate(1.4deg)}
-    60%{transform:translate(-6px,0) rotate(-.8deg)}
-    80%{transform:translate(6px,0) rotate(.8deg)}
-  }
-  @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(255,86,120,.7)}
-    100%{box-shadow:0 0 0 24px rgba(255,86,120,0)}
-  }
-  .shards{position:absolute;inset:0;pointer-events:none}
-  .shard{
-    position:absolute;top:50%;left:50%;
-    width:1.2vmin;height:6vmin;background:linear-gradient(#ff6b88,#ff2e54);
-    transform-origin:50% 120%; border-radius:.4vmin; opacity:0;
-    box-shadow:0 0 10px rgba(255,50,90,.5);
-    animation:burst 1.05s ease-out forwards;
-  }
-  .shard:nth-child(2n){height:4.6vmin}
-  .shard:nth-child(3n){background:linear-gradient(#ffd1da,#ff6b88)}
-  @keyframes burst{
-    0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) scale(.4)}
-    15%{opacity:1}
-    100%{opacity:0;transform:translate(calc(-50% + var(--x)),calc(-50% + var(--y)))
-                         rotate(var(--a)) scale(1)}
-  }
-  .dust{position:absolute;inset:0;pointer-events:none}
-  .d{ position:absolute;top:50%;left:50%;width:10vmin;height:10vmin;border-radius:50%;
-      background:radial-gradient(rgba(255,86,120,.25),rgba(255,86,120,0) 70%);
-      opacity:0;animation:dust 1.4s ease-out forwards; }
-  @keyframes dust{
-    0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}
-    20%{opacity:1}
-    100%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}
-  }
-</style>
-</head>
-<body>
-  <div class="field">
-    <div>
-      <div class="badge">W</div>
-      <div class="label">WICKET!</div>
-    </div>
-    <div class="shards" id="s"></div>
-    <div class="dust" id="dust"></div>
-  </div>
-<script>
-  const s = document.getElementById('s');
-  const N = 44;
-  for(let i=0;i<N;i++){
-    const e = document.createElement('div'); e.className='shard';
-    const ang = (i/N)*Math.PI*2, dist = 18 + Math.random()*20;
-    e.style.setProperty('--a', (ang*180/Math.PI)+'deg');
-    e.style.setProperty('--x', Math.cos(ang)*dist+'vmin');
-    e.style.setProperty('--y', Math.sin(ang)*dist+'vmin');
-    e.style.animationDelay = (i*0.008)+'s';
-    s.appendChild(e);
-  }
-  const d = document.getElementById('dust');
-  for(let i=0;i<3;i++){
-    const c=document.createElement('div'); c.className='d';
-    c.style.animationDelay = (0.5 + i*0.1)+'s';
-    d.appendChild(c);
-  }
-</script>
-</body>
-</html>`);
-});
-app.get("/overlay/Wicket", (req, res) => res.redirect(302, "/overlay/wicket"));
-
 // ============================================================================
 // Live overlay state for scorebars (same structure as before)
 // ============================================================================
@@ -1059,234 +615,697 @@ app.get("/overlay/scorebar", (_req, res) => {
 });
 
 
-
 // ============================================================================
-// SCOREBAR THEME #2 (Neon + Dark) → /overlay/scorebar-neon
+// SCOREBAR THEME #4 (Broadcast TV Bar) → /overlay/scorebar-tv?scale=1.2
 // ============================================================================
-app.get("/overlay/scorebar-neon", (_req, res) => {
+// ============================================================================
+// SCOREBAR THEME #4 (Broadcast TV Bar, v2) → /overlay/scorebar-tv?scale=1.2
+// ============================================================================
+// ============================================================================
+// SCOREBAR THEME #4 (Broadcast TV Bar, v3 compact+responsive)
+//  → /overlay/scorebar-tv?scale=1.1
+// ============================================================================
+// ============================================================================
+// SCOREBAR THEME #4 (Broadcast TV Bar, v4 ultra-compact for OBS)
+// ============================================================================
+// ============================================================================
+// SCOREBAR – Exact Template Layout → /overlay/scorebar-template?scale=1.0
+// ============================================================================
+// ============================================================================
+// SCOREBAR – TV Exact Type (matches provided template) → /overlay/scorebar-tv
+// ============================================================================
+// ============================================================================
+// SCOREBAR – TV Exact Type (tighter, no mid badges) → /overlay/scorebar-tv
+// ============================================================================
+// ============================================================================
+// SCOREBAR – TV (tight spacing, no clipping, target + need) → /overlay/scorebar-tv
+// ============================================================================
+// ============================================================================
+// SCOREBAR – TV (non-striker under striker, neon target, bigger fonts, event flash)
+// → /overlay/scorebar-tv
+// ============================================================================
+// ============================================================================
+// SCOREBAR – TV (bigger, bowler overs, neon target, event banner)
+// → /overlay/scorebar-tv
+// ============================================================================
+app.get("/overlay/scorebar-tv", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Scorebar Neon</title>
+<title>Scorebar TV</title>
 <style>
   html,body{margin:0;background:transparent}
   *{box-sizing:border-box}
   :root{
-    --bg: linear-gradient(120deg, rgba(10,10,18,.6), rgba(10,10,18,.6));
-    --glass: rgba(255,255,255,.1);
-    --stroke: rgba(255,255,255,.18);
-    --accent: #00f5d4; /* cyan score pill */
-    --chip:#00c2ff;    /* blue chips */
-    --mut:#a5adcc;
-    --glow: 0 10px 30px rgba(0,0,0,.45);
-    --neon: 0 0 18px rgba(0,245,212,.65), 0 0 32px rgba(0,245,212,.35);
+    --teal1:#116c64; --teal2:#0b524c; --teal3:#0a3f3a;
+    --ring:#ffffff33; --mut:#d6e7ec; --fg:#fff;
+    --dotScale:1;
+    --dotBase:44px;           /* ↑ larger pills for WD/NB/RO */
+    --eventDur:20000ms;       /* 20s animations */
   }
 
-  .wrap{
-    width:100vw;padding:10px 16px;
+  .shell{display:flex;justify-content:center;padding:0}
+
+  .strip{
+    width:min(1920px,100vw);
+    display:grid;
+    grid-template-columns: 92px 360px 1fr 700px 92px;
+    align-items:stretch;
+    border-radius:20px; overflow:hidden; color:var(--fg);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    display:flex;align-items:center;justify-content:center;gap:14px;color:#e8f7ff;
-    background: radial-gradient(60vmin 60vmin at 50% 50%, rgba(0,245,212,.07), transparent 75%);
+    background:linear-gradient(180deg,var(--teal1),var(--teal2));
+    box-shadow:0 16px 40px rgba(0,0,0,.32);
+    border:1px solid #00000030; position:relative;
+    margin:4px 0;
   }
 
-  .card{
-    background: var(--bg);
-    border: 1px solid var(--stroke);
+  /* ================== EVENT OVERLAY (fills entire left container) ================== */
+  .event{
+    position:absolute;
+    left:0; top:0;
+    width:calc(92px + 360px);
+    height:100%;
+    display:none; align-items:center; justify-content:center;
+    padding:8px;
+    pointer-events:none; z-index:4;
+  }
+  .event.show{display:flex}
+
+  .badge{
+    width:100%; height:100%;
     border-radius:18px;
-    padding:10px 12px; min-width:300px; display:flex; align-items:center; gap:12px;
-    box-shadow: var(--glow);
-    backdrop-filter: blur(10px) saturate(1.3);
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    font:1000 36px/1 system-ui; letter-spacing:.04em; color:#001014; white-space:nowrap;
+    transform:scale(1); opacity:0; position:relative; overflow:hidden;
+    animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,
+             badgePulse var(--eventDur) ease-in-out;
   }
-  .teamlogo, .opp-logo{
-    width:44px;height:44px;border-radius:10px;background:#0b0f17;object-fit:contain;
-    box-shadow:0 0 0 1px rgba(0,245,212,.25), 0 4px 16px rgba(0,245,212,.25);
-  }
-  .bats{display:flex;flex-direction:column;gap:3px;min-width:0}
-  .line{display:flex;align-items:center;gap:8px;white-space:nowrap}
-  .nm{font-weight:900;font-size:14px;max-width:18ch;overflow:hidden;text-overflow:ellipsis}
-  .fig{font-weight:900;font-size:14px}
-  .strike{width:8px;height:8px;border-radius:50%;background:#00f5d4;box-shadow:var(--neon)}
-
-  .pillbox{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1 1 auto;min-width:460px}
-  .pill{
-    position:relative;display:flex;align-items:center;gap:0;overflow:hidden;
-    border-radius:18px;color:#fff;box-shadow: var(--glow);
-    border:1px solid var(--stroke);
-    background: linear-gradient(180deg,#101626,#0b0f19);
-  }
-  .grid{
-    position:absolute;inset:0;background:
-      radial-gradient(circle at 20% 20%, rgba(0,245,212,.08), transparent 35%),
-      radial-gradient(circle at 80% 80%, rgba(0,194,255,.08), transparent 35%);
-    pointer-events:none;
+  .badge::after{
+    content:""; position:absolute; inset:-30% -120%;
+    background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);
+    transform:translateX(-60%); animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite;
   }
 
-  .pill .match{
-    padding:10px 12px;font-weight:900;font-size:13px;letter-spacing:.05em;opacity:.95
+  .ico{
+    width:72px;height:72px;border-radius:50%;display:grid;place-items:center;
+    font:1000 32px/1 system-ui;color:#001014;background:#fff;
+    box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)
   }
-  .pill .score{
-    padding:10px 16px;margin-left:8px;
-    background:linear-gradient(135deg,rgba(0,245,212,.95),rgba(0,194,255,.95));
-    color:#001014;
-    font-weight:1000;font-size:22px;letter-spacing:.02em;display:flex;align-items:center;gap:10px;
-    border-left:1px solid rgba(0,0,0,.15);
-    box-shadow:inset 0 0 25px rgba(255,255,255,.18);
-  }
-  .ov-badge{
-    background:rgba(0,245,212,.15);
-    color:#b8fff3;
-    font:1000 11px/1 system-ui;
-    padding:6px 10px;border-radius:12px;margin-left:8px;border:1px solid rgba(0,245,212,.35)
-  }
-  .chiprow{display:flex;align-items:center;gap:6px;min-height:24px}
-  .chip{width:24px;height:24px;border-radius:6px;display:grid;place-items:center;
-        font:1000 11px/1 system-ui;color:#001014;box-shadow:0 2px 10px rgba(0,0,0,.35)}
-  .chip.r{background:linear-gradient(135deg,#00f5d4,#00c2ff); color:#001014}
-  .chip.wd{background:#ffb703; color:#1a0c00}
-  .chip.nb{background:#a855f7; color:#14001a}
-  .chip.w{background:#ff4d6d; color:#1a0008}
-
-  .rr{
-    background:linear-gradient(90deg,rgba(0,245,212,.12),rgba(0,194,255,.16));
-    color:#cffff7;border-radius:10px;padding:6px 12px;font-weight:900;font-size:12px;letter-spacing:.08em;
-    border:1px solid rgba(0,245,212,.28);
-    box-shadow: var(--glow);
-  }
-  /* NEW: target chip */
-  .target{
-    background:linear-gradient(90deg,rgba(0,194,255,.16),rgba(0,245,212,.12));
-    color:#eafff8;border-radius:10px;padding:6px 12px;font-weight:900;font-size:12px;letter-spacing:.08em;
-    border:1px solid rgba(0,245,212,.28);
-    box-shadow: var(--glow);
+  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa); box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
+  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a); box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
+  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a); box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
+  @keyframes popIn{to{opacity:1}}
+  @keyframes sweep{to{transform:translateX(160%)}}
+  @keyframes badgePulse{
+    0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
+    20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}
+    80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}
   }
 
-  .right .bwl{display:flex;flex-direction:column;gap:3px;min-width:0}
-  .right .nm{max-width:16ch}
-  .mut{color:var(--mut)}
+  .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--teal2),var(--teal3));}
+  .lcrest{border-right:1px solid #0000003a}
+  .rcrest{border-left:1px solid #0000003a}
+  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain; margin:6px 0}
 
-  .pulse{animation:pulse 1.2s ease}
-  @keyframes pulse{
-    0%{box-shadow:var(--neon)}
-    100%{box-shadow:none}
+  #linfo{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,var(--teal1),var(--teal3));border-right:1px solid #0000003a;transition:opacity .18s}
+  #linfo.hide{opacity:0; visibility:hidden}
+  .aTop{display:flex;align-items:flex-end;gap:8px;padding:12px 12px 4px 14px;min-width:0}
+  .teamA{font-weight:1000;font-size:36px;line-height:1.12;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .aBot{display:grid;grid-template-columns:auto 1fr;align-items:flex-start;gap:8px;padding:0 12px 10px 14px}
+  .vs{font:900 20px/1.2 system-ui}
+  .teamB{font:900 20px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .mid{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.16));border-right:1px solid #0000003a}
+  .r{display:grid;align-items:center;padding:6px 12px}
+  .r1{grid-template-columns:150px 10px 1fr max-content;gap:6px;border-bottom:1px solid #00000030}
+  .r2{grid-template-columns:150px 10px 1fr max-content;gap:6px}
+  .score{border-radius:16px;background:#fff;color:#0a2326;display:grid;place-items:center;font:1000 50px/1.02 system-ui;padding:10px 0}
+  .chev{width:12px;height:12px;border:2px solid #fff;border-left:0;border-bottom:0;transform:rotate(45deg)}
+  .nm{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:2px}
+  .mut{color:var(--mut);font-weight:900}
+  .fig{font:1000 26px/1.15 system-ui;margin-left:0}
+  .sup{font-size:15px;opacity:.9;vertical-align:top}
+
+  .rrMid{justify-self:start}
+  .pill{background:#fff;color:#0b2326;border-radius:999px;padding:6px 12px;font:1000 18px/1 system-ui;white-space:nowrap}
+  .pill.alt{background:linear-gradient(180deg,#0b2b2f,#0a2124);color:#cfe5ea;border:1px solid #ffffff22}
+
+  .right{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18));
+    border-right:1px solid #0000003a;
   }
+  .bowRow{
+    grid-column:1; grid-row:1;
+    display:grid; grid-template-columns:1fr auto;
+    align-items:center; column-gap:10px;
+    padding:10px 10px 4px 10px;
+  }
+  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis}
+  .bf{font:1000 24px/1.1 system-ui}
+
+  .edgeTop{grid-column:2; grid-row:1; display:flex; align-items:center; justify-content:flex-end; padding:10px 10px 4px 6px}
+  .edgeBottom{grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:flex-end; padding:4px 10px 10px 6px}
+
+  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55), 0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08); font-size:20px; padding:8px 14px}
+  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45), 0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08); font-size:20px; padding:8px 14px}
+
+  .dotsRow{grid-column:1; grid-row:2; display:flex;justify-content:flex-end;align-items:center; gap:12px;padding:4px 10px 10px 10px}
+  .dots{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:10px 14px;border-radius:999px;max-width:100%}
+
+  /* ===================== BIGGER, FLEX PILL DOTS (NO CLIPPING) ===================== */
+  .dot{
+    height:calc(var(--dotBase) * var(--dotScale));
+    min-width:calc(var(--dotBase) * var(--dotScale));
+    padding:0 calc(18px * var(--dotScale));      /* ↑ more room for WD/NB/RO */
+    border-radius:10px;
+    background:#0a1a1e; box-shadow:inset 0 0 0 2px var(--ring);
+    display:flex; align-items:center; justify-content:center; color:#fff;
+    font:1000 calc(var(--dotBase)*0.58*var(--dotScale)) / 1 system-ui; /* balanced text size */
+    letter-spacing:.02em;
+    line-height:1;
+    white-space:nowrap;
+  }
+  .dot.blue{background:#1e9ef8;color:#03121b}
+  .dot.green{background:#22c55e;color:#05140a}
+  .dot.red{background:#ef4444}
+  .dot.badge{
+    min-width:auto; /* allow widening */
+    padding:0 calc(22px * var(--dotScale)); /* extra padding for 2–6 chars */
+  }
+  /* =============================================================================== */
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="card left">
-      <img id="bLogo" class="teamlogo" alt="">
-      <div class="bats">
-        <div class="line">
-          <span class="strike" id="strikeDot" style="visibility:hidden"></span>
-          <span class="nm" id="b1Name">—</span>
-          <span class="fig" id="b1Fig">0 (0)</span>
-        </div>
-        <div class="line mut">
-          <span class="nm" id="b2Name">—</span>
-          <span class="fig" id="b2Fig">0 (0)</span>
-        </div>
-      </div>
-    </div>
+  <div class="shell">
+    <div class="strip">
+      <!-- Event (left) -->
+      <div class="event" id="event"><div class="badge" id="badge"><span class="ico" id="evI">6</span><span class="txt" id="evT">SIX</span></div></div>
 
-    <div class="pillbox">
-      <div class="pill">
-        <span class="grid"></span>
-        <div class="match" id="mt">— v —</div>
-        <div class="score" id="scorePill">
-          <span id="tot">0-0</span>
-          <span class="ov-badge" id="ovb">0.0 overs</span>
-        </div>
-      </div>
-      <div class="chiprow" id="chips"></div>
-      <div class="rr" id="rr">RUN RATE 0.00</div>
-      <div class="target" id="tg" style="display:none">TARGET —</div>
-    </div>
+      <div class="lcrest"><img id="logoA" alt=""></div>
 
-    <div class="card right">
-      <div class="bwl">
-        <div class="line">
-          <span class="nm" id="bowlerName">—</span>
-          <span class="fig" id="bowlerFig">0-0-0</span>
+      <div class="linfo" id="linfo">
+        <div class="aTop"><div class="teamA" id="teamA">TEAM A</div></div>
+        <div class="aBot"><div class="vs">VS</div><div class="teamB" id="teamB">TEAM B</div></div>
+      </div>
+
+      <div class="mid">
+        <div class="r r1">
+          <div class="score" id="score">0-0</div>
+          <div class="chev"></div>
+          <div class="nm" id="b1">BATTER 1</div>
+          <div class="fig" id="b1f">0 <span class="sup">(0)</span></div>
         </div>
-        <div class="line mut">
-          <span id="fieldTeam">—</span>
+        <div class="r r2">
+          <div class="pill rrMid" id="rr">RR 0.00</div>
+          <div class="chev"></div>
+          <div class="nm mut" id="b2">BATTER 2</div>
+          <div class="fig mut" id="b2f">0 <span class="sup">(0)</span></div>
         </div>
       </div>
-      <img id="fLogo" class="opp-logo" alt="">
+
+      <div class="right">
+        <div class="bowRow">
+          <div class="bowName" id="bowName">BOWLER NAME</div>
+          <div class="bf" id="bowf">0-0.0-0</div>
+        </div>
+        <div class="edgeTop"><div class="pill target" id="tg" style="display:none">TARGET 0</div></div>
+
+        <div class="dotsRow"><div class="dots" id="dots"></div></div>
+        <div class="edgeBottom"><div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div></div>
+      </div>
+
+      <div class="rcrest"><img id="logoB" alt=""></div>
     </div>
   </div>
 
 <script>
-  const $ = (id) => document.getElementById(id);
-  const bLogo=$('bLogo'), b1Name=$('b1Name'), b1Fig=$('b1Fig'),
-        b2Name=$('b2Name'), b2Fig=$('b2Fig'), strikeDot=$('strikeDot');
-  const mt=$('mt'), tot=$('tot'), ovb=$('ovb'), rr=$('rr'), chips=$('chips');
-  const bowlerName=$('bowlerName'), bowlerFig=$('bowlerFig'),
-        fieldTeam=$('fieldTeam'), fLogo=$('fLogo'), scorePill=$('scorePill');
-  const tg = $('tg');
+  const $ = id => document.getElementById(id);
+  const logoA=$('logoA'), logoB=$('logoB');
+  const teamA=$('teamA'), teamB=$('teamB');
+  const score=$('score'), b1=$('b1'), b1f=$('b1f'), b2=$('b2'), b2f=$('b2f');
+  const bowName=$('bowName'), bowf=$('bowf'), dots=$('dots');
+  const rr=$('rr'), tg=$('tg'), need=$('need');
+  const eventWrap=$('event'), evI=$('evI'), evT=$('evT');
+  const linfo=$('linfo');
 
-  let last = { runs:0, wickets:0 };
+  const up   = s => (s||'').toString().toUpperCase();
+  const first= s => up(String(s||'').trim().split(/\\s+/)[0]);
 
-  function mkChip(label){
-    const d=document.createElement('div'); d.className='chip r'; d.textContent=label;
-    if(label==='W'){ d.className='chip w'; }
-    else if(label.startsWith('Wd')){ d.className='chip wd'; }
-    else if(label.startsWith('Nb')){ d.className='chip nb'; }
-    return d;
+  function renderDots(list){
+    const arr = Array.isArray(list) ? list : [];
+    dots.innerHTML = '';
+    const targetVisible = 14;
+    const scale = arr.length <= targetVisible ? 1 : Math.max(0.56, targetVisible / arr.length);
+    document.documentElement.style.setProperty('--dotScale', String(scale));
+    for (const raw of arr){
+      let t = String(raw ?? '').trim();
+      const d = document.createElement('div'); d.className='dot';
+      if(!t || t==='0' || t==='•'){ t='·'; }
+      if(t==='4') d.classList.add('blue');
+      else if(t==='6') d.classList.add('green');
+      else if(t==='W') d.classList.add('red');
+      else if(/^Wd/i.test(t) || /^Nb/i.test(t) || /^Ro/i.test(t) || /run\\s*out/i.test(t)){ d.classList.add('badge'); t=t.toUpperCase(); }
+      d.textContent=t; dots.appendChild(d);
+    }
   }
 
-  function render(s){
-    const batCode = (s.battingTeam||'').toUpperCase();
-    const fldCode = (s.bowlingTeam||'').toUpperCase();
-    mt.textContent = batCode + ' v ' + fldCode;
+  let lastEventKey = null, bannerTimer = null;
+  function isRunOutToken(x){
+    const L = String(x||'').toUpperCase().replace(/[^A-Z]/g,'');
+    return L==='RO' || L==='RUNOUT';
+  }
+  function maybeEvent(s){
+    const list = Array.isArray(s.overBalls) ? s.overBalls : [];
+    const last = String(list[list.length-1] ?? '').trim();
+    if(!last) return;
+    const key = \`\${Number(s.overs||0)}.\${Number(s.balls||0)}-\${last}\`;
+    if(key === lastEventKey) return;
+    lastEventKey = key;
 
-    if (s.runs!==last.runs || s.wickets!==last.wickets) {
-      scorePill.classList.remove('pulse');
-      void scorePill.offsetWidth;
-      scorePill.classList.add('pulse');
-      last = { runs:s.runs, wickets:s.wickets };
+    eventWrap.className = 'event';
+    const token = last.toUpperCase();
+    if(token==='4' || token==='6' || token==='W' || isRunOutToken(token)){
+      if(token==='4'){ eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
+      else if(token==='6'){ eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
+      else { eventWrap.classList.add('wicket'); evI.textContent='W'; evT.textContent='WICKET'; }
+      eventWrap.classList.add('show');
+
+      linfo.classList.add('hide');
+
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(()=>{
+        eventWrap.classList.remove('show','four','six','wicket');
+        linfo.classList.remove('hide');
+      }, 20000);
     }
+  }
 
-    tot.textContent = (s.runs||0) + '-' + (s.wickets||0);
-    ovb.textContent = (s.overs||0) + '.' + (s.balls||0) + ' overs';
-    rr.textContent = 'RUN RATE ' + (s.runRate || '0.00');
+  const state = { overlay:null, match:null };
 
-    // NEW: target
-    const target = s.target ?? s.chaseTarget;
-    if (typeof target === 'number' && !Number.isNaN(target)) {
+  function render(){
+    const s = state.overlay || {};
+    const m = state.match || {};
+
+    teamA.textContent = up(s.battingTeam || m.team1 || '—');
+    teamB.textContent = up(s.bowlingTeam || m.team2 || '—');
+    logoA.src = s.battingTeamLogo || m.team1Logo || '';
+    logoB.src = s.bowlingTeamLogo || m.team2Logo || '';
+
+    score.textContent = (s.runs||0) + '-' + (s.wickets||0);
+
+    const st=s.striker||{}, ns=s.nonStriker||{};
+    b1.textContent = first(st.name || '—');
+    b1f.innerHTML  = (st.runs||0) + ' <span class="sup">('+(st.balls||0)+')</span>';
+    b2.textContent = first(ns.name || '—');
+    b2f.innerHTML  = (ns.runs||0) + ' <span class="sup">('+(ns.balls||0)+')</span>';
+
+    const bw = s.bowler || {};
+    bowName.textContent = first(bw.name || '—');
+    const w = Number(bw.wickets||0), r = Number(bw.runs||0);
+    const ov = (bw.overs!=null? bw.overs : 0);
+    bowf.textContent = w + '-' + ov + '-' + r;
+
+    rr.textContent = 'RR ' + (s.runRate || '0.00');
+
+    const bpo = Number(s.ballsPerOver || 6);
+    const target = (s.target ?? s.chaseTarget);
+
+    let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs);
+    if (needRuns == null && typeof target === 'number') {
+      needRuns = Math.max(Number(target) - Number(s.runs||0), 0);
+    }
+    if (needRuns != null) needRuns = Math.max(Number(needRuns), 0);
+
+    const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? null);
+    const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? null);
+    const totalOvers      = (m.noOfOvers ?? s.totalOvers ?? s.oversLimit ?? null);
+    const bowledBalls     = Number(s.overs||0)*bpo + Number(s.balls||0);
+
+    let ballsLeft = null;
+    if (ballsLeftDirect != null)       ballsLeft = Number(ballsLeftDirect);
+    else if (oversLeftDirect != null)  ballsLeft = Math.max(0, Number(oversLeftDirect)*bpo);
+    else if (totalOvers != null)       ballsLeft = Math.max(0, Number(totalOvers)*bpo - bowledBalls);
+
+    if (typeof target === 'number' && !Number.isNaN(target)){
       tg.style.display = 'inline-block';
       tg.textContent = 'TARGET ' + target;
     } else {
       tg.style.display = 'none';
     }
 
-    chips.innerHTML = '';
-    (s.overBalls||[]).forEach(b => chips.appendChild(mkChip(b)));
+    if (needRuns != null && ballsLeft != null){
+      need.style.display = 'inline-block';
+      need.textContent = 'NEED ' + needRuns + ' FROM ' + ballsLeft;
+    } else {
+      need.style.display = 'none';
+    }
 
-    const st = s.striker || {};
-    const ns = s.nonStriker || {};
-    strikeDot.style.visibility = (st.name ? 'visible' : 'hidden');
-    b1Name.textContent = (st.name||'').toUpperCase();
-    b1Fig.textContent  = (st.runs||0) + ' (' + (st.balls||0) + ')';
-    b2Name.textContent = (ns.name||'').toUpperCase();
-    b2Fig.textContent  = (ns.runs||0) + ' (' + (ns.balls||0) + ')';
-
-    bLogo.src = s.battingTeamLogo || '';
-    fLogo.src = s.bowlingTeamLogo || '';
-
-    bowlerName.textContent = (s.bowler?.name||'').toUpperCase();
-    bowlerFig.textContent  = (s.bowler?.wickets||0) + '-' + (s.bowler?.overs||0) + '-' + (s.bowler?.runs||0);
-    fieldTeam.textContent  = fldCode || '—';
+    renderDots(s.overBalls);
+    maybeEvent(s);
   }
 
-  const es = new EventSource('/sse-overlay');
-  es.onmessage = (e) => render(JSON.parse(e.data));
+  try{ const es1=new EventSource('/sse-overlay'); es1.onmessage=e=>{ state.overlay=JSON.parse(e.data)||{}; render(); }; }catch{}
+  try{ const es2=new EventSource('/sse-match');   es2.onmessage=e=>{ state.match  =JSON.parse(e.data)||{}; render(); }; }catch{}
 </script>
 </body>
 </html>`);
 });
+
+
+
+
+
+
+
+app.get("/overlay/scorebar-tv-orange", (_req, res) => {
+  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Scorebar TV – Orange</title>
+<style>
+  html,body{margin:0;background:transparent}
+  *{box-sizing:border-box}
+  :root{
+    --o1:#ff8a00; --o2:#ff6a00; --o3:#cc5200;
+    --ring:#ffffff33; --mut:#d6e7ec; --fg:#fff;
+    --dotScale:1;
+    --dotBase:44px;           /* ↑ larger for WD/NB/RO */
+    --eventDur:20000ms;       /* 20s */
+  }
+
+  .shell{display:flex;justify-content:center;padding:0}
+
+  .strip{
+    width:min(1920px,100vw);
+    display:grid;
+    grid-template-columns: 92px 360px 1fr 700px 92px;
+    align-items:stretch;
+    border-radius:20px; overflow:hidden; color:var(--fg);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:linear-gradient(180deg,var(--o1),var(--o2));
+    box-shadow:0 16px 40px rgba(0,0,0,.32);
+    border:1px solid #00000030; position:relative;
+    margin:4px 0;
+  }
+
+  .event{
+    position:absolute; left:0; top:0;
+    width:calc(92px + 360px); height:100%;
+    display:none; align-items:center; justify-content:center;
+    padding:8px; pointer-events:none; z-index:4;
+  }
+  .event.show{display:flex}
+
+  .badge{
+    width:100%; height:100%;
+    border-radius:18px;
+    display:flex; align-items:center; justify-content:center; gap:18px;
+    font:1000 36px/1 system-ui; letter-spacing:.04em; color:#001014; white-space:nowrap;
+    transform:scale(1); opacity:0; position:relative; overflow:hidden;
+    animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,
+             badgePulse var(--eventDur) ease-in-out;
+  }
+  .badge::after{
+    content:""; position:absolute; inset:-30% -120%;
+    background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);
+    transform:translateX(-60%); animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite;
+  }
+
+  .ico{
+    width:72px;height:72px;border-radius:50%;display:grid;place-items:center;
+    font:1000 32px/1 system-ui;color:#001014;background:#fff;
+    box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)
+  }
+  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa); box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
+  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a); box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
+  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a); box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
+  @keyframes popIn{to{opacity:1}}
+  @keyframes sweep{to{transform:translateX(160%)}}
+  @keyframes badgePulse{
+    0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
+    20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}
+    80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}
+  }
+
+  .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--o2),var(--o3));}
+  .lcrest{border-right:1px solid #0000003a}
+  .rcrest{border-left:1px solid #0000003a}
+  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain; margin:6px 0}
+
+  #linfo{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,var(--o1),var(--o3));border-right:1px solid #0000003a;transition:opacity .18s}
+  #linfo.hide{opacity:0; visibility:hidden}
+  .aTop{display:flex;align-items:flex-end;gap:8px;padding:12px 12px 4px 14px;min-width:0}
+  .teamA{font-weight:1000;font-size:36px;line-height:1.12;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .aBot{display:grid;grid-template-columns:auto 1fr;align-items:flex-start;gap:8px;padding:0 12px 10px 14px}
+  .vs{font:900 20px/1.2 system-ui}
+  .teamB{font:900 20px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .mid{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.16));border-right:1px solid #0000003a}
+  .r{display:grid;align-items:center;padding:6px 12px}
+  .r1{grid-template-columns:150px 10px 1fr max-content;gap:6px;border-bottom:1px solid #00000030}
+  .r2{grid-template-columns:150px 10px 1fr max-content;gap:6px}
+  .score{border-radius:16px;background:#fff;color:#0a2326;display:grid;place-items:center;font:1000 50px/1.02 system-ui;padding:10px 0}
+  .chev{width:12px;height:12px;border:2px solid #fff;border-left:0;border-bottom:0;transform:rotate(45deg)}
+  .nm{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:2px}
+  .mut{color:var(--mut);font-weight:900}
+  .fig{font:1000 26px/1.15 system-ui;margin-left:0}
+  .sup{font-size:15px;opacity:.9;vertical-align:top}
+
+  .rrMid{justify-self:start}
+  .pill{background:#fff;color:#0b2326;border-radius:999px;padding:6px 12px;font:1000 18px/1 system-ui;white-space:nowrap}
+  .pill.alt{background:linear-gradient(180deg,#0b2b2f,#0a2124);color:#cfe5ea;border:1px solid #ffffff22}
+
+  .right{
+    display:grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18));
+    border-right:1px solid #0000003a;
+  }
+  .bowRow{
+    grid-column:1; grid-row:1;
+    display:grid; grid-template-columns:1fr auto;
+    align-items:center; column-gap:10px;
+    padding:10px 10px 4px 10px;
+  }
+  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis}
+  .bf{font:1000 24px/1.1 system-ui}
+
+  .edgeTop{grid-column:2; grid-row:1; display:flex; align-items:center; justify-content:flex-end; padding:10px 10px 4px 6px}
+  .edgeBottom{grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:flex-end; padding:4px 10px 10px 6px}
+
+  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55), 0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08); font-size:20px; padding:8px 14px}
+  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45), 0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08); font-size:20px; padding:8px 14px}
+
+  .dotsRow{grid-column:1; grid-row:2; display:flex;justify-content:flex-end;align-items:center; gap:12px;padding:4px 10px 10px 10px}
+  .dots{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:10px 14px;border-radius:999px;max-width:100%}
+
+  .dot{
+    height:calc(var(--dotBase) * var(--dotScale));
+    min-width:calc(var(--dotBase) * var(--dotScale));
+    padding:0 calc(18px * var(--dotScale));
+    border-radius:10px;
+    background:#0a1a1e; box-shadow:inset 0 0 0 2px var(--ring);
+    display:flex; align-items:center; justify-content:center; color:#fff;
+    font:1000 calc(var(--dotBase)*0.58*var(--dotScale)) / 1 system-ui;
+    letter-spacing:.02em;
+    line-height:1;
+    white-space:nowrap;
+  }
+  .dot.blue{background:#1e9ef8;color:#03121b}
+  .dot.green{background:#22c55e;color:#05140a}
+  .dot.red{background:#ef4444}
+  .dot.badge{
+    min-width:auto;
+    padding:0 calc(22px * var(--dotScale));
+  }
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="strip">
+      <div class="event" id="event"><div class="badge" id="badge"><span class="ico" id="evI">6</span><span class="txt" id="evT">SIX</span></div></div>
+
+      <div class="lcrest"><img id="logoA" alt=""></div>
+
+      <div class="linfo" id="linfo">
+        <div class="aTop"><div class="teamA" id="teamA">TEAM A</div></div>
+        <div class="aBot"><div class="vs">VS</div><div class="teamB" id="teamB">TEAM B</div></div>
+      </div>
+
+      <div class="mid">
+        <div class="r r1">
+          <div class="score" id="score">0-0</div>
+          <div class="chev"></div>
+          <div class="nm" id="b1">BATTER 1</div>
+          <div class="fig" id="b1f">0 <span class="sup">(0)</span></div>
+        </div>
+        <div class="r r2">
+          <div class="pill rrMid" id="rr">RR 0.00</div>
+          <div class="chev"></div>
+          <div class="nm mut" id="b2">BATTER 2</div>
+          <div class="fig mut" id="b2f">0 <span class="sup">(0)</span></div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="bowRow">
+          <div class="bowName" id="bowName">BOWLER NAME</div>
+          <div class="bf" id="bowf">0-0.0-0</div>
+        </div>
+        <div class="edgeTop"><div class="pill target" id="tg" style="display:none">TARGET 0</div></div>
+
+        <div class="dotsRow"><div class="dots" id="dots"></div></div>
+        <div class="edgeBottom"><div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div></div>
+      </div>
+
+      <div class="rcrest"><img id="logoB" alt=""></div>
+    </div>
+  </div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const logoA=$('logoA'), logoB=$('logoB');
+  const teamA=$('teamA'), teamB=$('teamB');
+  const score=$('score'), b1=$('b1'), b1f=$('b1f'), b2=$('b2'), b2f=$('b2f');
+  const bowName=$('bowName'), bowf=$('bowf'), dots=$('dots');
+  const rr=$('rr'), tg=$('tg'), need=$('need');
+  const eventWrap=$('event'), evI=$('evI'), evT=$('evT');
+  const linfo=$('linfo');
+
+  const up   = s => (s||'').toString().toUpperCase();
+  const first= s => up(String(s||'').trim().split(/\\s+/)[0]);
+
+  function renderDots(list){
+    const arr = Array.isArray(list) ? list : [];
+    dots.innerHTML = '';
+    const targetVisible = 14;
+    const scale = arr.length <= targetVisible ? 1 : Math.max(0.56, targetVisible / arr.length);
+    document.documentElement.style.setProperty('--dotScale', String(scale));
+    for (const raw of arr){
+      let t = String(raw ?? '').trim();
+      const d = document.createElement('div'); d.className='dot';
+      if(!t || t==='0' || t==='•'){ t='·'; }
+      if(t==='4') d.classList.add('blue');
+      else if(t==='6') d.classList.add('green');
+      else if(t==='W') d.classList.add('red');
+      else if(/^Wd/i.test(t) || /^Nb/i.test(t) || /^Ro/i.test(t) || /run\\s*out/i.test(t)){ d.classList.add('badge'); t=t.toUpperCase(); }
+      d.textContent=t; dots.appendChild(d);
+    }
+  }
+
+  let lastEventKey = null, bannerTimer = null;
+  function isRunOutToken(x){
+    const L = String(x||'').toUpperCase().replace(/[^A-Z]/g,'');
+    return L==='RO' || L==='RUNOUT';
+  }
+  function maybeEvent(s){
+    const list = Array.isArray(s.overBalls) ? s.overBalls : [];
+    const last = String(list[list.length-1] ?? '').trim();
+    if(!last) return;
+    const key = \`\${Number(s.overs||0)}.\${Number(s.balls||0)}-\${last}\`;
+    if(key === lastEventKey) return;
+    lastEventKey = key;
+
+    eventWrap.className = 'event';
+    const token = last.toUpperCase();
+    if(token==='4' || token==='6' || token==='W' || isRunOutToken(token)){
+      if(token==='4'){ eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
+      else if(token==='6'){ eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
+      else { eventWrap.classList.add('wicket'); evI.textContent='W'; evT.textContent='WICKET'; }
+      eventWrap.classList.add('show');
+
+      linfo.classList.add('hide');
+
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(()=>{
+        eventWrap.classList.remove('show','four','six','wicket');
+        linfo.classList.remove('hide');
+      }, 20000);
+    }
+  }
+
+  const state = { overlay:null, match:null };
+
+  function render(){
+    const s = state.overlay || {};
+    const m = state.match || {};
+
+    teamA.textContent = up(s.battingTeam || m.team1 || '—');
+    teamB.textContent = up(s.bowlingTeam || m.team2 || '—');
+    logoA.src = s.battingTeamLogo || m.team1Logo || '';
+    logoB.src = s.bowlingTeamLogo || m.team2Logo || '';
+
+    score.textContent = (s.runs||0) + '-' + (s.wickets||0);
+
+    const st=s.striker||{}, ns=s.nonStriker||{};
+    b1.textContent = first(st.name || '—');
+    b1f.innerHTML  = (st.runs||0) + ' <span class="sup">('+(st.balls||0)+')</span>';
+    b2.textContent = first(ns.name || '—');
+    b2f.innerHTML  = (ns.runs||0) + ' <span class="sup">('+(ns.balls||0)+')</span>';
+
+    const bw = s.bowler || {};
+    bowName.textContent = first(bw.name || '—');
+    const w = Number(bw.wickets||0), r = Number(bw.runs||0);
+    const ov = (bw.overs!=null? bw.overs : 0);
+    bowf.textContent = w + '-' + ov + '-' + r;
+
+    rr.textContent = 'RR ' + (s.runRate || '0.00');
+
+    const bpo = Number(s.ballsPerOver || 6);
+    const target = (s.target ?? s.chaseTarget);
+
+    let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs);
+    if (needRuns == null && typeof target === 'number') {
+      needRuns = Math.max(Number(target) - Number(s.runs||0), 0);
+    }
+    if (needRuns != null) needRuns = Math.max(Number(needRuns), 0);
+
+    const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? null);
+    const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? null);
+    const totalOvers      = (m.noOfOvers ?? s.totalOvers ?? s.oversLimit ?? null);
+    const bowledBalls     = Number(s.overs||0)*bpo + Number(s.balls||0);
+
+    let ballsLeft = null;
+    if (ballsLeftDirect != null)       ballsLeft = Number(ballsLeftDirect);
+    else if (oversLeftDirect != null)  ballsLeft = Math.max(0, Number(oversLeftDirect)*bpo);
+    else if (totalOvers != null)       ballsLeft = Math.max(0, Number(totalOvers)*bpo - bowledBalls);
+
+    if (typeof target === 'number' && !Number.isNaN(target)){
+      tg.style.display = 'inline-block';
+      tg.textContent = 'TARGET ' + target;
+    } else {
+      tg.style.display = 'none';
+    }
+
+    if (needRuns != null && ballsLeft != null){
+      need.style.display = 'inline-block';
+      need.textContent = 'NEED ' + needRuns + ' FROM ' + ballsLeft;
+    } else {
+      need.style.display = 'none';
+    }
+
+    renderDots(s.overBalls);
+    maybeEvent(s);
+  }
+
+  try{ const es1=new EventSource('/sse-overlay'); es1.onmessage=e=>{ state.overlay=JSON.parse(e.data)||{}; render(); }; }catch{}
+  try{ const es2=new EventSource('/sse-match');   es2.onmessage=e=>{ state.match  =JSON.parse(e.data)||{}; render(); }; }catch{}
+</script>
+</body>
+</html>`);
+});
+
+
+
+
 
 
 
@@ -1355,10 +1374,10 @@ function renderSummaryOverlayHtml() {
 <style>
   /* Much lighter translucency */
   :root {
-    --bg: rgba(11,15,20,0.0);      /* keep fully transparent page */
-    --card: rgba(18,24,33,0.35);   /* was .60 -> now .35 */
-    --blkbg: rgba(15,20,28,0.25);  /* was .50 -> now .25 */
-    --bd: rgba(34,48,66,0.22);     /* was .40 -> now .22 */
+    --bg: rgba(11, 15, 20, 1);      /* keep fully transparent page */
+    --card: rgba(18, 24, 33, 1);   /* was .60 -> now .35 */
+    --blkbg: rgba(15, 20, 28, 1);  /* was .50 -> now .25 */
+    --bd: rgba(34, 48, 66, 1);     /* was .40 -> now .22 */
     --mut: #9fb0c3;
     --txt: #e8f1ff;
     --accent: #4aa5ff;
@@ -1525,189 +1544,6 @@ function renderSummaryOverlayHtml() {
 </body>
 </html>`;
 }
-
-
-// ============================================================================
-// SCOREBAR THEME #3 (Aurora Glass) → /overlay/scorebar-aurora
-// ============================================================================
-// ============================================================================
-// SCOREBAR THEME #3 (Aurora Glass) → /overlay/scorebar-aurora  (with scale=?)
-// ============================================================================
-app.get("/overlay/scorebar-aurora", (_req, res) => {
-  res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Scorebar Aurora</title>
-<style>
-  html,body{margin:0;background:transparent}
-  *{box-sizing:border-box}
-  :root{
-    /* Base size for the whole bar (increase to make everything bigger uniformly) */
-    font-size: 16px;
-
-    --aurora1:#00ffd1; --aurora2:#7cf6ff; --aurora3:#a78bfa; --aurora4:#22d3ee;
-    --panel: rgba(255,255,255,.10);
-    --stroke: rgba(255,255,255,.22);
-    --mut:#b8c6db; --txt:#f7fbff;
-    --chip:#0ea5e9; --chip-wd:#f59e0b; --chip-nb:#a855f7; --chip-w:#ef4444;
-    --shadow: 0 12px 40px rgba(0,0,0,.40);
-  }
-
-  /* Root wrapper we can scale with transform so it fills any OBS size */
-  #root{ transform-origin: top left; }
-
-  .wrap{
-    width:100vw; padding:0.75rem 1rem;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-    color:var(--txt);
-    display:flex; align-items:center; justify-content:center; gap:0.875rem;
-    background:
-      radial-gradient(60vmin 40vmin at 10% 20%, rgba(124,246,255,.16), transparent 60%),
-      radial-gradient(60vmin 40vmin at 90% 80%, rgba(167,139,250,.12), transparent 60%);
-    backdrop-filter: blur(10px) saturate(1.2);
-  }
-  .card{display:flex;align-items:center;gap:0.75rem;min-width:19rem;padding:0.625rem 0.75rem;border-radius:1rem;background:var(--panel);border:1px solid var(--stroke);box-shadow:var(--shadow)}
-  .teamlogo,.opp-logo{width:2.75rem;height:2.75rem;border-radius:0.75rem;background:#0b0f17;object-fit:contain;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 6px 18px rgba(0,0,0,.35)}
-  .bats{display:flex;flex-direction:column;gap:0.2rem;min-width:0}
-  .line{display:flex;align-items:center;gap:0.5rem;white-space:nowrap}
-  .nm{font-weight:900;font-size:0.9rem;max-width:18ch;overflow:hidden;text-overflow:ellipsis}
-  .fig{font-weight:900;font-size:0.9rem}
-  .mut{color:var(--mut)}
-  .strike{width:0.5rem;height:0.5rem;border-radius:50%;background:var(--aurora1);box-shadow:0 0 18px rgba(0,255,209,.55)}
-  .center{display:flex;flex-direction:column;align-items:center;gap:0.5rem;flex:1 1 auto;min-width:32rem}
-  .pill{position:relative;display:flex;align-items:center;gap:0;overflow:hidden;border-radius:1.125rem;color:#001014;border:1px solid rgba(255,255,255,.26);box-shadow:var(--shadow);background:linear-gradient(120deg,rgba(0,255,209,.95),rgba(124,246,255,.95) 45%,rgba(167,139,250,.95))}
-  .glow{position:absolute;inset:0;opacity:.28;background:radial-gradient(40vmin 18vmin at 15% 35%, rgba(255,255,255,.35), transparent 60%),radial-gradient(40vmin 18vmin at 85% 65%, rgba(255,255,255,.28), transparent 60%);pointer-events:none}
-  .match{padding:0.6rem 0.75rem;font-weight:900;font-size:0.85rem;letter-spacing:.05em;color:#00272a;background:rgba(255,255,255,.14)}
-  .score{display:flex;align-items:center;gap:0.625rem;padding:0.5rem 0.875rem;font-weight:1000;font-size:1.4rem;letter-spacing:.02em}
-  .ov{font:900 0.7rem/1 system-ui;background:rgba(255,255,255,.22);padding:0.4rem 0.6rem;border-radius:0.75rem}
-  .target{font:900 0.7rem/1 system-ui;background:rgba(0,0,0,.12);color:#001014;padding:0.4rem 0.6rem;border-radius:0.75rem;border:1px solid rgba(0,0,0,.12)}
-  .score.pulse{animation:pulse .9s ease}@keyframes pulse{0%{transform:scale(1.02)}100%{transform:scale(1)}}
-  .chips{display:flex;align-items:center;gap:0.4rem;min-height:1.5rem}
-  .chip{width:1.5rem;height:1.5rem;border-radius:0.5rem;display:grid;place-items:center;font:1000 0.7rem/1 system-ui;color:#001014;box-shadow:0 2px 10px rgba(0,0,0,.35);transform:translateY(-6px);opacity:0;animation:drop .25s ease forwards}
-  .chip.r{background:linear-gradient(135deg,var(--chip),#38bdf8)}
-  .chip.wd{background:linear-gradient(135deg,var(--chip-wd),#ffd166)}
-  .chip.nb{background:linear-gradient(135deg,var(--chip-nb),#c084fc);color:#14001a}
-  .chip.w{background:linear-gradient(135deg,var(--chip-w),#ff6b6b)}
-  @keyframes drop{to{transform:translateY(0);opacity:1}}
-  .rr{background:linear-gradient(90deg,rgba(255,255,255,.10),rgba(255,255,255,.14));color:#eafff8;border-radius:0.6rem;padding:0.4rem 0.75rem;font-weight:900;font-size:0.75rem;letter-spacing:.08em;border:1px solid rgba(255,255,255,.18);box-shadow:var(--shadow)}
-</style>
-</head>
-<body>
-  <div id="root">
-    <div class="wrap">
-      <div class="card">
-        <img id="bLogo" class="teamlogo" alt="">
-        <div class="bats">
-          <div class="line">
-            <span class="strike" id="strikeDot" style="visibility:hidden"></span>
-            <span class="nm" id="b1Name">—</span>
-            <span class="fig" id="b1Fig">0 (0)</span>
-          </div>
-          <div class="line mut">
-            <span class="nm" id="b2Name">—</span>
-            <span class="fig" id="b2Fig">0 (0)</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="center">
-        <div class="pill">
-          <span class="glow"></span>
-          <div class="match" id="mt">— v —</div>
-          <div class="score" id="scorePill">
-            <span id="tot">0-0</span>
-            <span class="ov" id="ovb">0.0 ov</span>
-            <span class="target" id="tg" style="display:none">TARGET —</span>
-          </div>
-        </div>
-        <div class="chips" id="chips"></div>
-        <div class="rr" id="rr">RUN RATE 0.00</div>
-      </div>
-
-      <div class="card">
-        <div style="display:flex;flex-direction:column;gap:0.2rem;min-width:0">
-          <div class="line">
-            <span class="nm" id="bowlerName">—</span>
-            <span class="fig" id="bowlerFig">0-0-0</span>
-          </div>
-          <div class="line mut"><span id="fieldTeam">—</span></div>
-        </div>
-        <img id="fLogo" class="opp-logo" alt="">
-      </div>
-    </div>
-  </div>
-
-<script>
-  // ---- SCALE SUPPORT: /overlay/scorebar-aurora?scale=1.8
-  (function(){
-    const s = parseFloat(new URLSearchParams(location.search).get('scale')||'1');
-    const root = document.getElementById('root');
-    if (!Number.isNaN(s) && s !== 1) root.style.transform = 'scale(' + s + ')';
-  })();
-
-  const $=id=>document.getElementById(id);
-  const bLogo=$('bLogo'), b1Name=$('b1Name'), b1Fig=$('b1Fig'),
-        b2Name=$('b2Name'), b2Fig=$('b2Fig'), strikeDot=$('strikeDot');
-  const mt=$('mt'), tot=$('tot'), ovb=$('ovb'), rr=$('rr'), chips=$('chips');
-  const bowlerName=$('bowlerName'), bowlerFig=$('bowlerFig'),
-        fieldTeam=$('fieldTeam'), fLogo=$('fLogo'), scorePill=$('scorePill'), tg=$('tg');
-
-  let last={runs:0,wickets:0};
-
-  function mkChip(label,i){
-    const d=document.createElement('div'); d.className='chip r'; d.textContent=label;
-    d.style.animationDelay=(i*60)+'ms';
-    if(label==='W') d.className='chip w';
-    else if(label.startsWith('Wd')) d.className='chip wd';
-    else if(label.startsWith('Nb')) d.className='chip nb';
-    return d;
-  }
-
-  function render(s){
-    const batCode=(s.battingTeam||'').toUpperCase();
-    const fldCode=(s.bowlingTeam||'').toUpperCase();
-    mt.textContent=batCode+' v '+fldCode;
-
-    if(s.runs!==last.runs || s.wickets!==last.wickets){
-      scorePill.classList.remove('pulse'); void scorePill.offsetWidth; scorePill.classList.add('pulse');
-      last={runs:s.runs, wickets:s.wickets};
-    }
-
-    tot.textContent=(s.runs||0)+'-'+(s.wickets||0);
-    ovb.textContent=(s.overs||0)+'.'+(s.balls||0)+' ov';
-    rr.textContent='RUN RATE '+(s.runRate||'0.00');
-
-    const target=s.target ?? s.chaseTarget;
-    if(typeof target==='number' && !Number.isNaN(target)){
-      tg.style.display='inline-block'; tg.textContent='TARGET '+target;
-    }else{ tg.style.display='none'; }
-
-    chips.innerHTML='';
-    (s.overBalls||[]).forEach((b,i)=>chips.appendChild(mkChip(b,i)));
-
-    const st=s.striker||{}, ns=s.nonStriker||{};
-    strikeDot.style.visibility=(st.name?'visible':'hidden');
-    b1Name.textContent=(st.name||'').toUpperCase();
-    b1Fig.textContent=(st.runs||0)+' ('+(st.balls||0)+')';
-    b2Name.textContent=(ns.name||'').toUpperCase();
-    b2Fig.textContent=(ns.runs||0)+' ('+(ns.balls||0)+')';
-
-    bLogo.src=s.battingTeamLogo||'';
-    fLogo.src=s.bowlingTeamLogo||'';
-
-    bowlerName.textContent=(s.bowler?.name||'').toUpperCase();
-    bowlerFig.textContent=(s.bowler?.wickets||0)+'-'+(s.bowler?.overs||0)+'-'+(s.bowler?.runs||0);
-    fieldTeam.textContent=fldCode||'—';
-  }
-
-  const es=new EventSource('/sse-overlay');
-  es.onmessage=e=>render(JSON.parse(e.data));
-</script>
-</body>
-</html>`);
-});
 
 
 
