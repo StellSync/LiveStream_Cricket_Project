@@ -400,14 +400,6 @@ export default function ScoreDashboard() {
   }, [currentMatchId]); // eslint-disable-line
 
   useEffect(() => {
-    setCurrentOverRuns(0);
-    setBalls(0);
-    setScoringLocked(false);
-    setOverBallHistory([]);
-    setHistory([]);
-  }, [bowler]);
-
-  useEffect(() => {
     setInningsRuns(0);
     setInningsWickets(0);
     setOvers(0);
@@ -648,6 +640,7 @@ export default function ScoreDashboard() {
       onStrike,
       batsman1,
       batsman2,
+      bowler,
       dismissedBatterIds: [...dismissedBatterIds],
       overBallHistory: [...overBallHistory],
       scoringLocked,
@@ -674,7 +667,6 @@ export default function ScoreDashboard() {
         setInningsRuns((prev) => prev + runs);
         setAllBowlerStats((prevStats) => {
           const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
-          console.log(curr);
           return {
             ...prevStats,
             [bowler]: { ...curr, runs: curr.runs + runs },
@@ -704,7 +696,7 @@ export default function ScoreDashboard() {
         });
         setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Wd${runs}`]);
-        if ((runs + 1) % 2 === 1) {
+        if ((runs) % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
         }
         if (isCountWideBall) {
@@ -734,7 +726,7 @@ export default function ScoreDashboard() {
         });
         setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Nb${runs}`]);
-        if ((runs + 1) % 2 === 1) {
+        if ((runs) % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
         }
         if (isCountNoBall) {
@@ -816,6 +808,7 @@ export default function ScoreDashboard() {
       onStrike,
       batsman1,
       batsman2,
+      bowler,
       dismissedBatterIds: [...dismissedBatterIds],
       overBallHistory: [...overBallHistory],
       scoringLocked,
@@ -876,6 +869,7 @@ export default function ScoreDashboard() {
     setOnStrike(last.onStrike);
     setBatsman1(last.batsman1);
     setBatsman2(last.batsman2);
+    setBowler(last.bowler);
     setDismissedBatterIds(last.dismissedBatterIds);
     setOverBallHistory(last.overBallHistory);
     setScoringLocked(last.scoringLocked);
@@ -883,105 +877,103 @@ export default function ScoreDashboard() {
     setAllBowlerStats(last.allBowlerStats);
   };
 
-
-
   // ---- summary helpers (send to /api/summary after 2nd innings) ----
-const buildMatchHeader = () => ({
-  tournamentName:
-    currentMatchDetails?.tournamentName || currentMatch?.tournamentName || "",
-  tournamentLogo:
-    currentMatchDetails?.tournamentLogo ||
-    currentMatch?.tournamentLogo ||
-    currentMatch?.tournament?.logo ||
-    "",
-  ground: currentMatchDetails?.ground || ground || "",
-  team1Id: team1Id ?? currentMatch?.team1Id ?? null,
-  team1:
-    currentMatchDetails?.team1 || currentMatch?.team1Name || `#${team1Id ?? ""}`,
-  team1Logo: currentMatchDetails?.team1Logo || currentMatch?.team1Logo || "",
-  team2Id: team2Id ?? currentMatch?.team2Id ?? null,
-  team2:
-    currentMatchDetails?.team2 || currentMatch?.team2Name || `#${team2Id ?? ""}`,
-  team2Logo: currentMatchDetails?.team2Logo || currentMatch?.team2Logo || "",
-});
+  const buildMatchHeader = () => ({
+    tournamentName:
+      currentMatchDetails?.tournamentName || currentMatch?.tournamentName || "",
+    tournamentLogo:
+      currentMatchDetails?.tournamentLogo ||
+      currentMatch?.tournamentLogo ||
+      currentMatch?.tournament?.logo ||
+      "",
+    ground: currentMatchDetails?.ground || ground || "",
+    team1Id: team1Id ?? currentMatch?.team1Id ?? null,
+    team1:
+      currentMatchDetails?.team1 || currentMatch?.team1Name || `#${team1Id ?? ""}`,
+    team1Logo: currentMatchDetails?.team1Logo || currentMatch?.team1Logo || "",
+    team2Id: team2Id ?? currentMatch?.team2Id ?? null,
+    team2:
+      currentMatchDetails?.team2 || currentMatch?.team2Name || `#${team2Id ?? ""}`,
+    team2Logo: currentMatchDetails?.team2Logo || currentMatch?.team2Logo || "",
+  });
 
-async function postSummary(inn1, inn2) {
-  if (!inn1 || !inn2) return; // need both innings to post
-  const payload = {
-    match: buildMatchHeader(),
-    innings1: inn1,
-    innings2: inn2,
-  };
-  try {
-    await fetch("/api/summary", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch (e) {
-    console.warn("POST /api/summary failed:", e);
+  async function postSummary(inn1, inn2) {
+    if (!inn1 || !inn2) return; // need both innings to post
+    const payload = {
+      match: buildMatchHeader(),
+      innings1: inn1,
+      innings2: inn2,
+    };
+    try {
+      await fetch("/api/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch (e) {
+      console.warn("POST /api/summary failed:", e);
+    }
   }
-}
 
 
   // End current innings
   const handleEndInnings = () => {
-  const batterStatsWithNames = Object.keys(allBatterStats).map((id) => ({
-    id,
-    name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
-    ...allBatterStats[id],
-  }));
-  const bowlerStatsWithNames = Object.keys(allBowlerStats).map((id) => ({
-    id,
-    name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
-    ...allBowlerStats[id],
-  }));
+    const batterStatsWithNames = Object.keys(allBatterStats).map((id) => ({
+      id,
+      name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
+      ...allBatterStats[id],
+    }));
+    const bowlerStatsWithNames = Object.keys(allBowlerStats).map((id) => ({
+      id,
+      name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
+      ...allBowlerStats[id],
+    }));
 
-  const inningsData = {
-    battingTeamId,
-    bowlingTeamId,
-    runs: inningsRuns,
-    wickets: inningsWickets,
-    totalOvers: `${overs}.${balls}`,
-    batterStatsWithNames,
-    bowlerStatsWithNames,
+    const inningsData = {
+      battingTeamId,
+      bowlingTeamId,
+      runs: inningsRuns,
+      wickets: inningsWickets,
+      totalOvers: `${overs}.${balls}`,
+      batterStatsWithNames,
+      bowlerStatsWithNames,
+    };
+
+    if (currentInnings === 1) {
+      setInnings1(inningsData);
+      // Swap teams for 2nd innings
+      const prevBatting = battingTeamId;
+      setBattingTeamId(bowlingTeamId);
+      setBowlingTeamId(prevBatting);
+    } else if (currentInnings === 2) {
+      setInnings2(inningsData);
+      setCurrentInnings("completed");
+      setScoringLocked(true);
+      // push full match summary to backend for /summary overlay
+      postSummary(innings1, inningsData);
+    }
+
+    // Reset current innings states
+    setInningsRuns(0);
+    setInningsWickets(0);
+    setOvers(0);
+    setBalls(0);
+    setCurrentOverRuns(0);
+    setAllBatterStats({});
+    setAllBowlerStats({});
+    setBatsman1("");
+    setBatsman2("");
+    setBowler("");
+    setOnStrike("batsman1");
+    setScoringLocked(false);
+    setDismissedBatterIds([]);
+    setHistory([]);
+    setOverBallHistory([]);
+
+    if (currentInnings === 1) {
+      setCurrentInnings(2);
+    }
   };
-
-  if (currentInnings === 1) {
-    setInnings1(inningsData);
-    // Swap teams for 2nd innings
-    const prevBatting = battingTeamId;
-    setBattingTeamId(bowlingTeamId);
-    setBowlingTeamId(prevBatting);
-  } else if (currentInnings === 2) {
-    setInnings2(inningsData);
-    setCurrentInnings("completed");
-    setScoringLocked(true);
-    // push full match summary to backend for /summary overlay
-    postSummary(innings1, inningsData);
-  }
-
-  // Reset current innings states
-  setInningsRuns(0);
-  setInningsWickets(0);
-  setOvers(0);
-  setBalls(0);
-  setCurrentOverRuns(0);
-  setAllBatterStats({});
-  setAllBowlerStats({});
-  setBatsman1("");
-  setBatsman2("");
-  setBowler("");
-  setOnStrike("batsman1");
-  setScoringLocked(false);
-  setDismissedBatterIds([]);
-  setHistory([]);
-  setOverBallHistory([]);
-
-  if (currentInnings === 1) {
-    setCurrentInnings(2);
-  }
-};
 
 
   // ---------- PUSH SCOREBAR DATA TO BACKEND FOR OBS ----------
@@ -995,42 +987,42 @@ async function postSummary(inn1, inn2) {
         totalOversFloat > 0 ? (inningsRuns / totalOversFloat).toFixed(2) : "0.00";
 
       await fetch("/api/overlay", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    battingTeam: battingTeamCode,
-    battingTeamLogo,
-    bowlingTeam: bowlingTeamCode,
-    bowlingTeamLogo,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          battingTeam: battingTeamCode,
+          battingTeamLogo,
+          bowlingTeam: bowlingTeamCode,
+          bowlingTeamLogo,
 
-    runs: inningsRuns,
-    wickets: inningsWickets,
-    overs,
-    balls,
-    ballsPerOver: bpo,
+          runs: inningsRuns,
+          wickets: inningsWickets,
+          overs,
+          balls,
+          ballsPerOver: bpo,
 
-    runRate,
+          runRate,
 
-    // 👉 NEW: include second-innings target (or null)
-    target: chaseTarget ?? null,
+          // 👉 NEW: include second-innings target (or null)
+          target: chaseTarget ?? null,
 
-    striker: { name: strikerName, runs: strikerRuns, balls: strikerBalls },
-    nonStriker: {
-      name: nonStrikerName,
-      runs: nonStrikerRuns,
-      balls: nonStrikerBalls,
-    },
+          striker: { name: strikerName, runs: strikerRuns, balls: strikerBalls },
+          nonStriker: {
+            name: nonStrikerName,
+            runs: nonStrikerRuns,
+            balls: nonStrikerBalls,
+          },
 
-    bowler: {
-      name: bowlerName,
-      wickets: bowlerWickets,
-      overs: bowlerOvers,
-      runs: bowlerRuns,
-    },
+          bowler: {
+            name: bowlerName,
+            wickets: bowlerWickets,
+            overs: bowlerOvers,
+            runs: bowlerRuns,
+          },
 
-    overBalls: overBallHistory, // e.g., ["1","1","Wd1","Nb0","W","4"]
-  }),
-});
+          overBalls: overBallHistory, // e.g., ["1","1","Wd1","Nb0","W","4"]
+        }),
+      });
 
     } catch (err) {
       console.warn("Failed to push overlay:", err);
@@ -1039,33 +1031,33 @@ async function postSummary(inn1, inn2) {
 
   // Push overlay whenever scoring-relevant state changes
   useEffect(() => {
-  postOverlay();
-  // eslint-disable-line react-hooks/exhaustive-deps
-}, [
-  battingTeamId,
-  bowlingTeamId,
-  battingTeamLogo,
-  bowlingTeamLogo,
-  battingTeamCode,
-  bowlingTeamCode,
-  overType,
-  inningsRuns,
-  inningsWickets,
-  overs,
-  balls,
-  onStrike,
-  strikerName,
-  nonStrikerName,
-  strikerRuns,
-  strikerBalls,
-  nonStrikerRuns,
-  nonStrikerBalls,
-  bowlerName,
-  bowlerOvers,
-  bowlerRuns,
-  bowlerWickets,
-  overBallHistory,
-]);
+    postOverlay();
+    // eslint-disable-line react-hooks/exhaustive-deps
+  }, [
+    battingTeamId,
+    bowlingTeamId,
+    battingTeamLogo,
+    bowlingTeamLogo,
+    battingTeamCode,
+    bowlingTeamCode,
+    overType,
+    inningsRuns,
+    inningsWickets,
+    overs,
+    balls,
+    onStrike,
+    strikerName,
+    nonStrikerName,
+    strikerRuns,
+    strikerBalls,
+    nonStrikerRuns,
+    nonStrikerBalls,
+    bowlerName,
+    bowlerOvers,
+    bowlerRuns,
+    bowlerWickets,
+    overBallHistory,
+  ]);
 
 
   // Also push whenever match header loaded (logos/names/ground ready)
@@ -1216,14 +1208,6 @@ async function postSummary(inn1, inn2) {
     setBattingTeamId(other);
   };
 
-  const handleBatsman1Change = (e) => {
-    setBatsman1(String(e.target.value));
-  };
-
-  const handleBatsman2Change = (e) => {
-    setBatsman2(String(e.target.value));
-  };
-
   // Render innings summary table for batting
   const renderBattingTable = (teamName, batterStats) => (
     <>
@@ -1292,7 +1276,7 @@ async function postSummary(inn1, inn2) {
             return (
               <TableRow key={stats.id}>
                 <TableCell>{stats.name}</TableCell>
-                <TableCell align="right">{stats.overs/2}</TableCell>
+                <TableCell align="right">{stats.overs}</TableCell>
                 <TableCell align="right">{stats.runs ?? 0}</TableCell>
                 <TableCell align="right">{stats.wickets ?? 0}</TableCell>
                 <TableCell align="right">{econ}</TableCell>
@@ -1558,8 +1542,7 @@ async function postSummary(inn1, inn2) {
                 </Typography>
 
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                  {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers/2}-
-                  {bowlerRuns}
+                  {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-{bowlerRuns}
                 </Typography>
 
                 <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
@@ -2009,7 +1992,14 @@ async function postSummary(inn1, inn2) {
                           id="bowler-select"
                           value={bowler || ""}
                           label="Select bowler"
-                          onChange={(e) => setBowler(String(e.target.value))}
+                          onChange={(e) => {
+                            const val = String(e.target.value);
+                            setBowler(val);
+                            setCurrentOverRuns(0);
+                            setBalls(0);
+                            setScoringLocked(false);
+                            setOverBallHistory([]);
+                          }}
                           displayEmpty
                         >
                           <MenuItem value="">
@@ -2135,6 +2125,11 @@ async function postSummary(inn1, inn2) {
                           size="small"
                           fullWidth
                           onClick={handleUndo}
+                          sx={{
+                            bgcolor: "#36ae2dff",
+                            color: "white",
+                            "&:hover": { bgcolor: "#16881fff" },
+                          }}
                           disabled={history.length === 0 || currentInnings === "completed"}
                         >
                           Undo Last Action
