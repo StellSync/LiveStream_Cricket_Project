@@ -2135,6 +2135,11 @@ async function postSummary(inn1, inn2) {
                           size="small"
                           fullWidth
                           onClick={handleUndo}
+                          sx={{
+                            bgcolor: "#36ae2dff",
+                            color: "white",
+                            "&:hover": { bgcolor: "#16881fff" },
+                          }}
                           disabled={history.length === 0 || currentInnings === "completed"}
                         >
                           Undo Last Action
