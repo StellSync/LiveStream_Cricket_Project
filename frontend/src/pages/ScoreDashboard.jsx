@@ -696,7 +696,7 @@ export default function ScoreDashboard() {
         });
         setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Wd${runs}`]);
-        if ((runs + 1) % 2 === 1) {
+        if ((runs) % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
         }
         if (isCountWideBall) {
@@ -726,7 +726,7 @@ export default function ScoreDashboard() {
         });
         setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Nb${runs}`]);
-        if ((runs + 1) % 2 === 1) {
+        if ((runs) % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
         }
         if (isCountNoBall) {
