@@ -916,6 +916,27 @@ export default function ScoreDashboard() {
   }
 
 
+
+  // Trigger "FREE HIT" banner (does NOT touch overBallHistory)
+const triggerFreeHit = async () => {
+  try {
+    await fetch("/api/overlay/fr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        label: "FREE HIT",
+        durationMs: 20000, // optional; overlay auto-hides after 20s
+      }),
+    });
+  } catch (e) {
+    console.warn("Failed to trigger FREE HIT banner:", e);
+  }
+};
+
+
+
+
+
   // End current innings
   const handleEndInnings = () => {
     const batterStatsWithNames = Object.keys(allBatterStats).map((id) => ({
@@ -2134,6 +2155,24 @@ export default function ScoreDashboard() {
                         >
                           Undo Last Action
                         </Button>
+
+                          
+                          <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          disabled={scoringLocked || currentInnings === "completed"}
+                          sx={{
+                            bgcolor: "#fb8c00",
+                            color: "white",
+                            "&:hover": { bgcolor: "#ef6c00" },
+                          }}
+                          onClick={triggerFreeHit}
+                        >
+                          Show FREE-HIT Banner
+                        </Button>
+
+                        
 
                       </Stack>
                     </CardContent>

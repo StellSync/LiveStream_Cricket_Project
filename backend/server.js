@@ -615,39 +615,33 @@ app.get("/overlay/scorebar", (_req, res) => {
 });
 
 
-// ============================================================================
-// SCOREBAR THEME #4 (Broadcast TV Bar) → /overlay/scorebar-tv?scale=1.2
-// ============================================================================
-// ============================================================================
-// SCOREBAR THEME #4 (Broadcast TV Bar, v2) → /overlay/scorebar-tv?scale=1.2
-// ============================================================================
-// ============================================================================
-// SCOREBAR THEME #4 (Broadcast TV Bar, v3 compact+responsive)
-//  → /overlay/scorebar-tv?scale=1.1
-// ============================================================================
-// ============================================================================
-// SCOREBAR THEME #4 (Broadcast TV Bar, v4 ultra-compact for OBS)
-// ============================================================================
-// ============================================================================
-// SCOREBAR – Exact Template Layout → /overlay/scorebar-template?scale=1.0
-// ============================================================================
-// ============================================================================
-// SCOREBAR – TV Exact Type (matches provided template) → /overlay/scorebar-tv
-// ============================================================================
-// ============================================================================
-// SCOREBAR – TV Exact Type (tighter, no mid badges) → /overlay/scorebar-tv
-// ============================================================================
-// ============================================================================
-// SCOREBAR – TV (tight spacing, no clipping, target + need) → /overlay/scorebar-tv
-// ============================================================================
-// ============================================================================
-// SCOREBAR – TV (non-striker under striker, neon target, bigger fonts, event flash)
-// → /overlay/scorebar-tv
-// ============================================================================
-// ============================================================================
-// SCOREBAR – TV (bigger, bowler overs, neon target, event banner)
-// → /overlay/scorebar-tv
-// ============================================================================
+// --- NEW: trigger FREE-HIT banner without altering over history ---
+app.post("/api/overlay/fr", (req, res) => {
+  const label = (req.body?.label || "FREE HIT").toString().toUpperCase();
+  const durationMs = Number(req.body?.durationMs || 20000);
+
+  // attach a transient specialEvent; DO NOT touch overBalls
+  const special = { type: "FR", label, ts: Date.now(), durationMs };
+
+  // Keep overlayState intact but broadcast a payload that includes the special
+  const payload = { ...overlayState, specialEvent: special };
+  broadcastOverlay(payload);
+
+  // Optionally clear after duration so late joiners don’t see stale flag
+  setTimeout(() => {
+    // Only clear if still the same event
+    if (overlayState?.specialEvent?.type === "FR") {
+      delete overlayState.specialEvent;
+    }
+    broadcastOverlay({ ...overlayState, specialEvent: null });
+  }, durationMs);
+
+  res.json({ ok: true });
+});
+
+
+
+
 app.get("/overlay/scorebar-tv", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html lang="en">
@@ -716,6 +710,12 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa); box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
   .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a); box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
   .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a); box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
+  /* NEW: FREE HIT style */
+  .freehit .badge{
+    background:linear-gradient(135deg,#ffd54f,#ffb300);
+    box-shadow:0 0 28px rgba(255,179,0,.85), 0 0 46px rgba(255,213,79,.55);
+  }
+
   @keyframes popIn{to{opacity:1}}
   @keyframes sweep{to{transform:translateX(160%)}}
   @keyframes badgePulse{
@@ -874,12 +874,33 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     }
   }
 
+  // ===== EVENT BANNERS (4/6/W/RO + ADMIN FREE-HIT) ==========================
   let lastEventKey = null, bannerTimer = null;
+
   function isRunOutToken(x){
     const L = String(x||'').toUpperCase().replace(/[^A-Z]/g,'');
     return L==='RO' || L==='RUNOUT';
   }
+
   function maybeEvent(s){
+    // --- PRIORITY: admin-injected special banners (FREE-HIT) ---
+    if (s.specialEvent && (s.specialEvent.type === 'FR' || s.specialEvent.type === 'FREEHIT')) {
+      eventWrap.className = 'event freehit';
+      evI.textContent = 'FH';
+      evT.textContent = s.specialEvent.label || 'FREE HIT';
+      eventWrap.classList.add('show');
+      linfo.classList.add('hide');
+
+      clearTimeout(bannerTimer);
+      const dur = Number(s.specialEvent.durationMs || 20000);
+      bannerTimer = setTimeout(()=>{
+        eventWrap.classList.remove('show','four','six','wicket','freehit');
+        linfo.classList.remove('hide');
+      }, dur);
+      return; // don’t also show 4/6/W/RO on the same tick
+    }
+
+    // --- Normal event detection from last ball (4/6/W/RO) ---
     const list = Array.isArray(s.overBalls) ? s.overBalls : [];
     const last = String(list[list.length-1] ?? '').trim();
     if(!last) return;
@@ -899,11 +920,12 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 
       clearTimeout(bannerTimer);
       bannerTimer = setTimeout(()=>{
-        eventWrap.classList.remove('show','four','six','wicket');
+        eventWrap.classList.remove('show','four','six','wicket','freehit');
         linfo.classList.remove('hide');
       }, 20000);
     }
   }
+  // =========================================================================
 
   const state = { overlay:null, match:null };
 
@@ -982,6 +1004,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 
 
 
+
 app.get("/overlay/scorebar-tv-orange", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html lang="en">
@@ -1046,6 +1069,12 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
   .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa); box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
   .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a); box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
   .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a); box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
+  /* NEW: FREE HIT style (orange theme) */
+  .freehit .badge{
+    background:linear-gradient(135deg,#ffe082,#ffca28);
+    box-shadow:0 0 28px rgba(255,202,40,.85), 0 0 46px rgba(255,224,130,.55);
+  }
+
   @keyframes popIn{to{opacity:1}}
   @keyframes sweep{to{transform:translateX(160%)}}
   @keyframes badgePulse{
@@ -1201,12 +1230,33 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     }
   }
 
+  // ===== EVENT BANNERS (4/6/W/RO + ADMIN FREE-HIT) ==========================
   let lastEventKey = null, bannerTimer = null;
+
   function isRunOutToken(x){
     const L = String(x||'').toUpperCase().replace(/[^A-Z]/g,'');
     return L==='RO' || L==='RUNOUT';
   }
+
   function maybeEvent(s){
+    // --- PRIORITY: admin-injected special banners (FREE-HIT) ---
+    if (s.specialEvent && (s.specialEvent.type === 'FR' || s.specialEvent.type === 'FREEHIT')) {
+      eventWrap.className = 'event freehit';
+      evI.textContent = 'FH';
+      evT.textContent = s.specialEvent.label || 'FREE HIT';
+      eventWrap.classList.add('show');
+      linfo.classList.add('hide');
+
+      clearTimeout(bannerTimer);
+      const dur = Number(s.specialEvent.durationMs || 20000);
+      bannerTimer = setTimeout(()=>{
+        eventWrap.classList.remove('show','four','six','wicket','freehit');
+        linfo.classList.remove('hide');
+      }, dur);
+      return; // don't also show 4/6/W/RO this tick
+    }
+
+    // --- Normal event detection from last ball (4/6/W/RO) ---
     const list = Array.isArray(s.overBalls) ? s.overBalls : [];
     const last = String(list[list.length-1] ?? '').trim();
     if(!last) return;
@@ -1226,11 +1276,12 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
 
       clearTimeout(bannerTimer);
       bannerTimer = setTimeout(()=>{
-        eventWrap.classList.remove('show','four','six','wicket');
+        eventWrap.classList.remove('show','four','six','wicket','freehit');
         linfo.classList.remove('hide');
       }, 20000);
     }
   }
+  // =========================================================================
 
   const state = { overlay:null, match:null };
 
@@ -1256,6 +1307,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     const w = Number(bw.wickets||0), r = Number(bw.runs||0);
     const ov = (bw.overs!=null? bw.overs : 0);
     bowf.textContent = w + '-' + ov + '-' + r;
+
 
     rr.textContent = 'RR ' + (s.runRate || '0.00');
 
@@ -1302,6 +1354,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
 </body>
 </html>`);
 });
+
 
 
 
