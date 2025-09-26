@@ -130,7 +130,7 @@ export default function ScoreDashboard() {
       const { data } = await getPlayers(battingTeamId);
       const list = Array.isArray(data) ? data : [];
       const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(battingTeamId));
-      const onlyBatters = byTeam.filter(isPlayerBatter);
+      const onlyBatters = byTeam;
       setBatters(onlyBatters.length ? onlyBatters : byTeam);
     } catch (e) {
       console.warn("Failed to reload batters", e);
@@ -143,7 +143,7 @@ export default function ScoreDashboard() {
       const { data } = await getPlayers(bowlingTeamId);
       const list = Array.isArray(data) ? data : [];
       const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(bowlingTeamId));
-      const onlyBowlers = byTeam.filter(isPlayerBowler);
+      const onlyBowlers = byTeam;
       setBowlers(onlyBowlers.length ? onlyBowlers : byTeam);
     } catch (e) {
       console.warn("Failed to reload bowlers", e);
@@ -415,11 +415,11 @@ export default function ScoreDashboard() {
   const normalizeBool = (v) =>
     v === true || v === "true" || v === 1 || v === "1";
 
-  const isPlayerBatter = (p) =>
-    normalizeBool(p.isBatter ?? p.Isbatter ?? p.isBatsman) ||
-    normalizeBool(p.isWK ?? p.IsWk);
+  // const isPlayerBatter = (p) =>
+  //   normalizeBool(p.isBatter ?? p.Isbatter ?? p.isBatsman) ||
+  //   normalizeBool(p.isWK ?? p.IsWk);
 
-  const isPlayerBowler = (p) => normalizeBool(p.isBowler ?? p.Isballer);
+  // const isPlayerBowler = (p) => normalizeBool(p.isBowler ?? p.Isballer);
 
   const getPlayerTeamId = (p) =>
     Number(p.teamId ?? p.teamid ?? p.teamID ?? p.team);
@@ -441,9 +441,9 @@ export default function ScoreDashboard() {
         const byTeam = list.filter(
           (p) => getPlayerTeamId(p) === Number(battingTeamId)
         );
-        const onlyBatters = byTeam.filter(isPlayerBatter);
+        const onlyBatters = byTeam;
         const finalList = onlyBatters.length ? onlyBatters : byTeam;
-
+        console.log("final list",finalList);
         setBatters(finalList);
 
         setBatsman1((prev) =>
@@ -472,7 +472,7 @@ export default function ScoreDashboard() {
         const byTeam = list.filter(
           (p) => getPlayerTeamId(p) === Number(bowlingTeamId)
         );
-        const onlyBowlers = byTeam.filter(isPlayerBowler);
+        const onlyBowlers = byTeam;
         const finalList = onlyBowlers.length ? onlyBowlers : byTeam;
 
         setBowlers(finalList);
