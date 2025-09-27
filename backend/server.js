@@ -725,15 +725,15 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     border-right:1px solid #0000003a;
   }
 
-  /* ⬇️ CENTER bowler name + figures across the right container */
+  /* Center bowler name + figures across the right container */
   .bowRow{
-    grid-column: 1 / -1;   /* span both columns */
+    grid-column: 1 / -1;
     grid-row: 1;
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
     align-items: center;
-    justify-content: center;   /* center horizontally */
+    justify-content: center;
     gap: 10px;
     padding: 10px 10px 4px 10px;
     text-align: center;
@@ -754,7 +754,18 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   .dot.blue{background:#1e9ef8;color:#03121b}
   .dot.green{background:#22c55e;color:#05140a}
   .dot.red{background:#ef4444}
-  .dot.badge{min-width:auto;padding:0 calc(22px * var(--dotScale))}
+
+  /* tighter NB/WD/RO badges */
+  /* even tighter NB/WD/RO badges */
+/* NB / WD / RO badge chips — slightly smaller */
+.dot.badge{
+  min-width:auto;
+  padding:0 calc(5px * var(--dotScale));         /* ↓ was 10px */
+  font-size:calc(var(--dotBase) * 0.20 * var(--dotScale)); /* ↓ was 0.32 */
+  letter-spacing:.002em;                          /* a touch tighter */
+}
+
+
 </style>
 </head>
 <body>
@@ -913,6 +924,8 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 
 
 
+
+
 app.get("/overlay/scorebar-tv-orange", (_req, res) => { 
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html lang="en">
@@ -946,58 +959,28 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     margin:4px 0;
   }
 
-  .event{
-    position:absolute; left:0; top:0;
-    width:calc(92px + 360px); height:100%;
-    display:none; align-items:center; justify-content:center;
-    padding:8px; pointer-events:none; z-index:4;
-  }
+  /* Event banner */
+  .event{position:absolute; left:0; top:0; width:calc(92px + 360px); height:100%; display:none; align-items:center; justify-content:center; padding:8px; pointer-events:none; z-index:4}
   .event.show{display:flex}
-
-  .badge{
-    width:100%; height:100%;
-    border-radius:18px;
-    display:flex; align-items:center; justify-content:center; gap:18px;
-    font:1000 36px/1 system-ui; letter-spacing:.04em; color:#001014; white-space:nowrap;
-    transform:scale(1); opacity:0; position:relative; overflow:hidden;
-    animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,
-             badgePulse var(--eventDur) ease-in-out;
-  }
-  .badge::after{
-    content:""; position:absolute; inset:-30% -120%;
-    background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);
-    transform:translateX(-60%); animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite;
-  }
-
-  .ico{
-    width:72px;height:72px;border-radius:50%;display:grid;place-items:center;
-    font:1000 32px/1 system-ui;color:#001014;background:#fff;
-    box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)
-  }
+  .badge{width:100%; height:100%; border-radius:18px; display:flex; align-items:center; justify-content:center; gap:18px; font:1000 36px/1 system-ui; letter-spacing:.04em; color:#001014; white-space:nowrap; transform:scale(1); opacity:0; position:relative; overflow:hidden; animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards, badgePulse var(--eventDur) ease-in-out}
+  .badge::after{content:""; position:absolute; inset:-30% -120%; background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%); transform:translateX(-60%); animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite}
+  .ico{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font:1000 32px/1 system-ui;color:#001014;background:#fff;box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)}
   .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa); box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
   .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a); box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
   .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a); box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
   /* FREE HIT style (orange theme) */
-  .freehit .badge{
-    background:linear-gradient(135deg,#ffe082,#ffca28);
-    box-shadow:0 0 28px rgba(255,202,40,.85), 0 0 46px rgba(255,224,130,.55);
-  }
-
+  .freehit .badge{background:linear-gradient(135deg,#ffe082,#ffca28); box-shadow:0 0 28px rgba(255,202,40,.85), 0 0 46px rgba(255,224,130,.55)}
   @keyframes popIn{to{opacity:1}}
   @keyframes sweep{to{transform:translateX(160%)}}
-  @keyframes badgePulse{
-    0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
-    20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}
-    80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}
-  }
+  @keyframes badgePulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}}
 
-  .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--o2),var(--o3));}
+  .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--o2),var(--o3))}
   .lcrest{border-right:1px solid #0000003a}
   .rcrest{border-left:1px solid #0000003a}
-  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain; margin:6px 0}
+  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain;margin:6px 0}
 
   #linfo{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,var(--o1),var(--o3));border-right:1px solid #0000003a;transition:opacity .18s}
-  #linfo.hide{opacity:0; visibility:hidden}
+  #linfo.hide{opacity:0;visibility:hidden}
   .aTop{display:flex;align-items:flex-end;gap:8px;padding:12px 12px 4px 14px;min-width:0}
   .teamA{font-weight:1000;font-size:36px;line-height:1.12;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .aBot{display:grid;grid-template-columns:auto 1fr;align-items:flex-start;gap:8px;padding:0 12px 10px 14px}
@@ -1027,15 +1010,15 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     border-right:1px solid #0000003a;
   }
 
-  /* ⬇️ Center bowler name + figures */
+  /* Center bowler name + figures across right container */
   .bowRow{
-    grid-column: 1 / -1;           /* span both columns */
+    grid-column: 1 / -1;
     grid-row: 1;
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
     align-items: center;
-    justify-content: center;       /* center horizontally */
+    justify-content: center;
     gap: 10px;
     padding: 10px 10px 4px 10px;
     text-align: center;
@@ -1067,9 +1050,13 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
   .dot.blue{background:#1e9ef8;color:#03121b}
   .dot.green{background:#22c55e;color:#05140a}
   .dot.red{background:#ef4444}
+
+  /* NB/WD/RO badges — matched to green bar */
   .dot.badge{
     min-width:auto;
-    padding:0 calc(22px * var(--dotScale));
+    padding:0 calc(5px * var(--dotScale));
+    font-size:calc(var(--dotBase) * 0.20 * var(--dotScale));
+    letter-spacing:.002em;
   }
 </style>
 </head>
@@ -1146,7 +1133,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     }
   }
 
-  // EVENT BANNERS (4/6/W/RO + ADMIN FREE-HIT)
+  // Event banners (4/6/W/RO + admin FREE-HIT)
   let lastEventKey=null, bannerTimer=null;
   function isRunOutToken(x){ const L=String(x||'').toUpperCase().replace(/[^A-Z]/g,''); return L==='RO'||L==='RUNOUT'; }
   function maybeEvent(s){
@@ -1222,6 +1209,8 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
 </body>
 </html>`);
 });
+
+
 
 
 
