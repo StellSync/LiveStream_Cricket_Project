@@ -656,8 +656,8 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     --teal1:#116c64; --teal2:#0b524c; --teal3:#0a3f3a;
     --ring:#ffffff33; --mut:#d6e7ec; --fg:#fff;
     --dotScale:1;
-    --dotBase:44px;           /* ↑ larger pills for WD/NB/RO */
-    --eventDur:20000ms;       /* 20s animations */
+    --dotBase:44px;
+    --eventDur:20000ms;
   }
 
   .shell{display:flex;justify-content:center;padding:0}
@@ -675,62 +675,27 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     margin:4px 0;
   }
 
-  /* ================== EVENT OVERLAY (fills entire left container) ================== */
-  .event{
-    position:absolute;
-    left:0; top:0;
-    width:calc(92px + 360px);
-    height:100%;
-    display:none; align-items:center; justify-content:center;
-    padding:8px;
-    pointer-events:none; z-index:4;
-  }
+  /* EVENT OVERLAY */
+  .event{position:absolute;left:0;top:0;width:calc(92px + 360px);height:100%;display:none;align-items:center;justify-content:center;padding:8px;pointer-events:none;z-index:4}
   .event.show{display:flex}
-
-  .badge{
-    width:100%; height:100%;
-    border-radius:18px;
-    display:flex; align-items:center; justify-content:center; gap:18px;
-    font:1000 36px/1 system-ui; letter-spacing:.04em; color:#001014; white-space:nowrap;
-    transform:scale(1); opacity:0; position:relative; overflow:hidden;
-    animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,
-             badgePulse var(--eventDur) ease-in-out;
-  }
-  .badge::after{
-    content:""; position:absolute; inset:-30% -120%;
-    background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);
-    transform:translateX(-60%); animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite;
-  }
-
-  .ico{
-    width:72px;height:72px;border-radius:50%;display:grid;place-items:center;
-    font:1000 32px/1 system-ui;color:#001014;background:#fff;
-    box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)
-  }
-  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa); box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
-  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a); box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
-  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a); box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
-  /* NEW: FREE HIT style */
-  .freehit .badge{
-    background:linear-gradient(135deg,#ffd54f,#ffb300);
-    box-shadow:0 0 28px rgba(255,179,0,.85), 0 0 46px rgba(255,213,79,.55);
-  }
-
+  .badge{width:100%;height:100%;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:18px;font:1000 36px/1 system-ui;letter-spacing:.04em;color:#001014;white-space:nowrap;transform:scale(1);opacity:0;position:relative;overflow:hidden;animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,badgePulse var(--eventDur) ease-in-out}
+  .badge::after{content:"";position:absolute;inset:-30% -120%;background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);transform:translateX(-60%);animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite}
+  .ico{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font:1000 32px/1 system-ui;color:#001014;background:#fff;box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)}
+  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa);box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
+  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
+  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a);box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
+  .freehit .badge{background:linear-gradient(135deg,#ffd54f,#ffb300);box-shadow:0 0 28px rgba(255,179,0,.85),0 0 46px rgba(255,213,79,.55)}
   @keyframes popIn{to{opacity:1}}
   @keyframes sweep{to{transform:translateX(160%)}}
-  @keyframes badgePulse{
-    0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}
-    20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}
-    80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}
-  }
+  @keyframes badgePulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}}
 
-  .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--teal2),var(--teal3));}
+  .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--teal2),var(--teal3))}
   .lcrest{border-right:1px solid #0000003a}
   .rcrest{border-left:1px solid #0000003a}
-  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain; margin:6px 0}
+  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain;margin:6px 0}
 
   #linfo{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,var(--teal1),var(--teal3));border-right:1px solid #0000003a;transition:opacity .18s}
-  #linfo.hide{opacity:0; visibility:hidden}
+  #linfo.hide{opacity:0;visibility:hidden}
   .aTop{display:flex;align-items:flex-end;gap:8px;padding:12px 12px 4px 14px;min-width:0}
   .teamA{font-weight:1000;font-size:36px;line-height:1.12;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .aBot{display:grid;grid-template-columns:auto 1fr;align-items:flex-start;gap:8px;padding:0 12px 10px 14px}
@@ -759,51 +724,42 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18));
     border-right:1px solid #0000003a;
   }
+
+  /* ⬇️ CENTER bowler name + figures across the right container */
   .bowRow{
-    grid-column:1; grid-row:1;
-    display:grid; grid-template-columns:1fr auto;
-    align-items:center; column-gap:10px;
-    padding:10px 10px 4px 10px;
+    grid-column: 1 / -1;   /* span both columns */
+    grid-row: 1;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    align-items: center;
+    justify-content: center;   /* center horizontally */
+    gap: 10px;
+    padding: 10px 10px 4px 10px;
+    text-align: center;
   }
-  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis}
-  .bf{font:1000 24px/1.1 system-ui}
+  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .bf{font:1000 24px/1.1 system-ui;text-align:center}
 
-  .edgeTop{grid-column:2; grid-row:1; display:flex; align-items:center; justify-content:flex-end; padding:10px 10px 4px 6px}
-  .edgeBottom{grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:flex-end; padding:4px 10px 10px 6px}
+  .edgeTop{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:flex-end;padding:10px 10px 4px 6px}
+  .edgeBottom{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:flex-end;padding:4px 10px 10px 6px}
 
-  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55), 0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08); font-size:20px; padding:8px 14px}
-  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45), 0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08); font-size:20px; padding:8px 14px}
+  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55),0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
+  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45),0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
 
-  .dotsRow{grid-column:1; grid-row:2; display:flex;justify-content:flex-end;align-items:center; gap:12px;padding:4px 10px 10px 10px}
+  .dotsRow{grid-column:1;grid-row:2;display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:4px 10px 10px 10px}
   .dots{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:10px 14px;border-radius:999px;max-width:100%}
 
-  /* ===================== BIGGER, FLEX PILL DOTS (NO CLIPPING) ===================== */
-  .dot{
-    height:calc(var(--dotBase) * var(--dotScale));
-    min-width:calc(var(--dotBase) * var(--dotScale));
-    padding:0 calc(18px * var(--dotScale));      /* ↑ more room for WD/NB/RO */
-    border-radius:10px;
-    background:#0a1a1e; box-shadow:inset 0 0 0 2px var(--ring);
-    display:flex; align-items:center; justify-content:center; color:#fff;
-    font:1000 calc(var(--dotBase)*0.58*var(--dotScale)) / 1 system-ui; /* balanced text size */
-    letter-spacing:.02em;
-    line-height:1;
-    white-space:nowrap;
-  }
+  .dot{height:calc(var(--dotBase) * var(--dotScale));min-width:calc(var(--dotBase) * var(--dotScale));padding:0 calc(18px * var(--dotScale));border-radius:10px;background:#0a1a1e;box-shadow:inset 0 0 0 2px var(--ring);display:flex;align-items:center;justify-content:center;color:#fff;font:1000 calc(var(--dotBase)*0.58*var(--dotScale)) / 1 system-ui;letter-spacing:.02em;line-height:1;white-space:nowrap}
   .dot.blue{background:#1e9ef8;color:#03121b}
   .dot.green{background:#22c55e;color:#05140a}
   .dot.red{background:#ef4444}
-  .dot.badge{
-    min-width:auto; /* allow widening */
-    padding:0 calc(22px * var(--dotScale)); /* extra padding for 2–6 chars */
-  }
-  /* =============================================================================== */
+  .dot.badge{min-width:auto;padding:0 calc(22px * var(--dotScale))}
 </style>
 </head>
 <body>
   <div class="shell">
     <div class="strip">
-      <!-- Event (left) -->
       <div class="event" id="event"><div class="badge" id="badge"><span class="ico" id="evI">6</span><span class="txt" id="evT">SIX</span></div></div>
 
       <div class="lcrest"><img id="logoA" alt=""></div>
@@ -853,146 +809,97 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   const eventWrap=$('event'), evI=$('evI'), evT=$('evT');
   const linfo=$('linfo');
 
-  const up   = s => (s||'').toString().toUpperCase();
-  const first= s => up(String(s||'').trim().split(/\\s+/)[0]);
+  const up=s=>(s||'').toString().toUpperCase();
+  const first=s=>up(String(s||'').trim().split(/\\s+/)[0]);
 
   function renderDots(list){
-    const arr = Array.isArray(list) ? list : [];
-    dots.innerHTML = '';
-    const targetVisible = 14;
-    const scale = arr.length <= targetVisible ? 1 : Math.max(0.56, targetVisible / arr.length);
-    document.documentElement.style.setProperty('--dotScale', String(scale));
-    for (const raw of arr){
-      let t = String(raw ?? '').trim();
-      const d = document.createElement('div'); d.className='dot';
-      if(!t || t==='0' || t==='•'){ t='·'; }
+    const arr=Array.isArray(list)?list:[];
+    dots.innerHTML='';
+    const targetVisible=14;
+    const scale=arr.length<=targetVisible?1:Math.max(0.56,targetVisible/arr.length);
+    document.documentElement.style.setProperty('--dotScale',String(scale));
+    for(const raw of arr){
+      let t=String(raw??'').trim();
+      const d=document.createElement('div'); d.className='dot';
+      if(!t||t==='0'||t==='•'){t='·';}
       if(t==='4') d.classList.add('blue');
       else if(t==='6') d.classList.add('green');
       else if(t==='W') d.classList.add('red');
-      else if(/^Wd/i.test(t) || /^Nb/i.test(t) || /^Ro/i.test(t) || /run\\s*out/i.test(t)){ d.classList.add('badge'); t=t.toUpperCase(); }
+      else if(/^Wd/i.test(t)||/^Nb/i.test(t)||/^Ro/i.test(t)||/run\\s*out/i.test(t)){d.classList.add('badge');t=t.toUpperCase();}
       d.textContent=t; dots.appendChild(d);
     }
   }
 
-  // ===== EVENT BANNERS (4/6/W/RO + ADMIN FREE-HIT) ==========================
-  let lastEventKey = null, bannerTimer = null;
-
-  function isRunOutToken(x){
-    const L = String(x||'').toUpperCase().replace(/[^A-Z]/g,'');
-    return L==='RO' || L==='RUNOUT';
-  }
-
+  let lastEventKey=null,bannerTimer=null;
+  function isRunOutToken(x){const L=String(x||'').toUpperCase().replace(/[^A-Z]/g,''); return L==='RO'||L==='RUNOUT';}
   function maybeEvent(s){
-    // --- PRIORITY: admin-injected special banners (FREE-HIT) ---
-    if (s.specialEvent && (s.specialEvent.type === 'FR' || s.specialEvent.type === 'FREEHIT')) {
-      eventWrap.className = 'event freehit';
-      evI.textContent = 'FH';
-      evT.textContent = s.specialEvent.label || 'FREE HIT';
-      eventWrap.classList.add('show');
-      linfo.classList.add('hide');
-
-      clearTimeout(bannerTimer);
-      const dur = Number(s.specialEvent.durationMs || 20000);
-      bannerTimer = setTimeout(()=>{
-        eventWrap.classList.remove('show','four','six','wicket','freehit');
-        linfo.classList.remove('hide');
-      }, dur);
-      return; // don’t also show 4/6/W/RO on the same tick
+    if(s.specialEvent&&(s.specialEvent.type==='FR'||s.specialEvent.type==='FREEHIT')){
+      eventWrap.className='event freehit'; evI.textContent='FH'; evT.textContent=s.specialEvent.label||'FREE HIT';
+      eventWrap.classList.add('show'); linfo.classList.add('hide');
+      clearTimeout(bannerTimer); const dur=Number(s.specialEvent.durationMs||20000);
+      bannerTimer=setTimeout(()=>{eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide');},dur);
+      return;
     }
-
-    // --- Normal event detection from last ball (4/6/W/RO) ---
-    const list = Array.isArray(s.overBalls) ? s.overBalls : [];
-    const last = String(list[list.length-1] ?? '').trim();
-    if(!last) return;
-    const key = \`\${Number(s.overs||0)}.\${Number(s.balls||0)}-\${last}\`;
-    if(key === lastEventKey) return;
-    lastEventKey = key;
-
-    eventWrap.className = 'event';
-    const token = last.toUpperCase();
-    if(token==='4' || token==='6' || token==='W' || isRunOutToken(token)){
-      if(token==='4'){ eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
-      else if(token==='6'){ eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
-      else { eventWrap.classList.add('wicket'); evI.textContent='W'; evT.textContent='WICKET'; }
-      eventWrap.classList.add('show');
-
-      linfo.classList.add('hide');
-
+    const list=Array.isArray(s.overBalls)?s.overBalls:[]; const last=String(list[list.length-1]??'').trim(); if(!last) return;
+    const key=\`\${Number(s.overs||0)}.\${Number(s.balls||0)}-\${last}\`; if(key===lastEventKey) return; lastEventKey=key;
+    eventWrap.className='event'; const token=last.toUpperCase();
+    if(token==='4'||token==='6'||token==='W'||isRunOutToken(token)){
+      if(token==='4'){eventWrap.classList.add('four');evI.textContent='4';evT.textContent='FOUR';}
+      else if(token==='6'){eventWrap.classList.add('six');evI.textContent='6';evT.textContent='SIX';}
+      else {eventWrap.classList.add('wicket');evI.textContent='W';evT.textContent='WICKET';}
+      eventWrap.classList.add('show'); linfo.classList.add('hide');
       clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(()=>{
-        eventWrap.classList.remove('show','four','six','wicket','freehit');
-        linfo.classList.remove('hide');
-      }, 20000);
+      bannerTimer=setTimeout(()=>{eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide');},20000);
     }
   }
-  // =========================================================================
 
-  const state = { overlay:null, match:null };
+  const state={overlay:null,match:null};
 
   function render(){
-    const s = state.overlay || {};
-    const m = state.match || {};
-
-    teamA.textContent = up(s.battingTeam || m.team1 || '—');
-    teamB.textContent = up(s.bowlingTeam || m.team2 || '—');
-    logoA.src = s.battingTeamLogo || m.team1Logo || '';
-    logoB.src = s.bowlingTeamLogo || m.team2Logo || '';
-
-    score.textContent = (s.runs||0) + '-' + (s.wickets||0);
+    const s=state.overlay||{}; const m=state.match||{};
+    teamA.textContent=up(s.battingTeam||m.team1||'—');
+    teamB.textContent=up(s.bowlingTeam||m.team2||'—');
+    logoA.src=s.battingTeamLogo||m.team1Logo||''; logoB.src=s.bowlingTeamLogo||m.team2Logo||'';
+    score.textContent=(s.runs||0)+'-'+(s.wickets||0);
 
     const st=s.striker||{}, ns=s.nonStriker||{};
-    b1.textContent = first(st.name || '—');
-    b1f.innerHTML  = (st.runs||0) + ' <span class="sup">('+(st.balls||0)+')</span>';
-    b2.textContent = first(ns.name || '—');
-    b2f.innerHTML  = (ns.runs||0) + ' <span class="sup">('+(ns.balls||0)+')</span>';
+    b1.textContent=first(st.name||'—'); b1f.innerHTML=(st.runs||0)+' <span class="sup">('+(st.balls||0)+')</span>';
+    b2.textContent=first(ns.name||'—'); b2f.innerHTML=(ns.runs||0)+' <span class="sup">('+(ns.balls||0)+')</span>';
 
-    const bw = s.bowler || {};
-    bowName.textContent = first(bw.name || '—');
-    const w = Number(bw.wickets||0), r = Number(bw.runs||0);
-    const ov = (bw.overs!=null? bw.overs : 0);
-    bowf.textContent = w + '-' + ov + '-' + r;
+    const bw=s.bowler||{};
+    bowName.textContent=first(bw.name||'—');
+    const w=Number(bw.wickets||0), r=Number(bw.runs||0);
+    const ov=(bw.overs!=null?bw.overs:0);
+    bowf.textContent=w+'-'+ov+'-'+r;
 
-    rr.textContent = 'RR ' + (s.runRate || '0.00');
+    rr.textContent='RR '+(s.runRate||'0.00');
 
-    const bpo = Number(s.ballsPerOver || 6);
-    const target = (s.target ?? s.chaseTarget);
+    const bpo=Number(s.ballsPerOver||6);
+    const target=(s.target??s.chaseTarget);
 
-    let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs);
-    if (needRuns == null && typeof target === 'number') {
-      needRuns = Math.max(Number(target) - Number(s.runs||0), 0);
-    }
-    if (needRuns != null) needRuns = Math.max(Number(needRuns), 0);
+    let needRuns=(s.needRuns??s.runsNeeded??s.req_runs);
+    if(needRuns==null&&typeof target==='number'){needRuns=Math.max(Number(target)-Number(s.runs||0),0);}
+    if(needRuns!=null) needRuns=Math.max(Number(needRuns),0);
 
-    const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? null);
-    const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? null);
-    const totalOvers      = (m.noOfOvers ?? s.totalOvers ?? s.oversLimit ?? null);
-    const bowledBalls     = Number(s.overs||0)*bpo + Number(s.balls||0);
+    const ballsLeftDirect=(s.ballsLeft??s.ballsRemaining??s.balls_to_go??null);
+    const oversLeftDirect=(s.oversLeft??s.oversRemaining??null);
+    const totalOvers=(m.noOfOvers??s.totalOvers??s.oversLimit??null);
+    const bowledBalls=Number(s.overs||0)*bpo+Number(s.balls||0);
 
-    let ballsLeft = null;
-    if (ballsLeftDirect != null)       ballsLeft = Number(ballsLeftDirect);
-    else if (oversLeftDirect != null)  ballsLeft = Math.max(0, Number(oversLeftDirect)*bpo);
-    else if (totalOvers != null)       ballsLeft = Math.max(0, Number(totalOvers)*bpo - bowledBalls);
+    let ballsLeft=null;
+    if(ballsLeftDirect!=null) ballsLeft=Number(ballsLeftDirect);
+    else if(oversLeftDirect!=null) ballsLeft=Math.max(0,Number(oversLeftDirect)*bpo);
+    else if(totalOvers!=null) ballsLeft=Math.max(0,Number(totalOvers)*bpo-bowledBalls);
 
-    if (typeof target === 'number' && !Number.isNaN(target)){
-      tg.style.display = 'inline-block';
-      tg.textContent = 'TARGET ' + target;
-    } else {
-      tg.style.display = 'none';
-    }
-
-    if (needRuns != null && ballsLeft != null){
-      need.style.display = 'inline-block';
-      need.textContent = 'NEED ' + needRuns + ' FROM ' + ballsLeft;
-    } else {
-      need.style.display = 'none';
-    }
+    if(typeof target==='number'&&!Number.isNaN(target)){ tg.style.display='inline-block'; tg.textContent='TARGET '+target; } else { tg.style.display='none'; }
+    if(needRuns!=null&&ballsLeft!=null){ need.style.display='inline-block'; need.textContent='NEED '+needRuns+' FROM '+ballsLeft; } else { need.style.display='none'; }
 
     renderDots(s.overBalls);
     maybeEvent(s);
   }
 
-  try{ const es1=new EventSource('/sse-overlay'); es1.onmessage=e=>{ state.overlay=JSON.parse(e.data)||{}; render(); }; }catch{}
-  try{ const es2=new EventSource('/sse-match');   es2.onmessage=e=>{ state.match  =JSON.parse(e.data)||{}; render(); }; }catch{}
+  try{const es1=new EventSource('/sse-overlay'); es1.onmessage=e=>{state.overlay=JSON.parse(e.data)||{}; render();};}catch{}
+  try{const es2=new EventSource('/sse-match');   es2.onmessage=e=>{state.match  =JSON.parse(e.data)||{}; render();};}catch{}
 </script>
 </body>
 </html>`);
@@ -1005,7 +912,8 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 
 
 
-app.get("/overlay/scorebar-tv-orange", (_req, res) => {
+
+app.get("/overlay/scorebar-tv-orange", (_req, res) => { 
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html lang="en">
 <head>
@@ -1019,8 +927,8 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     --o1:#ff8a00; --o2:#ff6a00; --o3:#cc5200;
     --ring:#ffffff33; --mut:#d6e7ec; --fg:#fff;
     --dotScale:1;
-    --dotBase:44px;           /* ↑ larger for WD/NB/RO */
-    --eventDur:20000ms;       /* 20s */
+    --dotBase:44px;
+    --eventDur:20000ms;
   }
 
   .shell{display:flex;justify-content:center;padding:0}
@@ -1069,7 +977,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
   .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa); box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
   .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a); box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
   .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a); box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
-  /* NEW: FREE HIT style (orange theme) */
+  /* FREE HIT style (orange theme) */
   .freehit .badge{
     background:linear-gradient(135deg,#ffe082,#ffca28);
     box-shadow:0 0 28px rgba(255,202,40,.85), 0 0 46px rgba(255,224,130,.55);
@@ -1118,14 +1026,22 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18));
     border-right:1px solid #0000003a;
   }
+
+  /* ⬇️ Center bowler name + figures */
   .bowRow{
-    grid-column:1; grid-row:1;
-    display:grid; grid-template-columns:1fr auto;
-    align-items:center; column-gap:10px;
-    padding:10px 10px 4px 10px;
+    grid-column: 1 / -1;           /* span both columns */
+    grid-row: 1;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    align-items: center;
+    justify-content: center;       /* center horizontally */
+    gap: 10px;
+    padding: 10px 10px 4px 10px;
+    text-align: center;
   }
-  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis}
-  .bf{font:1000 24px/1.1 system-ui}
+  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis;text-align:center}
+  .bf{font:1000 24px/1.1 system-ui;text-align:center}
 
   .edgeTop{grid-column:2; grid-row:1; display:flex; align-items:center; justify-content:flex-end; padding:10px 10px 4px 6px}
   .edgeBottom{grid-column:2; grid-row:2; display:flex; align-items:center; justify-content:flex-end; padding:4px 10px 10px 6px}
@@ -1209,140 +1125,92 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
   const eventWrap=$('event'), evI=$('evI'), evT=$('evT');
   const linfo=$('linfo');
 
-  const up   = s => (s||'').toString().toUpperCase();
-  const first= s => up(String(s||'').trim().split(/\\s+/)[0]);
+  const up=s=>(s||'').toString().toUpperCase();
+  const first=s=>up(String(s||'').trim().split(/\\s+/)[0]);
 
   function renderDots(list){
-    const arr = Array.isArray(list) ? list : [];
-    dots.innerHTML = '';
-    const targetVisible = 14;
-    const scale = arr.length <= targetVisible ? 1 : Math.max(0.56, targetVisible / arr.length);
-    document.documentElement.style.setProperty('--dotScale', String(scale));
-    for (const raw of arr){
-      let t = String(raw ?? '').trim();
-      const d = document.createElement('div'); d.className='dot';
-      if(!t || t==='0' || t==='•'){ t='·'; }
+    const arr=Array.isArray(list)?list:[];
+    dots.innerHTML='';
+    const targetVisible=14;
+    const scale=arr.length<=targetVisible?1:Math.max(0.56,targetVisible/arr.length);
+    document.documentElement.style.setProperty('--dotScale',String(scale));
+    for(const raw of arr){
+      let t=String(raw??'').trim();
+      const d=document.createElement('div'); d.className='dot';
+      if(!t||t==='0'||t==='•'){ t='·'; }
       if(t==='4') d.classList.add('blue');
       else if(t==='6') d.classList.add('green');
       else if(t==='W') d.classList.add('red');
-      else if(/^Wd/i.test(t) || /^Nb/i.test(t) || /^Ro/i.test(t) || /run\\s*out/i.test(t)){ d.classList.add('badge'); t=t.toUpperCase(); }
+      else if(/^Wd/i.test(t)||/^Nb/i.test(t)||/^Ro/i.test(t)||/run\\s*out/i.test(t)){ d.classList.add('badge'); t=t.toUpperCase(); }
       d.textContent=t; dots.appendChild(d);
     }
   }
 
-  // ===== EVENT BANNERS (4/6/W/RO + ADMIN FREE-HIT) ==========================
-  let lastEventKey = null, bannerTimer = null;
-
-  function isRunOutToken(x){
-    const L = String(x||'').toUpperCase().replace(/[^A-Z]/g,'');
-    return L==='RO' || L==='RUNOUT';
-  }
-
+  // EVENT BANNERS (4/6/W/RO + ADMIN FREE-HIT)
+  let lastEventKey=null, bannerTimer=null;
+  function isRunOutToken(x){ const L=String(x||'').toUpperCase().replace(/[^A-Z]/g,''); return L==='RO'||L==='RUNOUT'; }
   function maybeEvent(s){
-    // --- PRIORITY: admin-injected special banners (FREE-HIT) ---
-    if (s.specialEvent && (s.specialEvent.type === 'FR' || s.specialEvent.type === 'FREEHIT')) {
-      eventWrap.className = 'event freehit';
-      evI.textContent = 'FH';
-      evT.textContent = s.specialEvent.label || 'FREE HIT';
-      eventWrap.classList.add('show');
-      linfo.classList.add('hide');
-
+    if(s.specialEvent&&(s.specialEvent.type==='FR'||s.specialEvent.type==='FREEHIT')){
+      eventWrap.className='event freehit'; evI.textContent='FH'; evT.textContent=s.specialEvent.label||'FREE HIT';
+      eventWrap.classList.add('show'); linfo.classList.add('hide');
       clearTimeout(bannerTimer);
-      const dur = Number(s.specialEvent.durationMs || 20000);
-      bannerTimer = setTimeout(()=>{
-        eventWrap.classList.remove('show','four','six','wicket','freehit');
-        linfo.classList.remove('hide');
-      }, dur);
-      return; // don't also show 4/6/W/RO this tick
+      const dur=Number(s.specialEvent.durationMs||20000);
+      bannerTimer=setTimeout(()=>{eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide');},dur);
+      return;
     }
-
-    // --- Normal event detection from last ball (4/6/W/RO) ---
-    const list = Array.isArray(s.overBalls) ? s.overBalls : [];
-    const last = String(list[list.length-1] ?? '').trim();
-    if(!last) return;
-    const key = \`\${Number(s.overs||0)}.\${Number(s.balls||0)}-\${last}\`;
-    if(key === lastEventKey) return;
-    lastEventKey = key;
-
-    eventWrap.className = 'event';
-    const token = last.toUpperCase();
-    if(token==='4' || token==='6' || token==='W' || isRunOutToken(token)){
+    const list=Array.isArray(s.overBalls)?s.overBalls:[]; const last=String(list[list.length-1]??'').trim(); if(!last) return;
+    const key=\`\${Number(s.overs||0)}.\${Number(s.balls||0)}-\${last}\`; if(key===lastEventKey) return; lastEventKey=key;
+    eventWrap.className='event'; const token=last.toUpperCase();
+    if(token==='4'||token==='6'||token==='W'||isRunOutToken(token)){
       if(token==='4'){ eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
       else if(token==='6'){ eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
       else { eventWrap.classList.add('wicket'); evI.textContent='W'; evT.textContent='WICKET'; }
-      eventWrap.classList.add('show');
-
-      linfo.classList.add('hide');
-
+      eventWrap.classList.add('show'); linfo.classList.add('hide');
       clearTimeout(bannerTimer);
-      bannerTimer = setTimeout(()=>{
-        eventWrap.classList.remove('show','four','six','wicket','freehit');
-        linfo.classList.remove('hide');
-      }, 20000);
+      bannerTimer=setTimeout(()=>{eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide');},20000);
     }
   }
-  // =========================================================================
 
-  const state = { overlay:null, match:null };
+  const state={overlay:null,match:null};
 
   function render(){
-    const s = state.overlay || {};
-    const m = state.match || {};
-
-    teamA.textContent = up(s.battingTeam || m.team1 || '—');
-    teamB.textContent = up(s.bowlingTeam || m.team2 || '—');
-    logoA.src = s.battingTeamLogo || m.team1Logo || '';
-    logoB.src = s.bowlingTeamLogo || m.team2Logo || '';
-
-    score.textContent = (s.runs||0) + '-' + (s.wickets||0);
+    const s=state.overlay||{}; const m=state.match||{};
+    teamA.textContent=up(s.battingTeam||m.team1||'—');
+    teamB.textContent=up(s.bowlingTeam||m.team2||'—');
+    logoA.src=s.battingTeamLogo||m.team1Logo||''; logoB.src=s.bowlingTeamLogo||m.team2Logo||'';
+    score.textContent=(s.runs||0)+'-'+(s.wickets||0);
 
     const st=s.striker||{}, ns=s.nonStriker||{};
-    b1.textContent = first(st.name || '—');
-    b1f.innerHTML  = (st.runs||0) + ' <span class="sup">('+(st.balls||0)+')</span>';
-    b2.textContent = first(ns.name || '—');
-    b2f.innerHTML  = (ns.runs||0) + ' <span class="sup">('+(ns.balls||0)+')</span>';
+    b1.textContent=first(st.name||'—'); b1f.innerHTML=(st.runs||0)+' <span class="sup">('+(st.balls||0)+')</span>';
+    b2.textContent=first(ns.name||'—'); b2f.innerHTML=(ns.runs||0)+' <span class="sup">('+(ns.balls||0)+')</span>';
 
-    const bw = s.bowler || {};
-    bowName.textContent = first(bw.name || '—');
-    const w = Number(bw.wickets||0), r = Number(bw.runs||0);
-    const ov = (bw.overs!=null? bw.overs : 0);
-    bowf.textContent = w + '-' + ov + '-' + r;
+    const bw=s.bowler||{};
+    bowName.textContent=first(bw.name||'—');
+    const w=Number(bw.wickets||0), r=Number(bw.runs||0);
+    const ov=(bw.overs!=null?bw.overs:0);
+    bowf.textContent=w+'-'+ov+'-'+r;
 
+    rr.textContent='RR '+(s.runRate||'0.00');
 
-    rr.textContent = 'RR ' + (s.runRate || '0.00');
+    const bpo=Number(s.ballsPerOver||6);
+    const target=(s.target??s.chaseTarget);
 
-    const bpo = Number(s.ballsPerOver || 6);
-    const target = (s.target ?? s.chaseTarget);
+    let needRuns=(s.needRuns??s.runsNeeded??s.req_runs);
+    if(needRuns==null&&typeof target==='number'){ needRuns=Math.max(Number(target)-Number(s.runs||0),0); }
+    if(needRuns!=null) needRuns=Math.max(Number(needRuns),0);
 
-    let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs);
-    if (needRuns == null && typeof target === 'number') {
-      needRuns = Math.max(Number(target) - Number(s.runs||0), 0);
-    }
-    if (needRuns != null) needRuns = Math.max(Number(needRuns), 0);
+    const ballsLeftDirect=(s.ballsLeft??s.ballsRemaining??s.balls_to_go??null);
+    const oversLeftDirect=(s.oversLeft??s.oversRemaining??null);
+    const totalOvers=(m.noOfOvers??s.totalOvers??s.oversLimit??null);
+    const bowledBalls=Number(s.overs||0)*bpo+Number(s.balls||0);
 
-    const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? null);
-    const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? null);
-    const totalOvers      = (m.noOfOvers ?? s.totalOvers ?? s.oversLimit ?? null);
-    const bowledBalls     = Number(s.overs||0)*bpo + Number(s.balls||0);
+    let ballsLeft=null;
+    if(ballsLeftDirect!=null) ballsLeft=Number(ballsLeftDirect);
+    else if(oversLeftDirect!=null) ballsLeft=Math.max(0,Number(oversLeftDirect)*bpo);
+    else if(totalOvers!=null) ballsLeft=Math.max(0,Number(totalOvers)*bpo-bowledBalls);
 
-    let ballsLeft = null;
-    if (ballsLeftDirect != null)       ballsLeft = Number(ballsLeftDirect);
-    else if (oversLeftDirect != null)  ballsLeft = Math.max(0, Number(oversLeftDirect)*bpo);
-    else if (totalOvers != null)       ballsLeft = Math.max(0, Number(totalOvers)*bpo - bowledBalls);
-
-    if (typeof target === 'number' && !Number.isNaN(target)){
-      tg.style.display = 'inline-block';
-      tg.textContent = 'TARGET ' + target;
-    } else {
-      tg.style.display = 'none';
-    }
-
-    if (needRuns != null && ballsLeft != null){
-      need.style.display = 'inline-block';
-      need.textContent = 'NEED ' + needRuns + ' FROM ' + ballsLeft;
-    } else {
-      need.style.display = 'none';
-    }
+    if(typeof target==='number'&&!Number.isNaN(target)){ tg.style.display='inline-block'; tg.textContent='TARGET '+target; } else { tg.style.display='none'; }
+    if(needRuns!=null&&ballsLeft!=null){ need.style.display='inline-block'; need.textContent='NEED '+needRuns+' FROM '+ballsLeft; } else { need.style.display='none'; }
 
     renderDots(s.overBalls);
     maybeEvent(s);
@@ -1354,6 +1222,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
 </body>
 </html>`);
 });
+
 
 
 
