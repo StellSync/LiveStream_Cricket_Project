@@ -36,6 +36,7 @@ export default function MatchesPage() {
   const [tournaments, setTournaments] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   // Filters
   const [filterTournamentId, setFilterTournamentId] = useState(""); // '' = All
@@ -155,12 +156,23 @@ export default function MatchesPage() {
     });
   }
 
-  async function onDelete(id) {
-    if (confirm("Delete match?")) {
-      await deleteMatch(id);
-      load();
-    }
+async function onDelete(id) {
+  if (pendingDeleteId === id) {
+    // User clicked "Confirm Delete"
+    await deleteMatch(id);
+    setPendingDeleteId(null);
+    load();
+  } else {
+    // First click: mark for confirmation
+    setPendingDeleteId(id);
+
+    // Optional: auto-reset after 5 seconds if user doesn't confirm
+    setTimeout(() => {
+      setPendingDeleteId((current) => (current === id ? null : current));
+    }, 3000);
   }
+}
+
 
   // -------- Filtered items by tournament ----------
   const filteredItems = useMemo(() => {
@@ -526,12 +538,13 @@ export default function MatchesPage() {
                                     >
                                       Edit
                                     </button>
-                                    <button
-                                      className="btn btn-sm btn-outline-danger"
-                                      onClick={() => onDelete(m.id ?? m._id)}
-                                    >
-                                      Delete
-                                    </button>
+                                  <button
+                                  className={`btn btn-sm ${pendingDeleteId === (m.id ?? m._id) ? "btn-danger" : "btn-outline-danger"}`}
+                                  onClick={() => onDelete(m.id ?? m._id)}
+                                >
+                                  {pendingDeleteId === (m.id ?? m._id) ? "Confirm Delete" : "Delete"}
+                                </button>
+
                                   </div>
                                 </td>
                               </tr>
