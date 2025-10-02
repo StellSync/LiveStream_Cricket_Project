@@ -41,6 +41,13 @@ export default function PlayersPage() {
   // validation state
   const [errors, setErrors] = useState({});
 
+
+
+
+const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+
+
   async function load() {
     const [playersRes, teamsRes] = await Promise.all([getPlayers(), getTeams()]);
     setItems(playersRes.data || []);
@@ -134,9 +141,19 @@ export default function PlayersPage() {
   }
 
   async function onDelete(id) {
-    if (confirm("Delete player?")) {
+    if (pendingDeleteId === id) {
+      // User clicked "Confirm Delete"
       await deletePlayer(id);
+      setPendingDeleteId(null);
       load();
+    } else {
+      // First click: mark for confirmation
+      setPendingDeleteId(id);
+  
+      // Optional: auto-reset after 5 seconds if user doesn't confirm
+      setTimeout(() => {
+        setPendingDeleteId((current) => (current === id ? null : current));
+      }, 3000);
     }
   }
 
@@ -501,12 +518,12 @@ export default function PlayersPage() {
                                   >
                                     Edit
                                   </button>
-                                  <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => onDelete(p.id)}
-                                  >
-                                    Delete
-                                  </button>
+                                   <button
+                                  className={`btn btn-sm ${pendingDeleteId === (p.id ?? p._id) ? "btn-danger" : "btn-outline-danger"}`}
+                                  onClick={() => onDelete(p.id ?? p._id)}
+                                >
+                                  {pendingDeleteId === (p.id ?? p._id) ? "Confirm Delete" : "Delete"}
+                                </button>
                                 </div>
                               </td>
                             </tr>

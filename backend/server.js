@@ -642,6 +642,10 @@ app.post("/api/overlay/fr", (req, res) => {
 
 
 
+
+
+
+
 app.get("/overlay/scorebar-tv", (_req, res) => {
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html lang="en">
@@ -657,11 +661,9 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     --ring:#ffffff33; --mut:#d6e7ec; --fg:#fff;
     --dotScale:1;
     --dotBase:44px;
-    --eventDur:20000ms;
+    --eventDur:10000ms;
   }
-
   .shell{display:flex;justify-content:center;padding:0}
-
   .strip{
     width:min(1920px,100vw);
     display:grid;
@@ -675,8 +677,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     margin:4px 0;
   }
 
-  /* EVENT OVERLAY */
-  .event{position:absolute;left:0;top:0;width:calc(92px + 360px);height:100%;display:none;align-items:center;justify-content:center;padding:8px;pointer-events:none;z-index:4}
+  .event{position:absolute;left:0;top:0;width:calc(92px + 360px);height:100%;display:none;align-items:center;justify-content:center;padding:8px;pointer-events:none;z-index:40}
   .event.show{display:flex}
   .badge{width:100%;height:100%;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:18px;font:1000 36px/1 system-ui;letter-spacing:.04em;color:#001014;white-space:nowrap;transform:scale(1);opacity:0;position:relative;overflow:hidden;animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,badgePulse var(--eventDur) ease-in-out}
   .badge::after{content:"";position:absolute;inset:-30% -120%;background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);transform:translateX(-60%);animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite}
@@ -694,13 +695,18 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   .rcrest{border-left:1px solid #0000003a}
   .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain;margin:6px 0}
 
-  #linfo{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,var(--teal1),var(--teal3));border-right:1px solid #0000003a;transition:opacity .18s}
+  #linfo{display:grid;grid-template-rows:auto auto auto auto;background:linear-gradient(180deg,var(--teal1),var(--teal3));border-right:1px solid #0000003a;transition:opacity .18s; position:relative;}
   #linfo.hide{opacity:0;visibility:hidden}
   .aTop{display:flex;align-items:flex-end;gap:8px;padding:12px 12px 4px 14px;min-width:0}
   .teamA{font-weight:1000;font-size:36px;line-height:1.12;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .aBot{display:grid;grid-template-columns:auto 1fr;align-items:flex-start;gap:8px;padding:0 12px 10px 14px}
   .vs{font:900 20px/1.2 system-ui}
   .teamB{font:900 20px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  .edgeTop{padding:4px 12px 4px 14px;display:flex;justify-content:flex-end}
+  .edgeBottom{padding:4px 12px 10px 14px;display:flex;justify-content:flex-end}
+  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55),0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
+  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45),0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
 
   .mid{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.16));border-right:1px solid #0000003a}
   .r{display:grid;align-items:center;padding:6px 12px}
@@ -719,13 +725,12 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 
   .right{
     display:grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
     grid-template-rows: auto auto;
     background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18));
     border-right:1px solid #0000003a;
   }
 
-  /* Center bowler name + figures across the right container */
   .bowRow{
     grid-column: 1 / -1;
     grid-row: 1;
@@ -741,12 +746,6 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis;text-align:center}
   .bf{font:1000 24px/1.1 system-ui;text-align:center}
 
-  .edgeTop{grid-column:2;grid-row:1;display:flex;align-items:center;justify-content:flex-end;padding:10px 10px 4px 6px}
-  .edgeBottom{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:flex-end;padding:4px 10px 10px 6px}
-
-  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55),0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
-  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45),0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
-
   .dotsRow{grid-column:1;grid-row:2;display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:4px 10px 10px 10px}
   .dots{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:10px 14px;border-radius:999px;max-width:100%}
 
@@ -754,18 +753,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   .dot.blue{background:#1e9ef8;color:#03121b}
   .dot.green{background:#22c55e;color:#05140a}
   .dot.red{background:#ef4444}
-
-  /* tighter NB/WD/RO badges */
-  /* even tighter NB/WD/RO badges */
-/* NB / WD / RO badge chips — slightly smaller */
-.dot.badge{
-  min-width:auto;
-  padding:0 calc(5px * var(--dotScale));         /* ↓ was 10px */
-  font-size:calc(var(--dotBase) * 0.20 * var(--dotScale)); /* ↓ was 0.32 */
-  letter-spacing:.002em;                          /* a touch tighter */
-}
-
-
+  .dot.badge{min-width:auto;padding:0 calc(5px * var(--dotScale));font-size:calc(var(--dotBase) * 0.20 * var(--dotScale));letter-spacing:.002em;}
 </style>
 </head>
 <body>
@@ -778,6 +766,8 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
       <div class="linfo" id="linfo">
         <div class="aTop"><div class="teamA" id="teamA">TEAM A</div></div>
         <div class="aBot"><div class="vs">VS</div><div class="teamB" id="teamB">TEAM B</div></div>
+        <div class="edgeTop"><div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div></div>
+        <div class="edgeTop"><div class="pill target" id="tg" style="display:none">TARGET 0</div></div>
       </div>
 
       <div class="mid">
@@ -800,10 +790,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
           <div class="bowName" id="bowName">BOWLER NAME</div>
           <div class="bf" id="bowf">0-0.0-0</div>
         </div>
-        <div class="edgeTop"><div class="pill target" id="tg" style="display:none">TARGET 0</div></div>
-
         <div class="dotsRow"><div class="dots" id="dots"></div></div>
-        <div class="edgeBottom"><div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div></div>
       </div>
 
       <div class="rcrest"><img id="logoB" alt=""></div>
@@ -843,79 +830,145 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 
   let lastEventKey=null,bannerTimer=null;
   function isRunOutToken(x){const L=String(x||'').toUpperCase().replace(/[^A-Z]/g,''); return L==='RO'||L==='RUNOUT';}
-  function maybeEvent(s){
-    if(s.specialEvent&&(s.specialEvent.type==='FR'||s.specialEvent.type==='FREEHIT')){
+
+  function renderTargetAndNeed(s, m) {
+    try {
+      console.debug('Overlay debug:', { overlay: s, match: m });
+
+      const bpo = Number(s.ballsPerOver ?? s.bpo ?? 6);
+
+      // target from multiple possible keys
+      const target = (s.target ?? s.chaseTarget ?? s.chase ?? m?.target ?? m?.chaseTarget ?? null);
+
+      // needRuns from many keys or compute from target
+      let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs ?? s.runsToWin ?? m?.needRuns ?? null);
+      if (needRuns == null && (typeof target === 'number' || !isNaN(Number(target)))) {
+        needRuns = Math.max(Number(target) - Number(s.runs || 0), 0);
+      }
+      if (needRuns != null) needRuns = Number(needRuns);
+
+      // try many variants for ballsLeft / oversLeft / totalOvers
+      const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? s.balls_left ?? s.balls_remaining ?? m?.ballsLeft ?? m?.ballsRemaining ?? null);
+      const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? s.overs_to_go ?? s.overs_left ?? m?.oversLeft ?? m?.oversRemaining ?? null);
+      const totalOvers = (m?.noOfOvers ?? m?.totalOvers ?? m?.oversLimit ?? s.totalOvers ?? s.oversLimit ?? s.noOfOvers ?? null);
+
+      const bowledBalls = (Number(s.overs || 0) * bpo) + Number(s.balls || 0);
+
+      let ballsLeft = null;
+      if (ballsLeftDirect != null && !Number.isNaN(Number(ballsLeftDirect))) {
+        ballsLeft = Number(ballsLeftDirect);
+      } else if (oversLeftDirect != null && !Number.isNaN(Number(oversLeftDirect))) {
+        ballsLeft = Math.max(0, Number(oversLeftDirect) * bpo);
+      } else if (totalOvers != null && !Number.isNaN(Number(totalOvers))) {
+        ballsLeft = Math.max(0, Number(totalOvers) * bpo - bowledBalls);
+      }
+
+      // Show/hide target
+      if (typeof target === 'number' && !Number.isNaN(target)) {
+        tg.style.display = 'inline-block';
+        tg.textContent = 'TARGET ' + target;
+      } else {
+        tg.style.display = 'none';
+      }
+
+      // Show need only in 2nd innings (when target is set)
+      if (target && needRuns != null && ballsLeft != null) {
+        need.style.display = 'inline-block';
+        need.textContent = 'NEED ' + needRuns + ' FROM ' + ballsLeft;
+      } else if (target && needRuns != null && ballsLeft == null) {
+        need.style.display = 'inline-block';
+        need.textContent = 'NEED ' + needRuns;
+      } else {
+        need.style.display = 'none';
+      }
+    } catch (err) {
+      console.error('renderTargetAndNeed error', err);
+      tg.style.display = 'none';
+      need.style.display = 'none';
+    }
+  }
+
+  function maybeEvent(s, m){
+    if(s.specialEvent && (s.specialEvent.type === 'FR' || s.specialEvent.type === 'FREEHIT')){
+      const dur = Number(s.specialEvent.durationMs || 10000);
       eventWrap.className='event freehit'; evI.textContent='FH'; evT.textContent=s.specialEvent.label||'FREE HIT';
       eventWrap.classList.add('show'); linfo.classList.add('hide');
-      clearTimeout(bannerTimer); const dur=Number(s.specialEvent.durationMs||20000);
-      bannerTimer=setTimeout(()=>{eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide');},dur);
+      tg.style.display='none'; need.style.display='none';
+      clearTimeout(bannerTimer);
+      bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, dur);
       return;
     }
-    const list=Array.isArray(s.overBalls)?s.overBalls:[]; const last=String(list[list.length-1]??'').trim(); if(!last) return;
-    const key=\`\${Number(s.overs||0)}.\${Number(s.balls||0)}-\${last}\`; if(key===lastEventKey) return; lastEventKey=key;
-    eventWrap.className='event'; const token=last.toUpperCase();
-    if(token==='4'||token==='6'||token==='W'||isRunOutToken(token)){
-      if(token==='4'){eventWrap.classList.add('four');evI.textContent='4';evT.textContent='FOUR';}
-      else if(token==='6'){eventWrap.classList.add('six');evI.textContent='6';evT.textContent='SIX';}
-      else {eventWrap.classList.add('wicket');evI.textContent='W';evT.textContent='WICKET';}
+
+    const list = Array.isArray(s.overBalls) ? s.overBalls : [];
+    const last = String(list[list.length-1] ?? '').trim();
+    if (!last) return;
+    const key = String(Number(s.overs || 0)) + '.' + String(Number(s.balls || 0)) + '-' + last;
+    if (key === lastEventKey) return;
+    lastEventKey = key;
+
+    eventWrap.className='event';
+    const token = last.toUpperCase();
+
+    if (token === '4' || token === '6' || token === 'W' || isRunOutToken(token)) {
+      if (token === '4') { eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
+      else if (token === '6') { eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
+      else { eventWrap.classList.add('wicket'); evI.textContent='W'; evT.textContent='WICKET'; }
+
       eventWrap.classList.add('show'); linfo.classList.add('hide');
+      tg.style.display='none'; need.style.display='none';
       clearTimeout(bannerTimer);
-      bannerTimer=setTimeout(()=>{eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide');},20000);
+      bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, 10000);
     }
   }
 
   const state={overlay:null,match:null};
 
   function render(){
-    const s=state.overlay||{}; const m=state.match||{};
-    teamA.textContent=up(s.battingTeam||m.team1||'—');
-    teamB.textContent=up(s.bowlingTeam||m.team2||'—');
-    logoA.src=s.battingTeamLogo||m.team1Logo||''; logoB.src=s.bowlingTeamLogo||m.team2Logo||'';
-    score.textContent=(s.runs||0)+'-'+(s.wickets||0);
+    const s = state.overlay || {};
+    const m = state.match || {};
 
-    const st=s.striker||{}, ns=s.nonStriker||{};
-    b1.textContent=first(st.name||'—'); b1f.innerHTML=(st.runs||0)+' <span class="sup">('+(st.balls||0)+')</span>';
-    b2.textContent=first(ns.name||'—'); b2f.innerHTML=(ns.runs||0)+' <span class="sup">('+(ns.balls||0)+')</span>';
+    teamA.textContent = up(s.battingTeam || m.team1 || '—');
+    teamB.textContent = up(s.bowlingTeam || m.team2 || '—');
+    logoA.src = s.battingTeamLogo || m.team1Logo || '';
+    logoB.src = s.bowlingTeamLogo || m.team2Logo || '';
+    score.textContent = (s.runs || 0) + '-' + (s.wickets || 0);
 
-    const bw=s.bowler||{};
-    bowName.textContent=first(bw.name||'—');
-    const w=Number(bw.wickets||0), r=Number(bw.runs||0);
-    const ov=(bw.overs!=null?bw.overs:0);
-    bowf.textContent=w+'-'+ov+'-'+r;
+    const st = s.striker || {}, ns = s.nonStriker || {};
+    b1.textContent = first(st.name || '—');
+    b1f.innerHTML = (st.runs || 0) + ' <span class="sup">(' + (st.balls || 0) + ')</span>';
+    b2.textContent = first(ns.name || '—');
+    b2f.innerHTML = (ns.runs || 0) + ' <span class="sup">(' + (ns.balls || 0) + ')</span>';
 
-    rr.textContent='RR '+(s.runRate||'0.00');
+    const bw = s.bowler || {};
+    bowName.textContent = first(bw.name || '—');
+    const w = Number(bw.wickets || 0), r = Number(bw.runs || 0);
+    const ov = (bw.overs != null ? bw.overs : 0);
+    bowf.textContent = w + '-' + ov + '-' + r;
 
-    const bpo=Number(s.ballsPerOver||6);
-    const target=(s.target??s.chaseTarget);
-
-    let needRuns=(s.needRuns??s.runsNeeded??s.req_runs);
-    if(needRuns==null&&typeof target==='number'){needRuns=Math.max(Number(target)-Number(s.runs||0),0);}
-    if(needRuns!=null) needRuns=Math.max(Number(needRuns),0);
-
-    const ballsLeftDirect=(s.ballsLeft??s.ballsRemaining??s.balls_to_go??null);
-    const oversLeftDirect=(s.oversLeft??s.oversRemaining??null);
-    const totalOvers=(m.noOfOvers??s.totalOvers??s.oversLimit??null);
-    const bowledBalls=Number(s.overs||0)*bpo+Number(s.balls||0);
-
-    let ballsLeft=null;
-    if(ballsLeftDirect!=null) ballsLeft=Number(ballsLeftDirect);
-    else if(oversLeftDirect!=null) ballsLeft=Math.max(0,Number(oversLeftDirect)*bpo);
-    else if(totalOvers!=null) ballsLeft=Math.max(0,Number(totalOvers)*bpo-bowledBalls);
-
-    if(typeof target==='number'&&!Number.isNaN(target)){ tg.style.display='inline-block'; tg.textContent='TARGET '+target; } else { tg.style.display='none'; }
-    if(needRuns!=null&&ballsLeft!=null){ need.style.display='inline-block'; need.textContent='NEED '+needRuns+' FROM '+ballsLeft; } else { need.style.display='none'; }
+    rr.textContent = 'RR ' + (s.runRate || '0.00');
 
     renderDots(s.overBalls);
-    maybeEvent(s);
+
+    if (!eventWrap.classList.contains('show')) {
+      renderTargetAndNeed(s, m);
+    }
+
+    maybeEvent(s, m);
   }
 
-  try{const es1=new EventSource('/sse-overlay'); es1.onmessage=e=>{state.overlay=JSON.parse(e.data)||{}; render();};}catch{}
-  try{const es2=new EventSource('/sse-match');   es2.onmessage=e=>{state.match  =JSON.parse(e.data)||{}; render();};}catch{}
+  try {
+    const es1 = new EventSource('/sse-overlay');
+    es1.onmessage = e => { state.overlay = JSON.parse(e.data) || {}; render(); };
+  } catch (err) { console.error(err); }
+
+  try {
+    const es2 = new EventSource('/sse-match');
+    es2.onmessage = e => { state.match = JSON.parse(e.data) || {}; render(); };
+  } catch (err) { console.error(err); }
 </script>
 </body>
 </html>`);
 });
-
 
 
 
