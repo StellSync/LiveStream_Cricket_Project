@@ -18,7 +18,8 @@ const PlayerSchema = new mongoose.Schema(
     playerAddress: { type: String, trim: true },
     phone: { type: String, trim: true }, // keep as string for +94, leading zeros
 
-    position: { type: Number }, // "Batter", "Bowler", "All-rounder", "WK"...
+    // Position is OPTIONAL now; can be Number or null
+    position: { type: Number, default: null },
 
     // Role flags
     isBatter: { type: Boolean, default: false },
