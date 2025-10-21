@@ -995,11 +995,6 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 
 
 
-
-
-
-
-
 app.get("/overlay/scorebar-tv-orange", (_req, res) => { 
   res.set("Content-Type", "text/html; charset=utf-8").send(`<!doctype html>
 <html lang="en">
