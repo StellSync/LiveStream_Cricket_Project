@@ -222,6 +222,63 @@ export default function ScoreDashboard() {
     // IMPORTANT: do NOT call finishBallAndCheckOver(); do NOT increment balls or striker balls.
   };
 
+  // Byes + Run-out handler: wicket on the same bye ball (no bowler wicket; ball already counted)
+  // If the last entry is a Bye (e.g., "B2"), append "\nWK". Otherwise do nothing.
+  const handleByeRunOut = (who /* 'batsman1' | 'batsman2' */) => {
+    if (scoringLocked) return;
+
+    // Snapshot for undo
+    const snapshot = {
+      inningsRuns,
+      inningsWickets,
+      overs,
+      balls,
+      currentOverRuns,
+      onStrike,
+      batsman1,
+      batsman2,
+      bowler,
+      dismissedBatterIds: [...dismissedBatterIds],
+      overBallHistory: [...overBallHistory],
+      scoringLocked,
+      allBatterStats: { ...allBatterStats },
+      allBowlerStats: { ...allBowlerStats },
+    };
+    setHistory((prev) => [...prev, snapshot]);
+
+    const outId = who === "batsman1" ? batsman1 : batsman2;
+    if (!outId) return;
+
+    // Increment team wickets (no bowler wicket)
+    setInningsWickets((w) => w + 1);
+
+    // Append WK only if last logged ball is a Bye ("B#")
+    setOverBallHistory((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      const isBye = typeof last === "string" && /^B\d+$/i.test(last);
+
+      if (isBye) {
+        if (!/\nWK$/i.test(last)) {
+          next[next.length - 1] = `${last}\nWK`;
+        }
+      }
+      // If not a Bye, we ignore to avoid corrupting ball count.
+      return next;
+    });
+
+    // Mark dismissed + clear slot; if striker was out, flip strike to the other
+    if (who === "batsman1") {
+      setBatsman1("");
+      if (onStrike === "batsman1") setOnStrike("batsman2");
+    } else {
+      setBatsman2("");
+      if (onStrike === "batsman2") setOnStrike("batsman1");
+    }
+
+    // IMPORTANT: do NOT call finishBallAndCheckOver(); the bye already counted the ball.
+  };
+
   async function reloadBowlers() {
     if (bowlingTeamId == null) return;
     try {
@@ -1246,6 +1303,7 @@ export default function ScoreDashboard() {
   }, [currentInnings, innings1]);
 
   // 3x3 scoring table
+  // 3x3 scoring table
   const renderTable = (title, items) => (
     <Grid item xs={12} sm={4}>
       <Typography
@@ -1266,6 +1324,7 @@ export default function ScoreDashboard() {
           bgcolor: scoringLocked
             ? "action.disabledBackground"
             : "background.paper",
+          p: 0, // keep tight around table
         }}
       >
         <Table
@@ -1335,6 +1394,100 @@ export default function ScoreDashboard() {
           </TableBody>
         </Table>
       </Paper>
+
+      {/* Extra controls specifically for WIDES */}
+      {title === "Wides" && (
+        <Stack spacing={0.75} mt={1}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700 }}
+          >
+            Run-out on this Wide
+          </Typography>
+
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman1")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#6a1b9a", "&:hover": { bgcolor: "#4a148c" } }}
+          >
+            Batsman 1
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman2")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#8e24aa", "&:hover": { bgcolor: "#6a1b9a" } }}
+          >
+            Batsman 2
+          </Button>
+        </Stack>
+      )}
+
+      {/* Extra controls specifically for NO BALLS (reuse wide-runout handler) */}
+      {title === "No Balls" && (
+        <Stack spacing={0.75} mt={1}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700 }}
+          >
+            Run-out on this No Ball
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman1")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#6a1b9a", "&:hover": { bgcolor: "#4a148c" } }}
+          >
+            Batsman 1
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman2")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#8e24aa", "&:hover": { bgcolor: "#6a1b9a" } }}
+          >
+            Batsman 2
+          </Button>
+        </Stack>
+      )}
+
+      {/* Extra controls specifically for BYES */}
+      {title === "Byes" && (
+        <Stack spacing={0.75} mt={1}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700 }}
+          >
+            Run-out on this Bye
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleByeRunOut("batsman1")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#6a1b9a", "&:hover": { bgcolor: "#4a148c" } }}
+          >
+            Batsman 1
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleByeRunOut("batsman2")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#8e24aa", "&:hover": { bgcolor: "#6a1b9a" } }}
+          >
+            Batsman 2
+          </Button>
+        </Stack>
+      )}
     </Grid>
   );
 
@@ -2419,39 +2572,6 @@ export default function ScoreDashboard() {
                           onClick={triggerFreeHit}
                         >
                           Show FREE-HIT Banner
-                        </Button>
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          disabled={
-                            scoringLocked || currentInnings === "completed"
-                          }
-                          sx={{
-                            bgcolor: "#6a1b9a",
-                            color: "white",
-                            "&:hover": { bgcolor: "#4a148c" },
-                          }}
-                          onClick={() => handleWideRunOut("batsman1")}
-                        >
-                          Wide/NoBall Run out (Batsman 1)
-                        </Button>
-
-                        <Button
-                          variant="contained"
-                          size="small"
-                          fullWidth
-                          disabled={
-                            scoringLocked || currentInnings === "completed"
-                          }
-                          sx={{
-                            bgcolor: "#8e24aa",
-                            color: "white",
-                            "&:hover": { bgcolor: "#6a1b9a" },
-                          }}
-                          onClick={() => handleWideRunOut("batsman2")}
-                        >
-                          Wide/NoBall Run out (Batsman 2)
                         </Button>
                       </Stack>
                     </CardContent>
