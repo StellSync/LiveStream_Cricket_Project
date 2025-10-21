@@ -64,7 +64,7 @@ async function enrichMatchDoc(doc) {
   const [t, t1, t2] = await Promise.all([
     Tournament.findOne(
       { id: m.tournamentId },
-      { id: 1, name: 1, logo: 1, place: 1 } // ✅ include place
+      { id: 1, name: 1, logo: 1, place: 1 }
     ).lean(),
     Team.findOne({ id: m.team1Id }, { id: 1, teamName: 1, logo: 1 }).lean(),
     Team.findOne({ id: m.team2Id }, { id: 1, teamName: 1, logo: 1 }).lean(),
@@ -74,7 +74,7 @@ async function enrichMatchDoc(doc) {
     ...m,
     tournamentName: t?.name || null,
     tournamentLogo: t?.logo || null,
-    tournamentPlace: t?.place || null, // ✅ now works
+    tournamentPlace: t?.place || null,
     team1Name: t1?.teamName || null,
     team1Logo: t1?.logo || null,
     team2Name: t2?.teamName || null,
@@ -92,7 +92,7 @@ async function enrichMatchList(docs) {
   const [tournaments, teams] = await Promise.all([
     Tournament.find(
       { id: { $in: tIds } },
-      { id: 1, name: 1, logo: 1, place: 1 } // ✅ include place
+      { id: 1, name: 1, logo: 1, place: 1 }
     ).lean(),
     Team.find({ id: { $in: teamIds } }, { id: 1, teamName: 1, logo: 1 }).lean(),
   ]);
@@ -111,7 +111,7 @@ async function enrichMatchList(docs) {
     ...d,
     tournamentName: tMap.get(d.tournamentId)?.name ?? null,
     tournamentLogo: tMap.get(d.tournamentId)?.logo ?? null,
-    tournamentPlace: tMap.get(d.tournamentId)?.place ?? null, // ✅ now included
+    tournamentPlace: tMap.get(d.tournamentId)?.place ?? null,
     team1Name: teamMap.get(d.team1Id)?.name ?? null,
     team1Logo: teamMap.get(d.team1Id)?.logo ?? null,
     team2Name: teamMap.get(d.team2Id)?.name ?? null,
@@ -171,10 +171,20 @@ export const createMatch = async (req, res, next) => {
         status: 400,
       });
     }
-    if (!startTime || !/^\d{2}:\d{2}$/.test(startTime)) {
-      throw Object.assign(new Error("startTime must be HH:mm"), {
-        status: 400,
-      });
+
+    // startTime is OPTIONAL now.
+    // If provided and non-empty, validate HH:mm. Otherwise store null.
+    let startTimeValue = null;
+    if (startTime !== undefined && startTime !== null && String(startTime).trim() !== "") {
+      const st = String(startTime).trim();
+      if (!/^\d{2}:\d{2}$/.test(st)) {
+        throw Object.assign(new Error("startTime must be HH:mm"), {
+          status: 400,
+        });
+      }
+      startTimeValue = st;
+    } else {
+      startTimeValue = null;
     }
 
     const payload = {
@@ -187,7 +197,7 @@ export const createMatch = async (req, res, next) => {
       IsCountWideBall: parseBoolLoose(IsCountWideBall, false),
       IsCountNoBall: parseBoolLoose(IsCountNoBall, false),
       date,
-      startTime,
+      startTime: startTimeValue,
     };
 
     const m = await Match.create(payload);
@@ -292,14 +302,26 @@ export const updateMatch = async (req, res, next) => {
       update.noOfOvers = Number(body.noOfOvers);
     }
     if (body.date != null) update.date = body.date;
-    if (body.startTime != null) {
-      if (!/^\d{2}:\d{2}$/.test(body.startTime)) {
-        throw Object.assign(new Error("startTime must be HH:mm"), {
-          status: 400,
-        });
+
+    // IMPORTANT: allow clearing startTime by sending null or empty string.
+    // We check for presence using 'startTime' in body so null is allowed.
+    if (Object.prototype.hasOwnProperty.call(body, "startTime")) {
+      const stRaw = body.startTime;
+      if (stRaw === null || (typeof stRaw === "string" && stRaw.trim() === "")) {
+        // Clear the field
+        update.startTime = null;
+      } else {
+        // Validate non-empty value
+        const st = String(stRaw).trim();
+        if (!/^\d{2}:\d{2}$/.test(st)) {
+          throw Object.assign(new Error("startTime must be HH:mm"), {
+            status: 400,
+          });
+        }
+        update.startTime = st;
       }
-      update.startTime = body.startTime;
     }
+
     if (body.IsCountWideBall != null) {
       update.IsCountWideBall = parseBoolLoose(body.IsCountWideBall, false);
     }

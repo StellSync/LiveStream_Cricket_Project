@@ -28,7 +28,12 @@ const MatchSchema = new mongoose.Schema(
     IsCountNoBall:  { type: Boolean, default: false },   // default false for backward compatibility
 
     date: { type: Date, required: true },
-    startTime: { type: String, required: true }, // "HH:mm"
+
+    // <-- START: changed to optional
+    // startTime used to be required; now it accepts null / missing values
+    startTime: { type: String, default: null }, // "HH:mm" OR null
+    // <-- END: change
+
   },
   { timestamps: true }
 );

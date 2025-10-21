@@ -7,42 +7,49 @@ import {
   deletePlayer,
   getTeams,
 } from "../lib/api.js";
+import { Autocomplete, TextField, Box } from "@mui/material";
 
 const emptyForm = {
   teamId: "",
   playerName: "",
   playerAddress: "",
   phone: "",
-  position: "", // keep as string in the form for easier validation
+  position: "",
   isBatter: false,
   isBaller: false,
   isWk: false,
   isCaptain: false,
 };
 
-// Fixed heights for scroll areas (tweak if you want)
-const MAIN_PANEL_HEIGHT = 720; // right card height
-const TEAM_SECTION_BODY_HEIGHT = 260; // inner per-team scroll height
+const MAIN_PANEL_HEIGHT = 720;
+const TEAM_SECTION_BODY_HEIGHT = 260;
+const LISTBOX_MAX_HEIGHT = 300;
 
 export default function PlayersPage() {
   const [items, setItems] = useState([]);
   const [teams, setTeams] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
-  const [filterTeamId, setFilterTeamId] = useState(""); // '' = all
-  const [query, setQuery] = useState(""); // optional player search
 
-  // NEW: remember the last selected team for convenience
+  // retrieval filters (right card)
+  const [filterTeamId, setFilterTeamId] = useState(""); // '' = all
+  const [query, setQuery] = useState("");
+
+  // QoL: remember last team selected while creating/editing
   const [lastTeamId, setLastTeamId] = useState("");
 
-  // NEW: form validation state
+  // validation state
   const [errors, setErrors] = useState({});
 
+
+
+
+const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+
+
   async function load() {
-    const [playersRes, teamsRes] = await Promise.all([
-      getPlayers(),
-      getTeams(),
-    ]);
+    const [playersRes, teamsRes] = await Promise.all([getPlayers(), getTeams()]);
     setItems(playersRes.data || []);
     setTeams(teamsRes.data || []);
   }
@@ -50,24 +57,14 @@ export default function PlayersPage() {
     load();
   }, []);
 
-  // --- Validation helpers ---
   function validate(values) {
     const e = {};
+    if (!values.teamId) e.teamId = "Please select a team.";
 
-    // Team required
-    if (!values.teamId) {
-      e.teamId = "Please select a team.";
-    }
-
-    // Player Name required (min 2 chars)
     const name = (values.playerName || "").trim();
-    if (!name) {
-      e.playerName = "Player name is required.";
-    } else if (name.length < 2) {
-      e.playerName = "Player name must be at least 2 characters.";
-    }
+    if (!name) e.playerName = "Player name is required.";
+    else if (name.length < 2) e.playerName = "Player name must be at least 2 characters.";
 
-    // Position: required, integer, 0..11
     let posMsg = "";
     const raw = values.position;
     if (raw === "" || raw === null || raw === undefined) {
@@ -79,44 +76,33 @@ export default function PlayersPage() {
     }
     if (posMsg) e.position = posMsg;
 
-    // At least one role among Batter/Bowler/WK
     if (!values.isBatter && !values.isBaller && !values.isWk) {
       e.roles = "Select at least one role: Batter, Bowler, or Wicket Keeper.";
     }
-
     return e;
   }
 
   function onChange(e) {
     const { name, value, type, checked } = e.target;
-    const next = {
-      ...form,
-      [name]: type === "checkbox" ? checked : value,
-    };
-
-    // If team changed by admin, remember it as last selection
-    if (name === "teamId") {
-      setLastTeamId(value);
-    }
-
+    const next = { ...form, [name]: type === "checkbox" ? checked : value };
+    if (name === "teamId") setLastTeamId(value);
     setForm(next);
-    setErrors((prev) => {
-      // re-validate the single field (and dependent 'roles' group if relevant)
-      const fresh = validate(next);
-      return { ...prev, [name]: fresh[name], ...(name.startsWith("is") ? { roles: fresh.roles } : {}) };
-    });
+
+    // live-validate changed field
+    const fresh = validate(next);
+    setErrors((prev) => ({
+      ...prev,
+      [name]: fresh[name],
+      ...(name.startsWith("is") ? { roles: fresh.roles } : {}),
+    }));
   }
 
   async function onSubmit(e) {
     e.preventDefault();
-
     const freshErrors = validate(form);
     setErrors(freshErrors);
-    if (Object.keys(freshErrors).length > 0) {
-      return; // don't submit if invalid
-    }
+    if (Object.keys(freshErrors).length > 0) return;
 
-    // Build payload with proper types
     const payload = {
       ...form,
       teamId: Number(form.teamId),
@@ -126,24 +112,20 @@ export default function PlayersPage() {
     if (editingId) await updatePlayer(editingId, payload);
     else await createPlayer(payload);
 
-    // Remember the team used on successful submit
+    // remember last selected team after successful submit
     const usedTeamId = String(payload.teamId);
     setLastTeamId(usedTeamId);
 
-    // Reset form BUT keep previously selected team as default
     setEditingId(null);
-    setForm({
-      ...emptyForm,
-      teamId: usedTeamId,
-    });
-    setErrors({}); // clear errors
+    setForm({ ...emptyForm, teamId: usedTeamId });
+    setErrors({});
     load();
   }
 
   function onEdit(p) {
     setEditingId(p.id);
     const tid = p.teamId ? String(p.teamId) : "";
-    setLastTeamId(tid); // make this the remembered team as well
+    setLastTeamId(tid);
     setForm({
       teamId: tid,
       playerName: p.playerName || "",
@@ -159,22 +141,45 @@ export default function PlayersPage() {
   }
 
   async function onDelete(id) {
-    if (confirm("Delete player?")) {
+    if (pendingDeleteId === id) {
+      // User clicked "Confirm Delete"
       await deletePlayer(id);
+      setPendingDeleteId(null);
       load();
+    } else {
+      // First click: mark for confirmation
+      setPendingDeleteId(id);
+  
+      // Optional: auto-reset after 5 seconds if user doesn't confirm
+      setTimeout(() => {
+        setPendingDeleteId((current) => (current === id ? null : current));
+      }, 3000);
     }
   }
 
-  // ---- helpers ----
+  // ----- lookups / options -----
   const teamMap = useMemo(() => {
     const m = new Map();
     for (const t of teams) m.set(t.id, t.teamName);
     return m;
   }, [teams]);
-
   const teamName = (id) => teamMap.get(id) || `#${id}`;
 
-  // Optional search by player name/phone/position
+  const sortedTeams = useMemo(() => {
+    const arr = teams.slice();
+    arr.sort((a, b) =>
+      (a.teamName || "").localeCompare(b.teamName || "", undefined, { sensitivity: "base" })
+    );
+    return arr;
+  }, [teams]);
+
+  // MUI Autocomplete options
+  const teamOptions = useMemo(
+    () => sortedTeams.map((t) => ({ id: String(t.id), label: t.teamName })),
+    [sortedTeams]
+  );
+
+  // search filter for retrieval
   const searchFilter = (p) => {
     const q = query.trim().toLowerCase();
     if (!q) return true;
@@ -188,43 +193,42 @@ export default function PlayersPage() {
     );
   };
 
-  // Filter players by team & search
+  // apply team & search filters to table
   const visiblePlayers = useMemo(() => {
-    const teamFiltered = filterTeamId
-      ? items.filter((p) => p.teamId === Number(filterTeamId))
-      : items;
+    const teamFiltered = filterTeamId ? items.filter((p) => p.teamId === Number(filterTeamId)) : items;
     return teamFiltered.filter(searchFilter);
   }, [items, filterTeamId, query]);
 
-  // Group by teamId → section per team
+  // group by team for display
   const groupedByTeam = useMemo(() => {
-    const groups = new Map(); // teamId -> { name, rows: [] }
+    const groups = new Map();
     for (const p of visiblePlayers) {
       const tid = p.teamId;
       const name = teamName(tid);
       if (!groups.has(tid)) groups.set(tid, { name, rows: [] });
       groups.get(tid).rows.push(p);
     }
-    // sort teams alphabetically by name
     const arr = Array.from(groups.entries()).map(([tid, g]) => ({
       teamId: tid,
       name: g.name,
       rows: g.rows.sort((a, b) =>
-        (a.playerName || "").localeCompare(b.playerName || "", undefined, {
-          sensitivity: "base",
-        })
+        (a.playerName || "").localeCompare(b.playerName || "", undefined, { sensitivity: "base" })
       ),
     }));
     arr.sort((a, b) =>
-      (a.name || "").localeCompare(b.name || "", undefined, {
-        sensitivity: "base",
-      })
+      (a.name || "").localeCompare(b.name || "", undefined, { sensitivity: "base" })
     );
     return arr;
   }, [visiblePlayers, teamMap]);
 
-  // utility: Bootstrap invalid state helper
+  // helpers for validity state
   const invalid = (key) => Boolean(errors[key]);
+
+  // selected options (MUI)
+  const selectedTeamOptionForForm =
+    teamOptions.find((o) => o.id === (form.teamId || lastTeamId)) || null;
+  const selectedTeamOptionForFilter =
+    teamOptions.find((o) => o.id === (filterTeamId || "")) || null;
 
   return (
     <div className="row g-4">
@@ -232,29 +236,33 @@ export default function PlayersPage() {
       <div className="col-lg-5">
         <div className="card shadow-sm">
           <div className="card-body">
-            <h5 className="card-title">
-              {editingId ? "Edit Player" : "Add Player"}
-            </h5>
+            <h5 className="card-title">{editingId ? "Edit Player" : "Add Player"}</h5>
+
             <form onSubmit={onSubmit} className="row g-3" noValidate>
               <div className="col-12">
-                <label className="form-label">Team</label>
-                <select
-                  name="teamId"
-                  className={`form-select ${invalid("teamId") ? "is-invalid" : ""}`}
-                  value={form.teamId || lastTeamId /* safety: show remembered if form empty */}
-                  onChange={onChange}
-                  required
-                >
-                  <option value="">-- Select Team --</option>
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.teamName} (#{t.id})
-                    </option>
-                  ))}
-                </select>
-                {invalid("teamId") && (
-                  <div className="invalid-feedback">{errors.teamId}</div>
-                )}
+                {/* MUI Autocomplete — Team (insert/edit form) */}
+                <Autocomplete
+                  options={teamOptions}
+                  value={selectedTeamOptionForForm}
+                  onChange={(_, newVal) =>
+                    onChange({
+                      target: { name: "teamId", value: newVal ? newVal.id : "", type: "text" },
+                    })
+                  }
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  ListboxProps={{
+                    style: { maxHeight: LISTBOX_MAX_HEIGHT, overflowY: "auto" },
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Team"
+                      required
+                      error={invalid("teamId")}
+                      helperText={errors.teamId || ""}
+                    />
+                  )}
+                />
               </div>
 
               <div className="col-6">
@@ -279,9 +287,7 @@ export default function PlayersPage() {
                   className={`form-control ${invalid("position") ? "is-invalid" : ""}`}
                   value={form.position}
                   onChange={(e) => {
-                    // keep as string but clamp visually
                     let v = e.target.value;
-                    // allow empty (so required kicks in), otherwise clamp
                     if (v !== "") {
                       const n = Number(v);
                       if (!Number.isNaN(n)) {
@@ -289,7 +295,7 @@ export default function PlayersPage() {
                         if (n > 11) v = "11";
                       }
                     }
-                    onChange({ target: { name: "position", value: v, type: "text", checked: undefined } });
+                    onChange({ target: { name: "position", value: v, type: "text" } });
                   }}
                   min={0}
                   max={11}
@@ -308,7 +314,6 @@ export default function PlayersPage() {
                   className="form-control"
                   value={form.phone}
                   onChange={onChange}
-                  placeholder=""
                 />
               </div>
 
@@ -376,7 +381,6 @@ export default function PlayersPage() {
                   </label>
                 </div>
 
-                {/* Roles validation message */}
                 {invalid("roles") && (
                   <div className="text-danger small mt-1">{errors.roles}</div>
                 )}
@@ -392,7 +396,6 @@ export default function PlayersPage() {
                     className="btn btn-secondary"
                     onClick={() => {
                       setEditingId(null);
-                      // Keep last selected team as default when cancelling
                       setForm({ ...emptyForm, teamId: lastTeamId || "" });
                       setErrors({});
                     }}
@@ -410,43 +413,47 @@ export default function PlayersPage() {
       <div className="col-lg-7">
         <div className="card shadow-sm" style={{ height: MAIN_PANEL_HEIGHT }}>
           <div className="card-body d-flex flex-column" style={{ height: "90%" }}>
-            {/* Top bar: filters */}
+            {/* Filters row (Team dropdown + Search side-by-side) */}
             <div className="d-flex flex-wrap align-items-center justify-content-between mb-3">
               <h5 className="card-title mb-0">Players</h5>
 
-              <div className="d-flex gap-2 flex-wrap">
-                {/* Team filter */}
-                <div className="d-flex align-items-center gap-2">
-                  <label className="form-label mb-0">Team:</label>
-                  <select
-                    className="form-select"
-                    style={{ minWidth: 220 }}
-                    value={filterTeamId}
-                    onChange={(e) => setFilterTeamId(e.target.value)}
-                  >
-                    <option value="">All teams</option>
-                    {teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.teamName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Parallel controls */}
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 2,
+                  alignItems: "center",
+                }}
+              >
+                {/* Team dropdown (clear for All teams) */}
+                <Autocomplete
+                  options={teamOptions}
+                  value={selectedTeamOptionForFilter}
+                  onChange={(_, newVal) => setFilterTeamId(newVal ? newVal.id : "")}
+                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  clearOnEscape
+                  renderInput={(params) => (
+                    <TextField {...params} label="Team" placeholder="All teams" />
+                  )}
+                  ListboxProps={{
+                    style: { maxHeight: LISTBOX_MAX_HEIGHT, overflowY: "auto" },
+                  }}
+                  sx={{ minWidth: 260 }}
+                />
 
-                {/* Optional: quick player search */}
-                <div className="input-group">
-                  <span className="input-group-text">Search</span>
-                  <input
-                    className="form-control"
-                    placeholder="player / phone / position / team"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </div>
-              </div>
+                {/* Search (MUI TextField so it matches visually) */}
+                <TextField
+                  label="Search"
+                  placeholder="player / phone / position / team"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  sx={{ minWidth: 300 }}
+                />
+              </Box>
             </div>
 
-            {/* MAIN SCROLLER (whole list of team sections) */}
+            {/* MAIN SCROLLER */}
             <div style={{ overflow: "auto" }}>
               {groupedByTeam.length === 0 ? (
                 <div className="text-center text-muted py-4">No players</div>
@@ -466,15 +473,12 @@ export default function PlayersPage() {
                     {/* TEAMWISE SCROLLER */}
                     <div
                       className="mt-2"
-                      style={{
-                        maxHeight: TEAM_SECTION_BODY_HEIGHT,
-                        overflow: "auto",
-                      }}
+                      style={{ maxHeight: TEAM_SECTION_BODY_HEIGHT, overflow: "auto" }}
                     >
                       <table className="table table-striped align-middle mb-0">
                         <thead
-                          style={{ position: "sticky", top: 0, zIndex: 1 }}
                           className="table-light"
+                          style={{ position: "sticky", top: 0, zIndex: 1 }}
                         >
                           <tr>
                             <th style={{ width: 70 }}>ID</th>
@@ -493,16 +497,12 @@ export default function PlayersPage() {
                               <td>{p.playerName}</td>
                               <td className="text-nowrap">{p.phone || "-"}</td>
                               <td className="text-nowrap">{p.playerAddress}</td>
-                              <td className="text-nowrap">
-                                {p.position ?? "-"}
-                              </td>
+                              <td className="text-nowrap">{p.position ?? "-"}</td>
                               <td>
                                 {p.isCaptain && (
                                   <span className="badge text-bg-warning me-1">C</span>
                                 )}
-                                {p.isWk && (
-                                  <span className="badge text-bg-info me-1">WK</span>
-                                )}
+                                {p.isWk && <span className="badge text-bg-info me-1">WK</span>}
                                 {p.isBatter && (
                                   <span className="badge text-bg-primary me-1">Bat</span>
                                 )}
@@ -518,12 +518,12 @@ export default function PlayersPage() {
                                   >
                                     Edit
                                   </button>
-                                  <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => onDelete(p.id)}
-                                  >
-                                    Delete
-                                  </button>
+                                   <button
+                                  className={`btn btn-sm ${pendingDeleteId === (p.id ?? p._id) ? "btn-danger" : "btn-outline-danger"}`}
+                                  onClick={() => onDelete(p.id ?? p._id)}
+                                >
+                                  {pendingDeleteId === (p.id ?? p._id) ? "Confirm Delete" : "Delete"}
+                                </button>
                                 </div>
                               </td>
                             </tr>
