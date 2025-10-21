@@ -653,6 +653,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Scorebar TV</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
   html,body{margin:0;background:transparent}
   *{box-sizing:border-box}
@@ -660,119 +661,108 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     --teal1:#116c64; --teal2:#0b524c; --teal3:#0a3f3a;
     --ring:#ffffff33; --mut:#d6e7ec; --fg:#fff;
     --dotScale:1;
-    --dotBase:44px;
-    --eventDur:10000ms;
+    --dotBase:36px;
+    --eventDur:8000ms;
   }
+
   .shell{display:flex;justify-content:center;padding:0}
   .strip{
-    width:min(1920px,100vw);
-    display:grid;
-    grid-template-columns: 92px 360px 1fr 700px 92px;
-    align-items:stretch;
-    border-radius:20px; overflow:hidden; color:var(--fg);
+    width:1920px;
+    height:170px;
+    border-radius:14px;
+    overflow:hidden;
+    color:var(--fg);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     background:linear-gradient(180deg,var(--teal1),var(--teal2));
-    box-shadow:0 16px 40px rgba(0,0,0,.32);
-    border:1px solid #00000030; position:relative;
-    margin:4px 0;
+    box-shadow:0 8px 24px rgba(0,0,0,.28);
+    border:1px solid #00000030;
+    position:relative;
+    margin:0 auto;
   }
 
-  .event{position:absolute;left:0;top:0;width:calc(92px + 360px);height:100%;display:none;align-items:center;justify-content:center;padding:8px;pointer-events:none;z-index:40}
+  .event{position:absolute;left:0;top:0;width:452px;height:100%;display:none;align-items:center;justify-content:center;padding:6px;pointer-events:none;z-index:40}
   .event.show{display:flex}
-  .badge{width:100%;height:100%;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:18px;font:1000 36px/1 system-ui;letter-spacing:.04em;color:#001014;white-space:nowrap;transform:scale(1);opacity:0;position:relative;overflow:hidden;animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,badgePulse var(--eventDur) ease-in-out}
-  .badge::after{content:"";position:absolute;inset:-30% -120%;background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);transform:translateX(-60%);animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite}
-  .ico{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font:1000 32px/1 system-ui;color:#001014;background:#fff;box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)}
-  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa);box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
-  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
-  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a);box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
-  .freehit .badge{background:linear-gradient(135deg,#ffd54f,#ffb300);box-shadow:0 0 28px rgba(255,179,0,.85),0 0 46px rgba(255,213,79,.55)}
+  .badge{width:100%;height:100%;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:12px;font:900 26px/1 system-ui;letter-spacing:.03em;color:#001014;white-space:nowrap;opacity:0;position:relative;overflow:hidden;animation:popIn .28s cubic-bezier(.18,.89,.32,1.28) forwards,badgePulse var(--eventDur) ease-in-out}
+  .ico{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font:900 22px/1 system-ui;color:#001014;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.22), inset 0 0 6px rgba(255,255,255,.45)}
+  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa)}
+  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a)}
+  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a)}
+  .freehit .badge{background:linear-gradient(135deg,#ffd54f,#ffb300)}
   @keyframes popIn{to{opacity:1}}
-  @keyframes sweep{to{transform:translateX(160%)}}
-  @keyframes badgePulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}}
+  @keyframes badgePulse{0%,100%{filter:none}30%{filter:drop-shadow(0 0 18px rgba(255,255,255,.45))}}
 
   .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--teal2),var(--teal3))}
-  .lcrest{border-right:1px solid #0000003a}
-  .rcrest{border-left:1px solid #0000003a}
-  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain;margin:6px 0}
+  .lcrest{width:92px;border-right:1px solid #0000003a}
+  .rcrest{width:92px;border-left:1px solid #0000003a}
+  .lcrest img,.rcrest img{width:64px;height:64px;border-radius:10px;background:#fff;object-fit:contain;margin:4px 0}
 
-  /* linfo is now positioned relative so banners can be absolutely positioned inside it */
-  #linfo{
-    display:grid;
-    grid-template-rows:auto auto;
+  .row-wrap{display:flex;height:100%;align-items:stretch;gap:0}
+
+  /* left info reduced slightly from 360 → 320 to allow more middle space */
+  .info{
+    width:320px;
+    min-width:320px;
+    padding:10px 12px;
     background:linear-gradient(180deg,var(--teal1),var(--teal3));
     border-right:1px solid #0000003a;
-    transition:opacity .18s;
-    position:relative; /* IMPORTANT: allow absolute-positioned banners inside */
-    padding:8px 12px 12px 14px;
-  }
-  #linfo.hide{opacity:0;visibility:hidden}
-  .aTop{display:flex;align-items:flex-end;gap:8px;padding:4px 0 4px 0;min-width:0}
-  .teamA{font-weight:1000;font-size:36px;line-height:1.12;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .aBot{display:flex;align-items:center;gap:8px;padding:2px 0 8px 0}
-  .vs{font:900 20px/1.2 system-ui}
-  .teamB{font:900 20px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-  /* Absolute-positioned small banners in top-right of the linfo panel */
-  .edgeTop{
-    position:absolute;
-    right:12px;
     display:flex;
-    justify-content:flex-end;
-    gap:8px;
-    pointer-events:none;
+    flex-direction:column;
+    justify-content:center;
   }
-  .edgeTop.top1{top:12px}
-  .edgeTop.top2{top:56px}
+  .teamA{font:900 28px/1 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+  .teamB{font:700 14px/1 system-ui;text-transform:uppercase;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .banners{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+  /* pills reduced padding & font */
+  .pill{display:inline-block;border-radius:10px;padding:4px 8px;font-weight:900;font-size:12px}
+  .pill.target{background:linear-gradient(135deg,#00f5d4,#00ff9a);color:#001014;box-shadow:0 6px 18px rgba(0,245,212,.12)}
+  .pill.need{background:linear-gradient(135deg,#ffb703,#ffd166);color:#1a0c00;box-shadow:0 6px 18px rgba(255,183,3,.10)}
 
-  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55),0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
-  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45),0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
+  .mid{
+    flex:1 1 auto;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:6px 14px;
+    background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.12));
+    border-right:1px solid #00000030;
+  }
 
-  .mid{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.16));border-right:1px solid #0000003a}
-  .r{display:grid;align-items:center;padding:6px 12px}
-  .r1{grid-template-columns:150px 10px 1fr max-content;gap:6px;border-bottom:1px solid #00000030}
-  .r2{grid-template-columns:150px 10px 1fr max-content;gap:6px}
-  .score{border-radius:16px;background:#fff;color:#0a2326;display:grid;place-items:center;font:1000 50px/1.02 system-ui;padding:10px 0}
-  .chev{width:12px;height:12px;border:2px solid #fff;border-left:0;border-bottom:0;transform:rotate(45deg)}
-  .nm{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:2px}
-  .mut{color:var(--mut);font-weight:900}
-  .fig{font:1000 26px/1.15 system-ui;margin-left:0}
-  .sup{font-size:15px;opacity:.9;vertical-align:top}
+  .topRow{display:flex;align-items:flex-start;gap:12px;min-width:0}
+  .scoreWrap{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px}
+  .score{border-radius:12px;background:#fff;color:#0a2326;display:grid;place-items:center;font:900 46px/1 system-ui;padding:6px 14px;min-width:88px;min-height:64px}
+  .oversPill{background:linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));color:var(--mut);border-radius:10px;padding:4px 8px;font-weight:900;font-size:13px}
+  .batCol{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+  .batLine{display:flex;align-items:center;gap:10px;min-width:0}
+  .nm{font:900 20px/1.02 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .fig{font:900 16px/1 system-ui;color:var(--mut)}
+  .sup{font-size:12px;opacity:.95;vertical-align:top;margin-left:6px}
 
-  .rrMid{justify-self:start}
-  .pill{background:#fff;color:#0b2326;border-radius:999px;padding:6px 12px;font:1000 18px/1 system-ui;white-space:nowrap}
-  .pill.alt{background:linear-gradient(180deg,#0b2b2f,#0a2124);color:#cfe5ea;border:1px solid #ffffff22}
-
+  /* right area slightly reduced from 620 → 600 to shift some width to mid */
   .right{
-    display:grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18));
-    border-right:1px solid #0000003a;
+    width:600px;
+    min-width:600px;
+    padding:8px 12px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.12));
   }
+  .bowRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .bowName{font:900 20px/1 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+  .bf{font:700 15px/1 system-ui;color:var(--mut);margin-left:10px}
+  .rrRight{background:linear-gradient(90deg,#0b2a58,#06203a);color:#cfe5ea;border-radius:8px;padding:6px 10px;font-weight:900;font-size:13px;margin-left:10px;white-space:nowrap}
 
-  .bowRow{
-    grid-column: 1 / -1;
-    grid-row: 1;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: max-content;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px 10px 4px 10px;
-    text-align: center;
-  }
-  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis;text-align:center}
-  .bf{font:1000 24px/1.1 system-ui;text-align:center}
-
-  .dotsRow{grid-column:1;grid-row:2;display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:4px 10px 10px 10px}
-  .dots{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:10px 14px;border-radius:999px;max-width:100%}
-
-  .dot{height:calc(var(--dotBase) * var(--dotScale));min-width:calc(var(--dotBase) * var(--dotScale));padding:0 calc(18px * var(--dotScale));border-radius:10px;background:#0a1a1e;box-shadow:inset 0 0 0 2px var(--ring);display:flex;align-items:center;justify-content:center;color:#fff;font:1000 calc(var(--dotBase)*0.58*var(--dotScale)) / 1 system-ui;letter-spacing:.02em;line-height:1;white-space:nowrap}
+  .dotsRow{display:flex;justify-content:flex-end;padding-top:6px}
+  .dots{display:flex;gap:8px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:8px 10px;border-radius:999px}
+  .dot{height:var(--dotBase);min-width:var(--dotBase);padding:0 8px;border-radius:8px;background:#0a1a1e;box-shadow:inset 0 0 0 2px var(--ring);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px}
   .dot.blue{background:#1e9ef8;color:#03121b}
   .dot.green{background:#22c55e;color:#05140a}
   .dot.red{background:#ef4444}
-  .dot.badge{min-width:auto;padding:0 calc(5px * var(--dotScale));font-size:calc(var(--dotBase) * 0.20 * var(--dotScale));letter-spacing:.002em;}
+  .dot.badge{padding:0 6px;font-size:12px}
+
+  .teamA,.teamB,.nm,.score{line-height:1}
+  img{display:block}
 </style>
 </head>
 <body>
@@ -780,41 +770,47 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     <div class="strip">
       <div class="event" id="event"><div class="badge" id="badge"><span class="ico" id="evI">6</span><span class="txt" id="evT">SIX</span></div></div>
 
-      <div class="lcrest"><img id="logoA" alt=""></div>
+      <div class="row-wrap">
+        <div class="lcrest"><img id="logoA" alt=""></div>
 
-      <div class="linfo" id="linfo">
-        <div class="aTop"><div class="teamA" id="teamA">TEAM A</div></div>
-        <div class="aBot"><div class="vs">VS</div><div class="teamB" id="teamB">TEAM B</div></div>
-
-        <!-- absolute positioned pills in top-right (same placement used for both bars) -->
-        <div class="edgeTop top1"><div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div></div>
-        <div class="edgeTop top2"><div class="pill target" id="tg" style="display:none">TARGET 0</div></div>
-      </div>
-
-      <div class="mid">
-        <div class="r r1">
-          <div class="score" id="score">0-0</div>
-          <div class="chev"></div>
-          <div class="nm" id="b1">BATTER 1</div>
-          <div class="fig" id="b1f">0 <span class="sup">(0)</span></div>
+        <div class="info" id="linfo">
+          <div class="teamA" id="teamA">TEAM A</div>
+          <div class="teamB" id="teamB">VS TEAM B</div>
+          <div class="banners">
+            <div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div>
+            <div class="pill target" id="tg" style="display:none">TARGET 0</div>
+          </div>
         </div>
-        <div class="r r2">
-          <div class="pill rrMid" id="rr">RR 0.00</div>
-          <div class="chev"></div>
-          <div class="nm mut" id="b2">BATTER 2</div>
-          <div class="fig mut" id="b2f">0 <span class="sup">(0)</span></div>
-        </div>
-      </div>
 
-      <div class="right">
-        <div class="bowRow">
-          <div class="bowName" id="bowName">BOWLER NAME</div>
-          <div class="bf" id="bowf">0-0.0-0</div>
-        </div>
-        <div class="dotsRow"><div class="dots" id="dots"></div></div>
-      </div>
+        <div class="mid">
+          <div class="topRow">
+            <div class="scoreWrap">
+              <div class="score" id="score">0-0</div>
+              <div class="oversPill" id="oversPill">0.0 ov</div>
+            </div>
 
-      <div class="rcrest"><img id="logoB" alt=""></div>
+            <div style="width:12px"></div>
+
+            <div class="batCol">
+              <div class="batLine"><div class="nm" id="b1">BATTER 1</div><div class="fig" id="b1f">0 <span class="sup">(0)</span></div></div>
+              <div class="batLine"><div class="nm" id="b2">BATTER 2</div><div class="fig" id="b2f">0 <span class="sup">(0)</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="bowRow">
+            <div style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div class="bowName" id="bowName">BOWLER</div>
+              <div class="bf" id="bowf">0-0-0</div>
+            </div>
+            <div class="rrRight" id="rr">RR 0.00</div>
+          </div>
+          <div class="dotsRow"><div class="dots" id="dots"></div></div>
+        </div>
+
+        <div class="rcrest"><img id="logoB" alt=""></div>
+      </div>
     </div>
   </div>
 
@@ -824,18 +820,18 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   const teamA=$('teamA'), teamB=$('teamB');
   const score=$('score'), b1=$('b1'), b1f=$('b1f'), b2=$('b2'), b2f=$('b2f');
   const bowName=$('bowName'), bowf=$('bowf'), dots=$('dots');
-  const rr=$('rr'), tg=$('tg'), need=$('need');
+  const rr=$('rr'), tg=$('tg'), need=$('need'), oversPill=$('oversPill');
   const eventWrap=$('event'), evI=$('evI'), evT=$('evT');
   const linfo=$('linfo');
 
   const up=s=>(s||'').toString().toUpperCase();
-  const first=s=>up(String(s||'').trim().split(/\\s+/)[0]);
+  const first=s=>up(String(s||'').trim().split(/\\s+/)[0] || '');
 
   function renderDots(list){
     const arr=Array.isArray(list)?list:[];
     dots.innerHTML='';
-    const targetVisible=14;
-    const scale=arr.length<=targetVisible?1:Math.max(0.56,targetVisible/arr.length);
+    const targetVisible=12;
+    const scale=arr.length<=targetVisible?1:Math.max(0.5,targetVisible/arr.length);
     document.documentElement.style.setProperty('--dotScale',String(scale));
     for(const raw of arr){
       let t=String(raw??'').trim();
@@ -843,7 +839,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
       if(!t||t==='0'||t==='•'){t='·';}
       if(t==='4') d.classList.add('blue');
       else if(t==='6') d.classList.add('green');
-      else if(t==='W') d.classList.add('red');
+      else if(t.toUpperCase()==='W') d.classList.add('red');
       else if(/^Wd/i.test(t)||/^Nb/i.test(t)||/^Ro/i.test(t)||/run\\s*out/i.test(t)){d.classList.add('badge');t=t.toUpperCase();}
       d.textContent=t; dots.appendChild(d);
     }
@@ -853,7 +849,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
   function isRunOutToken(x){const L=String(x||'').toUpperCase().replace(/[^A-Z]/g,''); return L==='RO'||L==='RUNOUT';}
 
   function parseBowledBalls(s, bpo) {
-    const out = { oversWhole: 0, ballsInOver: 0, bowledBalls: 0 };
+    const out = { oversWhole:0, ballsInOver:0, bowledBalls:0 };
     const rawOvers = s.overs ?? s.oversCompleted ?? s.oversBowled ?? s.ov ?? null;
     const rawBalls = s.balls ?? s.currentBalls ?? s.ball ?? null;
     if (rawOvers != null && rawOvers !== '') {
@@ -862,9 +858,7 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
         const parts = o.split('.');
         const whole = Number(parts[0]) || 0;
         const frac = Number(parts[1]) || 0;
-        out.oversWhole = whole;
-        out.ballsInOver = frac;
-        out.bowledBalls = whole * bpo + frac;
+        out.oversWhole = whole; out.ballsInOver = frac; out.bowledBalls = whole*bpo + frac;
         return out;
       }
       const num = Number(o);
@@ -872,105 +866,50 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
         out.oversWhole = num;
         if (rawBalls != null && rawBalls !== '') {
           const b = Number(rawBalls) || 0;
-          out.ballsInOver = b;
-          out.bowledBalls = num * bpo + b;
-        } else {
-          out.ballsInOver = 0;
-          out.bowledBalls = num * bpo;
-        }
-        return out;
-      }
-      if (!Number.isNaN(num)) {
-        const whole = Math.trunc(num);
-        const frac = Math.round((num - whole) * 10);
-        out.oversWhole = whole;
-        out.ballsInOver = frac;
-        out.bowledBalls = whole * bpo + frac;
+          out.ballsInOver = b; out.bowledBalls = num*bpo + b;
+        } else { out.ballsInOver=0; out.bowledBalls=num*bpo; }
         return out;
       }
     }
     if (rawBalls != null && rawBalls !== '') {
-      const bb = Number(rawBalls);
-      if (!Number.isNaN(bb)) {
-        out.bowledBalls = bb;
-        out.oversWhole = Math.floor(bb / bpo);
-        out.ballsInOver = bb % bpo;
-        return out;
+      const bb = Number(rawBalls); if (!Number.isNaN(bb)) {
+        out.bowledBalls = bb; out.oversWhole = Math.floor(bb/bpo); out.ballsInOver = bb% bpo; return out;
       }
     }
-    const oNum = Number(s.overs || 0);
-    const bNum = Number(s.balls || 0);
-    if (!Number.isNaN(oNum) && !Number.isNaN(bNum)) {
-      out.oversWhole = oNum;
-      out.ballsInOver = bNum;
-      out.bowledBalls = oNum * bpo + bNum;
-      return out;
-    }
+    const oNum = Number(s.overs || 0); const bNum = Number(s.balls || 0);
+    if (!Number.isNaN(oNum) && !Number.isNaN(bNum)) { out.oversWhole=oNum; out.ballsInOver=bNum; out.bowledBalls=oNum*bpo+bNum; }
     return out;
   }
 
-  function renderTargetAndNeed(s, m) {
-    try {
+  function renderTargetAndNeed(s,m){
+    try{
       const bpo = Number(s.ballsPerOver ?? s.bpo ?? 6) || 6;
-      const rawTarget = (s.target ?? s.chaseTarget ?? s.chase ?? m?.target ?? m?.chaseTarget ?? null);
-      const target = (rawTarget !== null && rawTarget !== undefined && rawTarget !== '') ? Number(rawTarget) : null;
-      let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs ?? s.runsToWin ?? m?.needRuns ?? null);
-      if ((needRuns == null || needRuns === '') && target != null && !Number.isNaN(target)) {
-        needRuns = Math.max(Number(target) - Number(s.runs || 0), 0);
-      }
-      if (needRuns != null && needRuns !== '') needRuns = Number(needRuns);
-      else needRuns = null;
-      const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? s.balls_left ?? s.balls_remaining ?? m?.ballsLeft ?? m?.ballsRemaining ?? null);
-      const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? s.overs_to_go ?? s.overs_left ?? m?.oversLeft ?? m?.oversRemaining ?? null);
-      const totalOvers = (m?.noOfOvers ?? m?.totalOvers ?? m?.oversLimit ?? s.totalOvers ?? s.oversLimit ?? s.noOfOvers ?? null);
-      const parsed = parseBowledBalls(s, bpo);
+      const rawTarget = (s.target ?? s.chaseTarget ?? s.chase ?? m?.target ?? null);
+      const target = (rawTarget!==null && rawTarget!==undefined && rawTarget!=='')?Number(rawTarget):null;
+      let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs ?? m?.needRuns ?? null);
+      if ((needRuns==null||needRuns==='') && target!=null) needRuns = Math.max(Number(target)-Number(s.runs||0),0);
+      if (needRuns!=null) needRuns = Number(needRuns);
+      const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? null);
+      const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? null);
+      const totalOvers = (m?.noOfOvers ?? s.totalOvers ?? null);
+      const parsed = parseBowledBalls(s,bpo);
       const bowledBalls = parsed.bowledBalls;
       let ballsLeft = null;
-      if (ballsLeftDirect != null && ballsLeftDirect !== '' && !Number.isNaN(Number(ballsLeftDirect))) {
-        ballsLeft = Number(ballsLeftDirect);
-      } else if (oversLeftDirect != null && oversLeftDirect !== '' && !Number.isNaN(Number(oversLeftDirect))) {
-        const ol = String(oversLeftDirect).trim();
-        if (ol.indexOf('.') !== -1) {
-          const parts = ol.split('.');
-          const whole = Number(parts[0]) || 0;
-          const frac = Number(parts[1]) || 0;
-          ballsLeft = whole * bpo + frac;
-        } else {
-          ballsLeft = Math.max(0, Number(oversLeftDirect) * bpo);
-        }
-      } else if (totalOvers != null && totalOvers !== '' && !Number.isNaN(Number(totalOvers))) {
-        ballsLeft = Math.max(0, Number(totalOvers) * bpo - bowledBalls);
-      } else {
-        const altTotal = Number(s.inningsOvers ?? s.oversLimit ?? s.matchOvers ?? 0);
-        if (!Number.isNaN(altTotal) && altTotal > 0) {
-          ballsLeft = Math.max(0, altTotal * bpo - bowledBalls);
-        }
-      }
-      if (target != null && !Number.isNaN(target)) {
-        tg.style.display = 'inline-block';
-        tg.textContent = 'TARGET ' + target;
-      } else {
-        tg.style.display = 'none';
-      }
-      if (target && needRuns != null && ballsLeft != null && !Number.isNaN(ballsLeft)) {
-        need.style.display = 'inline-block';
-        need.textContent = 'NEED ' + needRuns + ' FROM ' + Math.max(0, Math.round(ballsLeft));
-      } else if (target && needRuns != null && (ballsLeft == null || Number.isNaN(ballsLeft))) {
-        need.style.display = 'inline-block';
-        need.textContent = 'NEED ' + needRuns;
-      } else {
-        need.style.display = 'none';
-      }
-    } catch (err) {
-      console.error('renderTargetAndNeed error', err);
-      tg.style.display = 'none';
-      need.style.display = 'none';
-    }
+      if (ballsLeftDirect!=null && ballsLeftDirect!=='') ballsLeft = Number(ballsLeftDirect);
+      else if (oversLeftDirect!=null && oversLeftDirect!=='') ballsLeft = Math.max(0,Number(oversLeftDirect)*bpo);
+      else if (totalOvers!=null && totalOvers!=='') ballsLeft = Math.max(0,Number(totalOvers)*bpo - bowledBalls);
+      if (target!=null && !Number.isNaN(target)){ tg.style.display='inline-block'; tg.textContent='TARGET '+target; } else { tg.style.display='none'; }
+      if (target && needRuns!=null && ballsLeft!=null && !Number.isNaN(ballsLeft)) {
+        need.style.display='inline-block'; need.textContent='NEED '+needRuns+' FROM '+Math.max(0,Math.round(ballsLeft));
+      } else if (target && needRuns!=null) {
+        need.style.display='inline-block'; need.textContent='NEED '+needRuns;
+      } else { need.style.display='none'; }
+    }catch(e){ tg.style.display='none'; need.style.display='none'; }
   }
 
-  function maybeEvent(s, m){
-    if(s.specialEvent && (s.specialEvent.type === 'FR' || s.specialEvent.type === 'FREEHIT')){
-      const dur = Number(s.specialEvent.durationMs || 10000);
+  function maybeEvent(s,m){
+    if(s.specialEvent && (s.specialEvent.type==='FR' || s.specialEvent.type==='FREEHIT')){
+      const dur = Number(s.specialEvent.durationMs || 8000);
       eventWrap.className='event freehit'; evI.textContent='FH'; evT.textContent=s.specialEvent.label||'FREE HIT';
       eventWrap.classList.add('show'); linfo.classList.add('hide');
       tg.style.display='none'; need.style.display='none';
@@ -978,22 +917,22 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
       bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, dur);
       return;
     }
-    const list = Array.isArray(s.overBalls) ? s.overBalls : [];
+    const list = Array.isArray(s.overBalls)?s.overBalls:[];
     const last = String(list[list.length-1] ?? '').trim();
-    if (!last) return;
-    const key = String(Number(s.overs || 0)) + '.' + String(Number(s.balls || 0)) + '-' + last;
-    if (key === lastEventKey) return;
+    if(!last) return;
+    const key = String(Number(s.overs||0))+'.'+String(Number(s.balls||0))+'-'+last;
+    if(key===lastEventKey) return;
     lastEventKey = key;
     eventWrap.className='event';
     const token = last.toUpperCase();
-    if (token === '4' || token === '6' || token === 'W' || isRunOutToken(token)) {
-      if (token === '4') { eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
-      else if (token === '6') { eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
+    if(token==='4'||token==='6'||token==='W'||isRunOutToken(token)){
+      if(token==='4'){ eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
+      else if(token==='6'){ eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
       else { eventWrap.classList.add('wicket'); evI.textContent='W'; evT.textContent='WICKET'; }
       eventWrap.classList.add('show'); linfo.classList.add('hide');
       tg.style.display='none'; need.style.display='none';
       clearTimeout(bannerTimer);
-      bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, 10000);
+      bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, 8000);
     }
   }
 
@@ -1006,38 +945,49 @@ app.get("/overlay/scorebar-tv", (_req, res) => {
     teamB.textContent = up(s.bowlingTeam || m.team2 || '—');
     logoA.src = s.battingTeamLogo || m.team1Logo || '';
     logoB.src = s.bowlingTeamLogo || m.team2Logo || '';
-    score.textContent = (s.runs || 0) + '-' + (s.wickets || 0);
+    score.textContent = (s.runs||0)+'-'+(s.wickets||0);
+
     const st = s.striker || {}, ns = s.nonStriker || {};
-    b1.textContent = first(st.name || '—');
-    b1f.innerHTML = (st.runs || 0) + ' <span class="sup">(' + (st.balls || 0) + ')</span>';
-    b2.textContent = first(ns.name || '—');
-    b2f.innerHTML = (ns.runs || 0) + ' <span class="sup">(' + (ns.balls || 0) + ')</span>';
+    b1.textContent = first(st.name || '—'); b1f.innerHTML = (st.runs||0)+' <span class="sup">('+ (st.balls||0) +')</span>';
+    b2.textContent = first(ns.name || '—'); b2f.innerHTML = (ns.runs||0)+' <span class="sup">('+ (ns.balls||0) +')</span>';
+
     const bw = s.bowler || {};
     bowName.textContent = first(bw.name || '—');
-    const w = Number(bw.wickets || 0), r = Number(bw.runs || 0);
-    const ov = (bw.overs != null ? bw.overs : 0);
-    bowf.textContent = w + '-' + ov + '-' + r;
-    rr.textContent = 'RR ' + (s.runRate || '0.00');
+    const w = Number(bw.wickets||0), r = Number(bw.runs||0);
+    const ov = (bw.overs!=null?bw.overs:0);
+    bowf.textContent = w+'-'+ov+'-'+r;
+
+    rr.textContent = 'RR '+(s.runRate||'0.00');
     renderDots(s.overBalls);
-    if (!eventWrap.classList.contains('show')) {
-      renderTargetAndNeed(s, m);
-    }
-    maybeEvent(s, m);
+
+    try{
+      const bpo = Number(s.ballsPerOver ?? s.bpo ?? 6) || 6;
+      const inputOvers = Number(s.overs ?? s.oversCompleted ?? 0);
+      const inputBalls = Number(s.balls ?? s.currentBalls ?? 0);
+      let totalBalls = Math.max(0, (isNaN(inputOvers)?0:inputOvers) * bpo + (isNaN(inputBalls)?0:inputBalls));
+      if((s.overs||'').toString().indexOf('.')!==-1 && (s.balls==null || s.balls==='')){
+        const parts = String(s.overs).split('.');
+        const oWhole = Number(parts[0])||0;
+        const oFrac = Number(parts[1])||0;
+        totalBalls = Math.max(0, oWhole*bpo + oFrac);
+      }
+      const completedOvers = Math.floor(totalBalls / bpo);
+      const ballsInOver = totalBalls % bpo;
+      oversPill.textContent = completedOvers + '.' + ballsInOver + ' ov';
+    }catch(err){ oversPill.textContent = '0.0 ov'; }
+
+    if(!eventWrap.classList.contains('show')) renderTargetAndNeed(s,m);
+    maybeEvent(s,m);
   }
 
-  try {
-    const es1 = new EventSource('/sse-overlay');
-    es1.onmessage = e => { state.overlay = JSON.parse(e.data) || {}; render(); };
-  } catch (err) { console.error(err); }
-
-  try {
-    const es2 = new EventSource('/sse-match');
-    es2.onmessage = e => { state.match = JSON.parse(e.data) || {}; render(); };
-  } catch (err) { console.error(err); }
+  try{ const es1=new EventSource('/sse-overlay'); es1.onmessage=e=>{ state.overlay=JSON.parse(e.data)||{}; render(); }; }catch(err){console.error(err)}
+  try{ const es2=new EventSource('/sse-match');   es2.onmessage=e=>{ state.match=JSON.parse(e.data)||{}; render(); }; }catch(err){console.error(err)}
 </script>
 </body>
 </html>`);
 });
+
+
 
 
 
@@ -1057,6 +1007,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Scorebar TV – Orange</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
   html,body{margin:0;background:transparent}
   *{box-sizing:border-box}
@@ -1064,118 +1015,79 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     --o1:#ff8a00; --o2:#ff6a00; --o3:#cc5200;
     --ring:#ffffff33; --mut:#d6e7ec; --fg:#fff;
     --dotScale:1;
-    --dotBase:44px;
-    --eventDur:20000ms;
+    --dotBase:36px;
+    --eventDur:8000ms;
   }
+
   .shell{display:flex;justify-content:center;padding:0}
   .strip{
-    width:min(1920px,100vw);
-    display:grid;
-    grid-template-columns: 92px 360px 1fr 700px 92px;
-    align-items:stretch;
-    border-radius:20px; overflow:hidden; color:var(--fg);
+    width:1920px;
+    height:170px;
+    border-radius:14px; overflow:hidden; color:var(--fg);
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     background:linear-gradient(180deg,var(--o1),var(--o2));
-    box-shadow:0 16px 40px rgba(0,0,0,.32);
+    box-shadow:0 8px 24px rgba(0,0,0,.28);
     border:1px solid #00000030; position:relative;
-    margin:4px 0;
+    margin:0 auto;
   }
 
-  .event{position:absolute;left:0;top:0;width:calc(92px + 360px);height:100%;display:none;align-items:center;justify-content:center;padding:8px;pointer-events:none;z-index:40}
+  .event{position:absolute; left:0; top:0; width:452px; height:100%; display:none; align-items:center; justify-content:center; padding:6px; pointer-events:none; z-index:40}
   .event.show{display:flex}
-  .badge{width:100%;height:100%;border-radius:18px;display:flex;align-items:center;justify-content:center;gap:18px;font:1000 36px/1 system-ui;letter-spacing:.04em;color:#001014;white-space:nowrap;transform:scale(1);opacity:0;position:relative;overflow:hidden;animation:popIn .35s cubic-bezier(.18,.89,.32,1.28) forwards,badgePulse var(--eventDur) ease-in-out}
-  .badge::after{content:"";position:absolute;inset:-30% -120%;background:linear-gradient(120deg,transparent 45%,rgba(255,255,255,.85) 50%,transparent 55%);transform:translateX(-60%);animation:sweep calc(var(--eventDur)/4) ease-in-out .45s infinite}
-  .ico{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;font:1000 32px/1 system-ui;color:#001014;background:#fff;box-shadow:0 0 14px rgba(0,0,0,.25), inset 0 0 10px rgba(255,255,255,.5)}
-  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa);box-shadow:0 0 28px rgba(96,165,250,.8),0 0 46px rgba(30,158,248,.55)}
-  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 28px rgba(0,245,212,.85),0 0 46px rgba(0,255,154,.55)}
-  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a);box-shadow:0 0 28px rgba(239,68,68,.85),0 0 46px rgba(255,122,122,.55)}
-  .freehit .badge{background:linear-gradient(135deg,#ffe082,#ffca28);box-shadow:0 0 28px rgba(255,202,40,.85),0 0 46px rgba(255,224,130,.55)}
+  .badge{width:100%; height:100%; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:12px; font:900 26px/1 system-ui; color:#001014; white-space:nowrap; opacity:0; position:relative; overflow:hidden; animation:popIn .28s forwards, badgePulse var(--eventDur) ease-in-out}
+  .ico{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font:900 22px/1 system-ui;color:#001014;background:#fff;box-shadow:0 0 10px rgba(0,0,0,.22)}
+  .four  .badge{background:linear-gradient(135deg,#1e9ef8,#60a5fa)}
+  .six   .badge{background:linear-gradient(135deg,#00f5d4,#00ff9a)}
+  .wicket .badge{background:linear-gradient(135deg,#ef4444,#ff7a7a)}
+  .freehit .badge{background:linear-gradient(135deg,#ffd54f,#ffb300)}
   @keyframes popIn{to{opacity:1}}
-  @keyframes sweep{to{transform:translateX(160%)}}
-  @keyframes badgePulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,255,255,0))}20%,40%,60%{filter:drop-shadow(0 0 16px rgba(255,255,255,.55))}80%{filter:drop-shadow(0 0 24px rgba(255,255,255,.65))}}
+  @keyframes badgePulse{0%,100%{filter:none}30%{filter:drop-shadow(0 0 18px rgba(255,255,255,.45))}}
 
   .lcrest,.rcrest{display:grid;place-items:center;background:linear-gradient(180deg,var(--o2),var(--o3))}
-  .lcrest{border-right:1px solid #0000003a}
-  .rcrest{border-left:1px solid #0000003a}
-  .lcrest img,.rcrest img{width:78px;height:78px;border-radius:14px;background:#fff;object-fit:contain;margin:6px 0}
+  .lcrest{width:92px;border-right:1px solid #0000003a}
+  .rcrest{width:92px;border-left:1px solid #0000003a}
+  .lcrest img,.rcrest img{width:64px;height:64px;border-radius:10px;background:#fff;object-fit:contain;margin:4px 0}
 
-  /* linfo is positioned relative so pills sit top-right like green bar */
-  #linfo{
-    display:grid;
-    grid-template-rows:auto auto;
-    background:linear-gradient(180deg,var(--o1),var(--o3));
-    border-right:1px solid #0000003a;
-    transition:opacity .18s;
-    position:relative;
-    padding:8px 12px 12px 14px;
+  .row-wrap{display:flex;height:100%;align-items:stretch;gap:0}
+
+  .info{
+    width:320px; min-width:320px; padding:10px 12px;
+    background:linear-gradient(180deg,var(--o1),var(--o3)); border-right:1px solid #0000003a;
+    display:flex; flex-direction:column; justify-content:center;
   }
-  #linfo.hide{opacity:0;visibility:hidden}
-  .aTop{display:flex;align-items:flex-end;gap:8px;padding:4px 0 4px 0;min-width:0}
-  .teamA{font-weight:1000;font-size:36px;line-height:1.12;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .aBot{display:flex;align-items:center;gap:8px;padding:2px 0 8px 0}
-  .vs{font:900 20px/1.2 system-ui}
-  .teamB{font:900 20px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .teamA{font:900 28px/1 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+  .teamB{font:700 14px/1 system-ui;text-transform:uppercase;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .banners{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+  .pill{display:inline-block;border-radius:10px;padding:4px 8px;font-weight:900;font-size:12px}
+  .pill.target{background:linear-gradient(135deg,#00f5d4,#00ff9a);color:#001014;box-shadow:0 6px 18px rgba(0,245,212,.12)}
+  .pill.need{background:linear-gradient(135deg,#ffb703,#ffd166);color:#1a0c00;box-shadow:0 6px 18px rgba(255,183,3,.10)}
 
-  .edgeTop{
-    position:absolute;
-    right:12px;
-    display:flex;
-    justify-content:flex-end;
-    gap:8px;
-    pointer-events:none;
-  }
-  .edgeTop.top1{top:12px}
-  .edgeTop.top2{top:56px}
+  .mid{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center;padding:6px 14px;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.12));border-right:1px solid #00000030}
+  .topRow{display:flex;align-items:flex-start;gap:12px;min-width:0}
+  .scoreWrap{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:120px}
+  .score{border-radius:12px;background:#fff;color:#0a2326;display:grid;place-items:center;font:900 46px/1 system-ui;padding:6px 14px;min-width:88px;min-height:64px}
+  .oversPill{background:linear-gradient(90deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));color:var(--mut);border-radius:10px;padding:4px 8px;font-weight:900;font-size:13px}
+  .batCol{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+  .batLine{display:flex;align-items:center;gap:10px;min-width:0}
+  .nm{font:900 20px/1.02 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .fig{font:900 16px/1 system-ui;color:var(--mut)}
+  .sup{font-size:12px;opacity:.95;vertical-align:top;margin-left:6px}
 
-  .pill.target{color:#001014;background:linear-gradient(135deg,#00f5d4,#00ff9a);box-shadow:0 0 22px rgba(0,245,212,.55),0 0 26px rgba(0,255,154,.3);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
-  .pill.need{color:#1a0c00;background:linear-gradient(135deg,#ffb703,#ffd166);box-shadow:0 0 18px rgba(255,183,3,.45),0 0 22px rgba(255,209,102,.28);border:1px solid rgba(0,0,0,.08);font-size:20px;padding:8px 14px}
+  .right{width:600px;min-width:600px;padding:8px 12px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(180deg,rgba(0,0,0,.06),rgba(0,0,0,.12))}
+  .bowRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .bowName{font:900 20px/1 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+  .bf{font:700 15px/1 system-ui;color:var(--mut);margin-left:10px}
+  .rrRight{background:linear-gradient(90deg,#b86f00,#6f3b00);color:#fff;border-radius:8px;padding:6px 10px;font-weight:900;font-size:13px;margin-left:10px;white-space:nowrap}
 
-  .mid{display:grid;grid-template-rows:auto auto;background:linear-gradient(180deg,rgba(0,0,0,.10),rgba(0,0,0,.16));border-right:1px solid #0000003a}
-  .r{display:grid;align-items:center;padding:6px 12px}
-  .r1{grid-template-columns:150px 10px 1fr max-content;gap:6px;border-bottom:1px solid #00000030}
-  .r2{grid-template-columns:150px 10px 1fr max-content;gap:6px}
-  .score{border-radius:16px;background:#fff;color:#0a2326;display:grid;place-items:center;font:1000 50px/1.02 system-ui;padding:10px 0}
-  .chev{width:12px;height:12px;border:2px solid #fff;border-left:0;border-bottom:0;transform:rotate(45deg)}
-  .nm{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:2px}
-  .mut{color:var(--mut);font-weight:900}
-  .fig{font:1000 26px/1.15 system-ui;margin-left:0}
-  .sup{font-size:15px;opacity:.9;vertical-align:top}
-
-  .rrMid{justify-self:start}
-  .pill{background:#fff;color:#0b2326;border-radius:999px;padding:6px 12px;font:1000 18px/1 system-ui;white-space:nowrap}
-  .pill.alt{background:linear-gradient(180deg,#0b2b2f,#0a2124);color:#cfe5ea;border:1px solid #ffffff22}
-
-  .right{
-    display:grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto;
-    background:linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18));
-    border-right:1px solid #0000003a;
-  }
-
-  .bowRow{
-    grid-column: 1 / -1;
-    grid-row: 1;
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: max-content;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px 10px 4px 10px;
-    text-align: center;
-  }
-  .bowName{font:1000 26px/1.2 system-ui;text-transform:uppercase;white-space:nowrap;max-width:40ch;overflow:hidden;text-overflow:ellipsis;text-align:center}
-  .bf{font:1000 24px/1.1 system-ui;text-align:center}
-
-  .dotsRow{grid-column:1;grid-row:2;display:flex;justify-content:flex-end;align-items:center;gap:12px;padding:4px 10px 10px 10px}
-  .dots{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:10px 14px;border-radius:999px;max-width:100%}
-
-  .dot{height:calc(var(--dotBase) * var(--dotScale));min-width:calc(var(--dotBase) * var(--dotScale));padding:0 calc(18px * var(--dotScale));border-radius:10px;background:#0a1a1e;box-shadow:inset 0 0 0 2px var(--ring);display:flex;align-items:center;justify-content:center;color:#fff;font:1000 calc(var(--dotBase)*0.58*var(--dotScale)) / 1 system-ui;letter-spacing:.02em;line-height:1;white-space:nowrap}
+  .dotsRow{display:flex;justify-content:flex-end;padding-top:6px}
+  .dots{display:flex;gap:8px;background:linear-gradient(180deg,#0b2b2f,#0a2124);padding:8px 10px;border-radius:999px}
+  .dot{height:var(--dotBase);min-width:var(--dotBase);padding:0 8px;border-radius:8px;background:#0a1a1e;box-shadow:inset 0 0 0 2px var(--ring);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:18px}
   .dot.blue{background:#1e9ef8;color:#03121b}
   .dot.green{background:#22c55e;color:#05140a}
   .dot.red{background:#ef4444}
-  .dot.badge{min-width:auto;padding:0 calc(5px * var(--dotScale));font-size:calc(var(--dotBase) * 0.20 * var(--dotScale));letter-spacing:.002em;}
+  .dot.badge{padding:0 6px;font-size:12px}
+
+  .teamA,.teamB,.nm,.score{line-height:1}
+  img{display:block}
 </style>
 </head>
 <body>
@@ -1183,41 +1095,47 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     <div class="strip">
       <div class="event" id="event"><div class="badge" id="badge"><span class="ico" id="evI">6</span><span class="txt" id="evT">SIX</span></div></div>
 
-      <div class="lcrest"><img id="logoA" alt=""></div>
+      <div class="row-wrap">
+        <div class="lcrest"><img id="logoA" alt=""></div>
 
-      <div class="linfo" id="linfo">
-        <div class="aTop"><div class="teamA" id="teamA">TEAM A</div></div>
-        <div class="aBot"><div class="vs">VS</div><div class="teamB" id="teamB">TEAM B</div></div>
-
-        <!-- same absolute-positioned pills here so placement matches green bar -->
-        <div class="edgeTop top1"><div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div></div>
-        <div class="edgeTop top2"><div class="pill target" id="tg" style="display:none">TARGET 0</div></div>
-      </div>
-
-      <div class="mid">
-        <div class="r r1">
-          <div class="score" id="score">0-0</div>
-          <div class="chev"></div>
-          <div class="nm" id="b1">BATTER 1</div>
-          <div class="fig" id="b1f">0 <span class="sup">(0)</span></div>
+        <div class="info" id="linfo">
+          <div class="teamA" id="teamA">TEAM A</div>
+          <div class="teamB" id="teamB">VS TEAM B</div>
+          <div class="banners">
+            <div class="pill need" id="need" style="display:none">NEED 0 FROM 0</div>
+            <div class="pill target" id="tg" style="display:none">TARGET 0</div>
+          </div>
         </div>
-        <div class="r r2">
-          <div class="pill rrMid" id="rr">RR 0.00</div>
-          <div class="chev"></div>
-          <div class="nm mut" id="b2">BATTER 2</div>
-          <div class="fig mut" id="b2f">0 <span class="sup">(0)</span></div>
-        </div>
-      </div>
 
-      <div class="right">
-        <div class="bowRow">
-          <div class="bowName" id="bowName">BOWLER NAME</div>
-          <div class="bf" id="bowf">0-0.0-0</div>
-        </div>
-        <div class="dotsRow"><div class="dots" id="dots"></div></div>
-      </div>
+        <div class="mid">
+          <div class="topRow">
+            <div class="scoreWrap">
+              <div class="score" id="score">0-0</div>
+              <div class="oversPill" id="oversPill">0.0 ov</div>
+            </div>
 
-      <div class="rcrest"><img id="logoB" alt=""></div>
+            <div style="width:12px"></div>
+
+            <div class="batCol">
+              <div class="batLine"><div class="nm" id="b1">BATTER 1</div><div class="fig" id="b1f">0 <span class="sup">(0)</span></div></div>
+              <div class="batLine"><div class="nm" id="b2">BATTER 2</div><div class="fig" id="b2f">0 <span class="sup">(0)</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="bowRow">
+            <div style="display:flex;align-items:center;gap:12px;min-width:0">
+              <div class="bowName" id="bowName">BOWLER</div>
+              <div class="bf" id="bowf">0-0-0</div>
+            </div>
+            <div class="rrRight" id="rr">RR 0.00</div>
+          </div>
+          <div class="dotsRow"><div class="dots" id="dots"></div></div>
+        </div>
+
+        <div class="rcrest"><img id="logoB" alt=""></div>
+      </div>
     </div>
   </div>
 
@@ -1227,18 +1145,18 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
   const teamA=$('teamA'), teamB=$('teamB');
   const score=$('score'), b1=$('b1'), b1f=$('b1f'), b2=$('b2'), b2f=$('b2f');
   const bowName=$('bowName'), bowf=$('bowf'), dots=$('dots');
-  const rr=$('rr'), tg=$('tg'), need=$('need');
+  const rr=$('rr'), tg=$('tg'), need=$('need'), oversPill=$('oversPill');
   const eventWrap=$('event'), evI=$('evI'), evT=$('evT');
   const linfo=$('linfo');
 
   const up=s=>(s||'').toString().toUpperCase();
-  const first=s=>up(String(s||'').trim().split(/\\s+/)[0]);
+  const first=s=>up(String(s||'').trim().split(/\\s+/)[0] || '');
 
   function renderDots(list){
     const arr=Array.isArray(list)?list:[];
     dots.innerHTML='';
-    const targetVisible=14;
-    const scale=arr.length<=targetVisible?1:Math.max(0.56,targetVisible/arr.length);
+    const targetVisible=12;
+    const scale=arr.length<=targetVisible?1:Math.max(0.5,targetVisible/arr.length);
     document.documentElement.style.setProperty('--dotScale',String(scale));
     for(const raw of arr){
       let t=String(raw??'').trim();
@@ -1246,7 +1164,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
       if(!t||t==='0'||t==='•'){t='·';}
       if(t==='4') d.classList.add('blue');
       else if(t==='6') d.classList.add('green');
-      else if(t==='W') d.classList.add('red');
+      else if(t.toUpperCase()==='W') d.classList.add('red');
       else if(/^Wd/i.test(t)||/^Nb/i.test(t)||/^Ro/i.test(t)||/run\\s*out/i.test(t)){d.classList.add('badge');t=t.toUpperCase();}
       d.textContent=t; dots.appendChild(d);
     }
@@ -1256,7 +1174,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
   function isRunOutToken(x){const L=String(x||'').toUpperCase().replace(/[^A-Z]/g,''); return L==='RO'||L==='RUNOUT';}
 
   function parseBowledBalls(s, bpo) {
-    const out = { oversWhole: 0, ballsInOver: 0, bowledBalls: 0 };
+    const out = { oversWhole:0, ballsInOver:0, bowledBalls:0 };
     const rawOvers = s.overs ?? s.oversCompleted ?? s.oversBowled ?? s.ov ?? null;
     const rawBalls = s.balls ?? s.currentBalls ?? s.ball ?? null;
     if (rawOvers != null && rawOvers !== '') {
@@ -1265,9 +1183,7 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
         const parts = o.split('.');
         const whole = Number(parts[0]) || 0;
         const frac = Number(parts[1]) || 0;
-        out.oversWhole = whole;
-        out.ballsInOver = frac;
-        out.bowledBalls = whole * bpo + frac;
+        out.oversWhole = whole; out.ballsInOver = frac; out.bowledBalls = whole*bpo + frac;
         return out;
       }
       const num = Number(o);
@@ -1275,105 +1191,50 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
         out.oversWhole = num;
         if (rawBalls != null && rawBalls !== '') {
           const b = Number(rawBalls) || 0;
-          out.ballsInOver = b;
-          out.bowledBalls = num * bpo + b;
-        } else {
-          out.ballsInOver = 0;
-          out.bowledBalls = num * bpo;
-        }
-        return out;
-      }
-      if (!Number.isNaN(num)) {
-        const whole = Math.trunc(num);
-        const frac = Math.round((num - whole) * 10);
-        out.oversWhole = whole;
-        out.ballsInOver = frac;
-        out.bowledBalls = whole * bpo + frac;
+          out.ballsInOver = b; out.bowledBalls = num*bpo + b;
+        } else { out.ballsInOver=0; out.bowledBalls=num*bpo; }
         return out;
       }
     }
     if (rawBalls != null && rawBalls !== '') {
-      const bb = Number(rawBalls);
-      if (!Number.isNaN(bb)) {
-        out.bowledBalls = bb;
-        out.oversWhole = Math.floor(bb / bpo);
-        out.ballsInOver = bb % bpo;
-        return out;
+      const bb = Number(rawBalls); if (!Number.isNaN(bb)) {
+        out.bowledBalls = bb; out.oversWhole = Math.floor(bb/bpo); out.ballsInOver = bb% bpo; return out;
       }
     }
-    const oNum = Number(s.overs || 0);
-    const bNum = Number(s.balls || 0);
-    if (!Number.isNaN(oNum) && !Number.isNaN(bNum)) {
-      out.oversWhole = oNum;
-      out.ballsInOver = bNum;
-      out.bowledBalls = oNum * bpo + bNum;
-      return out;
-    }
+    const oNum = Number(s.overs || 0); const bNum = Number(s.balls || 0);
+    if (!Number.isNaN(oNum) && !Number.isNaN(bNum)) { out.oversWhole=oNum; out.ballsInOver=bNum; out.bowledBalls=oNum*bpo+bNum; }
     return out;
   }
 
-  function renderTargetAndNeed(s, m) {
-    try {
+  function renderTargetAndNeed(s,m){
+    try{
       const bpo = Number(s.ballsPerOver ?? s.bpo ?? 6) || 6;
-      const rawTarget = (s.target ?? s.chaseTarget ?? s.chase ?? m?.target ?? m?.chaseTarget ?? null);
-      const target = (rawTarget !== null && rawTarget !== undefined && rawTarget !== '') ? Number(rawTarget) : null;
-      let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs ?? s.runsToWin ?? m?.needRuns ?? null);
-      if ((needRuns == null || needRuns === '') && target != null && !Number.isNaN(target)) {
-        needRuns = Math.max(Number(target) - Number(s.runs || 0), 0);
-      }
-      if (needRuns != null && needRuns !== '') needRuns = Number(needRuns);
-      else needRuns = null;
-      const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? s.balls_left ?? s.balls_remaining ?? m?.ballsLeft ?? m?.ballsRemaining ?? null);
-      const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? s.overs_to_go ?? s.overs_left ?? m?.oversLeft ?? m?.oversRemaining ?? null);
-      const totalOvers = (m?.noOfOvers ?? m?.totalOvers ?? m?.oversLimit ?? s.totalOvers ?? s.oversLimit ?? s.noOfOvers ?? null);
-      const parsed = parseBowledBalls(s, bpo);
+      const rawTarget = (s.target ?? s.chaseTarget ?? s.chase ?? m?.target ?? null);
+      const target = (rawTarget!==null && rawTarget!==undefined && rawTarget!=='')?Number(rawTarget):null;
+      let needRuns = (s.needRuns ?? s.runsNeeded ?? s.req_runs ?? m?.needRuns ?? null);
+      if ((needRuns==null||needRuns==='') && target!=null) needRuns = Math.max(Number(target)-Number(s.runs||0),0);
+      if (needRuns!=null) needRuns = Number(needRuns);
+      const ballsLeftDirect = (s.ballsLeft ?? s.ballsRemaining ?? s.balls_to_go ?? null);
+      const oversLeftDirect = (s.oversLeft ?? s.oversRemaining ?? null);
+      const totalOvers = (m?.noOfOvers ?? s.totalOvers ?? null);
+      const parsed = parseBowledBalls(s,bpo);
       const bowledBalls = parsed.bowledBalls;
       let ballsLeft = null;
-      if (ballsLeftDirect != null && ballsLeftDirect !== '' && !Number.isNaN(Number(ballsLeftDirect))) {
-        ballsLeft = Number(ballsLeftDirect);
-      } else if (oversLeftDirect != null && oversLeftDirect !== '' && !Number.isNaN(Number(oversLeftDirect))) {
-        const ol = String(oversLeftDirect).trim();
-        if (ol.indexOf('.') !== -1) {
-          const parts = ol.split('.');
-          const whole = Number(parts[0]) || 0;
-          const frac = Number(parts[1]) || 0;
-          ballsLeft = whole * bpo + frac;
-        } else {
-          ballsLeft = Math.max(0, Number(oversLeftDirect) * bpo);
-        }
-      } else if (totalOvers != null && totalOvers !== '' && !Number.isNaN(Number(totalOvers))) {
-        ballsLeft = Math.max(0, Number(totalOvers) * bpo - bowledBalls);
-      } else {
-        const altTotal = Number(s.inningsOvers ?? s.oversLimit ?? s.matchOvers ?? 0);
-        if (!Number.isNaN(altTotal) && altTotal > 0) {
-          ballsLeft = Math.max(0, altTotal * bpo - bowledBalls);
-        }
-      }
-      if (target != null && !Number.isNaN(target)) {
-        tg.style.display = 'inline-block';
-        tg.textContent = 'TARGET ' + target;
-      } else {
-        tg.style.display = 'none';
-      }
-      if (target && needRuns != null && ballsLeft != null && !Number.isNaN(ballsLeft)) {
-        need.style.display = 'inline-block';
-        need.textContent = 'NEED ' + needRuns + ' FROM ' + Math.max(0, Math.round(ballsLeft));
-      } else if (target && needRuns != null && (ballsLeft == null || Number.isNaN(ballsLeft))) {
-        need.style.display = 'inline-block';
-        need.textContent = 'NEED ' + needRuns;
-      } else {
-        need.style.display = 'none';
-      }
-    } catch (err) {
-      console.error('renderTargetAndNeed error (orange)', err);
-      tg.style.display = 'none';
-      need.style.display = 'none';
-    }
+      if (ballsLeftDirect!=null && ballsLeftDirect!=='') ballsLeft = Number(ballsLeftDirect);
+      else if (oversLeftDirect!=null && oversLeftDirect!=='') ballsLeft = Math.max(0,Number(oversLeftDirect)*bpo);
+      else if (totalOvers!=null && totalOvers!=='') ballsLeft = Math.max(0,Number(totalOvers)*bpo - bowledBalls);
+      if (target!=null && !Number.isNaN(target)){ tg.style.display='inline-block'; tg.textContent='TARGET '+target; } else { tg.style.display='none'; }
+      if (target && needRuns!=null && ballsLeft!=null && !Number.isNaN(ballsLeft)) {
+        need.style.display='inline-block'; need.textContent='NEED '+needRuns+' FROM '+Math.max(0,Math.round(ballsLeft));
+      } else if (target && needRuns!=null) {
+        need.style.display='inline-block'; need.textContent='NEED '+needRuns;
+      } else { need.style.display='none'; }
+    }catch(e){ tg.style.display='none'; need.style.display='none'; }
   }
 
-  function maybeEvent(s, m){
-    if(s.specialEvent && (s.specialEvent.type === 'FR' || s.specialEvent.type === 'FREEHIT')){
-      const dur = Number(s.specialEvent.durationMs || 20000);
+  function maybeEvent(s,m){
+    if(s.specialEvent && (s.specialEvent.type==='FR' || s.specialEvent.type==='FREEHIT')){
+      const dur = Number(s.specialEvent.durationMs || 8000);
       eventWrap.className='event freehit'; evI.textContent='FH'; evT.textContent=s.specialEvent.label||'FREE HIT';
       eventWrap.classList.add('show'); linfo.classList.add('hide');
       tg.style.display='none'; need.style.display='none';
@@ -1381,22 +1242,22 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
       bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, dur);
       return;
     }
-    const list = Array.isArray(s.overBalls) ? s.overBalls : [];
+    const list = Array.isArray(s.overBalls)?s.overBalls:[];
     const last = String(list[list.length-1] ?? '').trim();
-    if (!last) return;
-    const key = String(Number(s.overs || 0)) + '.' + String(Number(s.balls || 0)) + '-' + last;
-    if (key === lastEventKey) return;
+    if(!last) return;
+    const key = String(Number(s.overs||0))+'.'+String(Number(s.balls||0))+'-'+last;
+    if(key===lastEventKey) return;
     lastEventKey = key;
     eventWrap.className='event';
     const token = last.toUpperCase();
-    if (token === '4' || token === '6' || token === 'W' || isRunOutToken(token)) {
-      if (token === '4') { eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
-      else if (token === '6') { eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
+    if(token==='4'||token==='6'||token==='W'||isRunOutToken(token)){
+      if(token==='4'){ eventWrap.classList.add('four'); evI.textContent='4'; evT.textContent='FOUR'; }
+      else if(token==='6'){ eventWrap.classList.add('six'); evI.textContent='6'; evT.textContent='SIX'; }
       else { eventWrap.classList.add('wicket'); evI.textContent='W'; evT.textContent='WICKET'; }
       eventWrap.classList.add('show'); linfo.classList.add('hide');
       tg.style.display='none'; need.style.display='none';
       clearTimeout(bannerTimer);
-      bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, 20000);
+      bannerTimer=setTimeout(()=>{ eventWrap.classList.remove('show','four','six','wicket','freehit'); linfo.classList.remove('hide'); renderTargetAndNeed(s,m); }, 8000);
     }
   }
 
@@ -1409,38 +1270,58 @@ app.get("/overlay/scorebar-tv-orange", (_req, res) => {
     teamB.textContent = up(s.bowlingTeam || m.team2 || '—');
     logoA.src = s.battingTeamLogo || m.team1Logo || '';
     logoB.src = s.bowlingTeamLogo || m.team2Logo || '';
-    score.textContent = (s.runs || 0) + '-' + (s.wickets || 0);
+    score.textContent = (s.runs||0)+'-'+(s.wickets||0);
+
     const st = s.striker || {}, ns = s.nonStriker || {};
-    b1.textContent = first(st.name || '—');
-    b1f.innerHTML = (st.runs || 0) + ' <span class="sup">(' + (st.balls || 0) + ')</span>';
-    b2.textContent = first(ns.name || '—');
-    b2f.innerHTML = (ns.runs || 0) + ' <span class="sup">(' + (ns.balls || 0) + ')</span>';
+    b1.textContent = first(st.name || '—'); b1f.innerHTML = (st.runs||0)+' <span class="sup">('+ (st.balls||0) +')</span>';
+    b2.textContent = first(ns.name || '—'); b2f.innerHTML = (ns.runs||0)+' <span class="sup">('+ (ns.balls||0) +')</span>';
+
     const bw = s.bowler || {};
     bowName.textContent = first(bw.name || '—');
-    const w = Number(bw.wickets || 0), r = Number(bw.runs || 0);
-    const ov = (bw.overs != null ? bw.overs : 0);
-    bowf.textContent = w + '-' + ov + '-' + r;
-    rr.textContent = 'RR ' + (s.runRate || '0.00');
+    const w = Number(bw.wickets||0), r = Number(bw.runs||0);
+    const ov = (bw.overs!=null?bw.overs:0);
+    bowf.textContent = w+'-'+ov+'-'+r;
+
+    rr.textContent = 'RR '+(s.runRate||'0.00');
     renderDots(s.overBalls);
-    if (!eventWrap.classList.contains('show')) {
-      renderTargetAndNeed(s, m);
-    }
-    maybeEvent(s, m);
+
+    try{
+      const bpo = Number(s.ballsPerOver ?? s.bpo ?? 6) || 6;
+      const inputOvers = Number(s.overs ?? s.oversCompleted ?? 0);
+      const inputBalls = Number(s.balls ?? s.currentBalls ?? 0);
+      let totalBalls = Math.max(0, (isNaN(inputOvers)?0:inputOvers) * bpo + (isNaN(inputBalls)?0:inputBalls));
+      if((s.overs||'').toString().indexOf('.')!==-1 && (s.balls==null || s.balls==='')){
+        const parts = String(s.overs).split('.');
+        const oWhole = Number(parts[0])||0;
+        const oFrac = Number(parts[1])||0;
+        totalBalls = Math.max(0, oWhole*bpo + oFrac);
+      }
+      const completedOvers = Math.floor(totalBalls / bpo);
+      const ballsInOver = totalBalls % bpo;
+      oversPill.textContent = completedOvers + '.' + ballsInOver + ' ov';
+    }catch(err){ oversPill.textContent = '0.0 ov'; }
+
+    if(!eventWrap.classList.contains('show')) renderTargetAndNeed(s,m);
+    maybeEvent(s,m);
   }
 
-  try {
-    const es1 = new EventSource('/sse-overlay');
-    es1.onmessage = e => { state.overlay = JSON.parse(e.data) || {}; render(); };
-  } catch (err) { console.error(err); }
-
-  try {
-    const es2 = new EventSource('/sse-match');
-    es2.onmessage = e => { state.match = JSON.parse(e.data) || {}; render(); };
-  } catch (err) { console.error(err); }
+  try{ const es1=new EventSource('/sse-overlay'); es1.onmessage=e=>{ state.overlay=JSON.parse(e.data)||{}; render(); }; }catch(err){console.error(err)}
+  try{ const es2=new EventSource('/sse-match');   es2.onmessage=e=>{ state.match=JSON.parse(e.data)||{}; render(); }; }catch(err){console.error(err)}
 </script>
 </body>
 </html>`);
 });
+
+
+
+
+
+
+
+
+
+
+
 
 
 
