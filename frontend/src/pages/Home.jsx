@@ -28,14 +28,9 @@ export default function Homs() {
   }, []);
 
   const overlays = [
-    { title: "Scorebar (Glass)", path: "/overlay/scorebar", desc: "Live ticker with current over bubbles, batters and bowler.", tag: "Live" },
-    { title: "Scorebar (Neon)", path: "/overlay/scorebar-neon", desc: "Neon theme variant of the live ticker.", tag: "Live" },
+    { title: "Scorebar green", path: "/overlay/scorebar-tv", desc: "Live ticker with current over bubbles, batters and bowler.", tag: "Live" },
+    { title: "Scorebar orange", path: "/overlay/scorebar-tv-orange", desc: "Neon theme variant of the live ticker.", tag: "Live" },
     { title: "Match Intro", path: "/overlay/match", desc: "Tournament + teams header slate.", tag: "Header" },
-    { title: "FOUR Animation", path: "/overlay/four", desc: "Animated stinger for a boundary (4).", tag: "Event" },
-    { title: "SIX Animation", path: "/overlay/six", desc: "Animated stinger for a six.", tag: "Event" },
-    { title: "FREE HIT Animation", path: "/overlay/freehit", desc: "Animated stinger for free hit.", tag: "Event" },
-    { title: "WICKET Animation", path: "/overlay/wicket", desc: "Animated stinger for wicket.", tag: "Event" },
-
     // NEW: Summary Scorecard (served by backend on :5000)
     {
       title: "Summary Scorecard",
@@ -126,18 +121,6 @@ export default function Homs() {
         })}
       </Grid>
 
-      <Card variant="outlined" sx={{ mt: 3, borderRadius: 3 }}>
-        <CardHeader titleTypographyProps={{ variant: "subtitle1", fontWeight: 800 }} title="How to use the Summary Scorecard" />
-        <CardContent sx={{ pt: 1 }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            After the 2nd innings finishes in <strong>ScoreDashboard</strong>, it POSTs the match object and both innings to
-            <code> /api/summary</code>. Then open <code>{base}/summary</code> in OBS to display the final scorecard.
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Re-posting will update the overlay instantly.
-          </Typography>
-        </CardContent>
-      </Card>
     </Box>
   );
 }

@@ -41,6 +41,8 @@ export default function PlayersPage() {
   // validation state
   const [errors, setErrors] = useState({});
 
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
   async function load() {
     const [playersRes, teamsRes] = await Promise.all([getPlayers(), getTeams()]);
     setItems(playersRes.data || []);
@@ -58,16 +60,13 @@ export default function PlayersPage() {
     if (!name) e.playerName = "Player name is required.";
     else if (name.length < 2) e.playerName = "Player name must be at least 2 characters.";
 
-    let posMsg = "";
+    // Position is OPTIONAL now; only validate if provided
     const raw = values.position;
-    if (raw === "" || raw === null || raw === undefined) {
-      posMsg = "Position is required.";
-    } else {
+    if (raw !== "" && raw !== null && raw !== undefined) {
       const num = Number(raw);
-      if (!Number.isInteger(num)) posMsg = "Position must be an integer.";
-      else if (num < 0 || num > 11) posMsg = "Position must be between 0 and 11.";
+      if (!Number.isInteger(num)) e.position = "Position must be an integer.";
+      else if (num < 0 || num > 11) e.position = "Position must be between 0 and 11.";
     }
-    if (posMsg) e.position = posMsg;
 
     if (!values.isBatter && !values.isBaller && !values.isWk) {
       e.roles = "Select at least one role: Batter, Bowler, or Wicket Keeper.";
@@ -77,17 +76,44 @@ export default function PlayersPage() {
 
   function onChange(e) {
     const { name, value, type, checked } = e.target;
-    const next = { ...form, [name]: type === "checkbox" ? checked : value };
-    if (name === "teamId") setLastTeamId(value);
-    setForm(next);
 
+    // special handling for teamId to remember last used
+    if (name === "teamId") {
+      setLastTeamId(value);
+      setForm((prev) => ({ ...prev, teamId: value }));
+      // live-validate
+      const fresh = validate({ ...form, teamId: value });
+      setErrors((prev) => ({ ...prev, teamId: fresh.teamId }));
+      return;
+    }
+
+    // check/uncheck toggles
+    if (type === "checkbox") {
+      if (name === "isAll") {
+        // 'All' toggles both batter & baller
+        const allChecked = Boolean(checked);
+        setForm((prev) => ({ ...prev, isBatter: allChecked, isBaller: allChecked }));
+        // update roles validation
+        const fresh = validate({ ...form, isBatter: allChecked, isBaller: allChecked });
+        setErrors((prev) => ({ ...prev, roles: fresh.roles }));
+        return;
+      }
+      // Individual checkbox toggles (isBatter/isBaller/isWk/isCaptain)
+      setForm((prev) => {
+        const next = { ...prev, [name]: checked };
+        // If user unchecks one of batter/baller, ensure 'All' reflect (handled in render)
+        const fresh = validate(next);
+        setErrors((prevErrs) => ({ ...prevErrs, roles: fresh.roles }));
+        return next;
+      });
+      return;
+    }
+
+    // numeric inputs (position) - keep as string to preserve empty state "" -> send null later
+    setForm((prev) => ({ ...prev, [name]: value }));
     // live-validate changed field
-    const fresh = validate(next);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: fresh[name],
-      ...(name.startsWith("is") ? { roles: fresh.roles } : {}),
-    }));
+    const fresh = validate({ ...form, [name]: value });
+    setErrors((prev) => ({ ...prev, [name]: fresh[name] }));
   }
 
   async function onSubmit(e) {
@@ -97,9 +123,19 @@ export default function PlayersPage() {
     if (Object.keys(freshErrors).length > 0) return;
 
     const payload = {
-      ...form,
       teamId: Number(form.teamId),
-      position: Number(form.position),
+      playerName: (form.playerName || "").trim(),
+      playerAddress: form.playerAddress ? String(form.playerAddress).trim() : undefined,
+      phone: form.phone ? String(form.phone).trim() : undefined,
+      // position: send numeric value or null when blank
+      position:
+        form.position !== "" && form.position !== null && form.position !== undefined
+          ? Number(form.position)
+          : null,
+      isBatter: !!form.isBatter,
+      isBaller: !!form.isBaller,
+      isWk: !!form.isWk,
+      isCaptain: !!form.isCaptain,
     };
 
     if (editingId) await updatePlayer(editingId, payload);
@@ -124,7 +160,8 @@ export default function PlayersPage() {
       playerName: p.playerName || "",
       playerAddress: p.playerAddress || "",
       phone: p.phone || "",
-      position: (p.position ?? "") === "" ? "" : String(p.position),
+      // display blank when backend stored null
+      position: p.position === null || p.position === undefined ? "" : String(p.position),
       isBatter: !!p.isBatter,
       isBaller: !!p.isBaller,
       isWk: !!p.isWk,
@@ -134,9 +171,15 @@ export default function PlayersPage() {
   }
 
   async function onDelete(id) {
-    if (confirm("Delete player?")) {
+    if (pendingDeleteId === id) {
       await deletePlayer(id);
+      setPendingDeleteId(null);
       load();
+    } else {
+      setPendingDeleteId(id);
+      setTimeout(() => {
+        setPendingDeleteId((current) => (current === id ? null : current));
+      }, 3000);
     }
   }
 
@@ -213,6 +256,9 @@ export default function PlayersPage() {
   const selectedTeamOptionForFilter =
     teamOptions.find((o) => o.id === (filterTeamId || "")) || null;
 
+  // derived value: 'All' is checked when both batter & baller are true
+  const isAllChecked = form.isBatter && form.isBaller;
+
   return (
     <div className="row g-4">
       {/* LEFT: create / edit form */}
@@ -263,7 +309,7 @@ export default function PlayersPage() {
               </div>
 
               <div className="col-6">
-                <label className="form-label">Position</label>
+                <label className="form-label">Position (optional)</label>
                 <input
                   type="number"
                   name="position"
@@ -283,7 +329,7 @@ export default function PlayersPage() {
                   min={0}
                   max={11}
                   step={1}
-                  required
+                  // no 'required' here — position is optional
                 />
                 {invalid("position") && (
                   <div className="invalid-feedback">{errors.position}</div>
@@ -324,6 +370,7 @@ export default function PlayersPage() {
                     Batter
                   </label>
                 </div>
+
                 <div className="form-check form-check-inline">
                   <input
                     id="isBaller"
@@ -337,6 +384,24 @@ export default function PlayersPage() {
                     Bowler
                   </label>
                 </div>
+
+                {/* NEW: 'All' checkbox to include both batter and bowler */}
+                <div className="form-check form-check-inline">
+                  <input
+                    id="isAll"
+                    className="form-check-input"
+                    type="checkbox"
+                    name="isAll"
+                    checked={isAllChecked}
+                    onChange={(e) =>
+                      onChange({ target: { name: "isAll", value: null, type: "checkbox", checked: e.target.checked } })
+                    }
+                  />
+                  <label className="form-check-label" htmlFor="isAll">
+                    All
+                  </label>
+                </div>
+
                 <div className="form-check form-check-inline">
                   <input
                     id="isWk"
@@ -350,6 +415,7 @@ export default function PlayersPage() {
                     Wicket Keeper
                   </label>
                 </div>
+
                 <div className="form-check form-check-inline">
                   <input
                     id="isCaptain"
@@ -502,10 +568,10 @@ export default function PlayersPage() {
                                     Edit
                                   </button>
                                   <button
-                                    className="btn btn-sm btn-outline-danger"
-                                    onClick={() => onDelete(p.id)}
+                                    className={`btn btn-sm ${pendingDeleteId === (p.id ?? p._id) ? "btn-danger" : "btn-outline-danger"}`}
+                                    onClick={() => onDelete(p.id ?? p._id)}
                                   >
-                                    Delete
+                                    {pendingDeleteId === (p.id ?? p._id) ? "Confirm Delete" : "Delete"}
                                   </button>
                                 </div>
                               </td>

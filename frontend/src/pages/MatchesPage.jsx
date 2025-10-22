@@ -36,6 +36,7 @@ export default function MatchesPage() {
   const [tournaments, setTournaments] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   // Filters
   const [filterTournamentId, setFilterTournamentId] = useState(""); // '' = All
@@ -126,7 +127,11 @@ export default function MatchesPage() {
       overType: Number.parseInt(form.overType, 10),
       noOfOvers: Number.parseInt(form.noOfOvers, 10),
       date: form.date,
-      startTime: form.startTime,
+      // <<-- IMPORTANT: send null when startTime is empty so backend stores null
+      startTime:
+        form.startTime && String(form.startTime).trim() !== ""
+          ? String(form.startTime).trim()
+          : null,
       IsCountWideBall: !!form.IsCountWideBall,
       IsCountNoBall: !!form.IsCountNoBall,
     };
@@ -149,16 +154,27 @@ export default function MatchesPage() {
       overType: m.overType != null ? String(m.overType) : "",
       noOfOvers: m.noOfOvers != null ? String(m.noOfOvers) : "",
       date: m.date ? m.date.slice(0, 10) : "",
-      startTime: m.startTime || "",
+      // show blank when backend stored null
+      startTime: m.startTime ?? "",
       IsCountWideBall: !!m.IsCountWideBall,
       IsCountNoBall: !!m.IsCountNoBall,
     });
   }
 
   async function onDelete(id) {
-    if (confirm("Delete match?")) {
+    if (pendingDeleteId === id) {
+      // User clicked "Confirm Delete"
       await deleteMatch(id);
+      setPendingDeleteId(null);
       load();
+    } else {
+      // First click: mark for confirmation
+      setPendingDeleteId(id);
+
+      // Optional: auto-reset after 3s if user doesn't confirm
+      setTimeout(() => {
+        setPendingDeleteId((current) => (current === id ? null : current));
+      }, 3000);
     }
   }
 
@@ -364,7 +380,7 @@ export default function MatchesPage() {
                     className="form-control"
                     value={form.startTime}
                     onChange={onChange}
-                    required
+                    /* NOT required anymore - optional field */
                   />
                 </div>
 
@@ -517,7 +533,7 @@ export default function MatchesPage() {
                                 <td>{m.IsCountWideBall ? "Yes" : "No"}</td>
                                 <td>{m.IsCountNoBall ? "Yes" : "No"}</td>
                                 <td>{m.date?.slice(0, 10)}</td>
-                                <td>{m.startTime}</td>
+                                <td>{m.startTime ?? ""}</td>
                                 <td className="text-end">
                                   <div className="d-inline-flex gap-2">
                                     <button
@@ -527,10 +543,10 @@ export default function MatchesPage() {
                                       Edit
                                     </button>
                                     <button
-                                      className="btn btn-sm btn-outline-danger"
+                                      className={`btn btn-sm ${pendingDeleteId === (m.id ?? m._id) ? "btn-danger" : "btn-outline-danger"}`}
                                       onClick={() => onDelete(m.id ?? m._id)}
                                     >
-                                      Delete
+                                      {pendingDeleteId === (m.id ?? m._id) ? "Confirm Delete" : "Delete"}
                                     </button>
                                   </div>
                                 </td>

@@ -36,7 +36,7 @@ import {
   DialogActions,
   FormGroup,
   FormHelperText,
-  Fab
+  Fab,
 } from "@mui/material";
 
 import AddIcon from "@mui/icons-material/Add";
@@ -129,21 +129,165 @@ export default function ScoreDashboard() {
     try {
       const { data } = await getPlayers(battingTeamId);
       const list = Array.isArray(data) ? data : [];
-      const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(battingTeamId));
-      const onlyBatters = byTeam.filter(isPlayerBatter);
+      const byTeam = list.filter(
+        (p) => getPlayerTeamId(p) === Number(battingTeamId)
+      );
+      const onlyBatters = byTeam;
       setBatters(onlyBatters.length ? onlyBatters : byTeam);
     } catch (e) {
       console.warn("Failed to reload batters", e);
     }
   }
 
+  // Wide + Run-out handler: add wide runs, record wicket, DO NOT count a ball
+  // Wide / No-ball + Run-out (no bowler wicket; wide already added this ball)
+  // If a wide/no-ball has already been recorded for the current ball (e.g., "Wd2"),
+  // just append "WK" and DO NOT add runs again or count a ball.
+  const handleWideRunOut = (who /* 'batsman1' | 'batsman2' */) => {
+    if (scoringLocked) return;
+
+    // Snapshot for undo
+    const snapshot = {
+      inningsRuns,
+      inningsWickets,
+      overs,
+      balls,
+      currentOverRuns,
+      onStrike,
+      batsman1,
+      batsman2,
+      bowler,
+      dismissedBatterIds: [...dismissedBatterIds],
+      overBallHistory: [...overBallHistory],
+      scoringLocked,
+      allBatterStats: { ...allBatterStats },
+      allBowlerStats: { ...allBowlerStats },
+    };
+    setHistory((prev) => [...prev, snapshot]);
+
+    const outId = who === "batsman1" ? batsman1 : batsman2;
+    if (!outId) return;
+
+    // Increment team wickets (no bowler wicket)
+    setInningsWickets((w) => w + 1);
+
+    // Update the last entry if it’s already a Wide/No-ball; otherwise create a Wd0WK entry
+    setOverBallHistory((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+
+      const isWide = typeof last === "string" && /^Wd|WD/.test(last);
+      const isNoBall = typeof last === "string" && /^Nb|NB/.test(last);
+
+      if (isWide || isNoBall) {
+        // ➤ append WK on new line (only once)
+        if (!/\nWK$/i.test(last)) {
+          next[next.length - 1] = `${last}\nWK`;
+        }
+      } else {
+        // no previous wide/no-ball for this ball → base wide + WK
+        setInningsRuns((r) => r + 1);
+        setAllBowlerStats((prevStats) => {
+          const curr = prevStats[bowler] || {
+            overs: 0,
+            maidens: 0,
+            runs: 0,
+            wickets: 0,
+          };
+          return { ...prevStats, [bowler]: { ...curr, runs: curr.runs + 1 } };
+        });
+        setCurrentOverRuns((c) => c + 1);
+        next.push(`Wd0\nWK`);
+      }
+
+      return next;
+    });
+
+    // Mark dismissed so they don’t appear again
+    setDismissedBatterIds((prev) => {
+      const next = new Set(prev.map(String));
+      next.add(String(outId));
+      return Array.from(next);
+    });
+
+    // Clear the dismissed slot; if striker was out, flip strike to the other
+    if (who === "batsman1") {
+      setBatsman1("");
+      if (onStrike === "batsman1") setOnStrike("batsman2");
+    } else {
+      setBatsman2("");
+      if (onStrike === "batsman2") setOnStrike("batsman1");
+    }
+
+    // IMPORTANT: do NOT call finishBallAndCheckOver(); do NOT increment balls or striker balls.
+  };
+
+  // Byes + Run-out handler: wicket on the same bye ball (no bowler wicket; ball already counted)
+  // If the last entry is a Bye (e.g., "B2"), append "\nWK". Otherwise do nothing.
+  const handleByeRunOut = (who /* 'batsman1' | 'batsman2' */) => {
+    if (scoringLocked) return;
+
+    // Snapshot for undo
+    const snapshot = {
+      inningsRuns,
+      inningsWickets,
+      overs,
+      balls,
+      currentOverRuns,
+      onStrike,
+      batsman1,
+      batsman2,
+      bowler,
+      dismissedBatterIds: [...dismissedBatterIds],
+      overBallHistory: [...overBallHistory],
+      scoringLocked,
+      allBatterStats: { ...allBatterStats },
+      allBowlerStats: { ...allBowlerStats },
+    };
+    setHistory((prev) => [...prev, snapshot]);
+
+    const outId = who === "batsman1" ? batsman1 : batsman2;
+    if (!outId) return;
+
+    // Increment team wickets (no bowler wicket)
+    setInningsWickets((w) => w + 1);
+
+    // Append WK only if last logged ball is a Bye ("B#")
+    setOverBallHistory((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      const isBye = typeof last === "string" && /^B\d+$/i.test(last);
+
+      if (isBye) {
+        if (!/\nWK$/i.test(last)) {
+          next[next.length - 1] = `${last}\nWK`;
+        }
+      }
+      // If not a Bye, we ignore to avoid corrupting ball count.
+      return next;
+    });
+
+    // Mark dismissed + clear slot; if striker was out, flip strike to the other
+    if (who === "batsman1") {
+      setBatsman1("");
+      if (onStrike === "batsman1") setOnStrike("batsman2");
+    } else {
+      setBatsman2("");
+      if (onStrike === "batsman2") setOnStrike("batsman1");
+    }
+
+    // IMPORTANT: do NOT call finishBallAndCheckOver(); the bye already counted the ball.
+  };
+
   async function reloadBowlers() {
     if (bowlingTeamId == null) return;
     try {
       const { data } = await getPlayers(bowlingTeamId);
       const list = Array.isArray(data) ? data : [];
-      const byTeam = list.filter((p) => getPlayerTeamId(p) === Number(bowlingTeamId));
-      const onlyBowlers = byTeam.filter(isPlayerBowler);
+      const byTeam = list.filter(
+        (p) => getPlayerTeamId(p) === Number(bowlingTeamId)
+      );
+      const onlyBowlers = byTeam;
       setBowlers(onlyBowlers.length ? onlyBowlers : byTeam);
     } catch (e) {
       console.warn("Failed to reload bowlers", e);
@@ -157,7 +301,8 @@ export default function ScoreDashboard() {
 
     const name = (values.playerName || "").trim();
     if (!name) e.playerName = "Player name is required.";
-    else if (name.length < 2) e.playerName = "Name must be at least 2 characters.";
+    else if (name.length < 2)
+      e.playerName = "Name must be at least 2 characters.";
 
     // position: required int 0..11
     const raw = values.position;
@@ -415,11 +560,11 @@ export default function ScoreDashboard() {
   const normalizeBool = (v) =>
     v === true || v === "true" || v === 1 || v === "1";
 
-  const isPlayerBatter = (p) =>
-    normalizeBool(p.isBatter ?? p.Isbatter ?? p.isBatsman) ||
-    normalizeBool(p.isWK ?? p.IsWk);
+  // const isPlayerBatter = (p) =>
+  //   normalizeBool(p.isBatter ?? p.Isbatter ?? p.isBatsman) ||
+  //   normalizeBool(p.isWK ?? p.IsWk);
 
-  const isPlayerBowler = (p) => normalizeBool(p.isBowler ?? p.Isballer);
+  // const isPlayerBowler = (p) => normalizeBool(p.isBowler ?? p.Isballer);
 
   const getPlayerTeamId = (p) =>
     Number(p.teamId ?? p.teamid ?? p.teamID ?? p.team);
@@ -441,9 +586,9 @@ export default function ScoreDashboard() {
         const byTeam = list.filter(
           (p) => getPlayerTeamId(p) === Number(battingTeamId)
         );
-        const onlyBatters = byTeam.filter(isPlayerBatter);
+        const onlyBatters = byTeam;
         const finalList = onlyBatters.length ? onlyBatters : byTeam;
-
+        console.log("final list", finalList);
         setBatters(finalList);
 
         setBatsman1((prev) =>
@@ -472,7 +617,7 @@ export default function ScoreDashboard() {
         const byTeam = list.filter(
           (p) => getPlayerTeamId(p) === Number(bowlingTeamId)
         );
-        const onlyBowlers = byTeam.filter(isPlayerBowler);
+        const onlyBowlers = byTeam;
         const finalList = onlyBowlers.length ? onlyBowlers : byTeam;
 
         setBowlers(finalList);
@@ -541,7 +686,8 @@ export default function ScoreDashboard() {
   const strikerRuns = onStrike === "batsman1" ? batsman1Runs : batsman2Runs;
   const strikerBalls = onStrike === "batsman1" ? batsman1Balls : batsman2Balls;
   const nonStrikerRuns = onStrike === "batsman1" ? batsman2Runs : batsman1Runs;
-  const nonStrikerBalls = onStrike === "batsman1" ? batsman2Balls : batsman1Balls;
+  const nonStrikerBalls =
+    onStrike === "batsman1" ? batsman2Balls : batsman1Balls;
 
   // Build a fixed-size 3x3 grid (9 cells)
   const makeGrid = (items, total = 9) => {
@@ -599,15 +745,29 @@ export default function ScoreDashboard() {
         // maiden if over had no runs this over (bat or byes)
         if (currentOverRuns + addedRunsForMaidens === 0) {
           setAllBowlerStats((prevStats) => {
-            const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+            const curr = prevStats[bowler] || {
+              overs: 0,
+              maidens: 0,
+              runs: 0,
+              wickets: 0,
+            };
             return {
               ...prevStats,
-              [bowler]: { ...curr, maidens: curr.maidens + 1, overs: curr.overs + 1 },
+              [bowler]: {
+                ...curr,
+                maidens: curr.maidens + 1,
+                overs: curr.overs + 1,
+              },
             };
           });
         } else {
           setAllBowlerStats((prevStats) => {
-            const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+            const curr = prevStats[bowler] || {
+              overs: 0,
+              maidens: 0,
+              runs: 0,
+              wickets: 0,
+            };
             return {
               ...prevStats,
               [bowler]: { ...curr, overs: curr.overs + 1 },
@@ -653,7 +813,12 @@ export default function ScoreDashboard() {
       if (title === "Normal Runs") {
         // Normal runs: add to batsman, bowler, team; ball counts
         setAllBatterStats((prevStats) => {
-          const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+          const curr = prevStats[strikerId] || {
+            runs: 0,
+            balls: 0,
+            fours: 0,
+            sixes: 0,
+          };
           return {
             ...prevStats,
             [strikerId]: {
@@ -666,7 +831,12 @@ export default function ScoreDashboard() {
         });
         setInningsRuns((prev) => prev + runs);
         setAllBowlerStats((prevStats) => {
-          const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+          const curr = prevStats[bowler] || {
+            overs: 0,
+            maidens: 0,
+            runs: 0,
+            wickets: 0,
+          };
           return {
             ...prevStats,
             [bowler]: { ...curr, runs: curr.runs + runs },
@@ -688,7 +858,12 @@ export default function ScoreDashboard() {
         // Wides: team only (+1 base wide plus extra wides), NO ball
         setInningsRuns((prev) => prev + runs + 1);
         setAllBowlerStats((prevStats) => {
-          const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+          const curr = prevStats[bowler] || {
+            overs: 0,
+            maidens: 0,
+            runs: 0,
+            wickets: 0,
+          };
           return {
             ...prevStats,
             [bowler]: { ...curr, runs: curr.runs + runs + 1 },
@@ -696,7 +871,7 @@ export default function ScoreDashboard() {
         });
         setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Wd${runs}`]);
-        if ((runs) % 2 === 1) {
+        if (runs % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
         }
         if (isCountWideBall) {
@@ -706,27 +881,38 @@ export default function ScoreDashboard() {
         // No-balls: team +1 and (optional bat runs), NO ball
         setInningsRuns((prev) => prev + runs + 1);
         setAllBowlerStats((prevStats) => {
-          const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+          const curr = prevStats[bowler] || {
+            overs: 0,
+            maidens: 0,
+            runs: 0,
+            wickets: 0,
+          };
           return {
             ...prevStats,
             [bowler]: { ...curr, runs: curr.runs + runs + 1 },
           };
         });
-        if (runs > 0) setAllBatterStats((prevStats) => {
-          const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
-          return {
-            ...prevStats,
-            [strikerId]: {
-              runs: curr.runs + runs,
-              balls: curr.balls,
-              fours: curr.fours + (runs === 4 ? 1 : 0),
-              sixes: curr.sixes + (runs === 6 ? 1 : 0),
-            },
-          };
-        });
+        if (runs > 0)
+          setAllBatterStats((prevStats) => {
+            const curr = prevStats[strikerId] || {
+              runs: 0,
+              balls: 0,
+              fours: 0,
+              sixes: 0,
+            };
+            return {
+              ...prevStats,
+              [strikerId]: {
+                runs: curr.runs + runs,
+                balls: curr.balls,
+                fours: curr.fours + (runs === 4 ? 1 : 0),
+                sixes: curr.sixes + (runs === 6 ? 1 : 0),
+              },
+            };
+          });
         setCurrentOverRuns((prev) => prev + runs + 1);
         setOverBallHistory((prev) => [...prev, `Nb${runs}`]);
-        if ((runs) % 2 === 1) {
+        if (runs % 2 === 1) {
           setOnStrike(onStrike === "batsman1" ? "batsman2" : "batsman1");
         }
         if (isCountNoBall) {
@@ -737,7 +923,12 @@ export default function ScoreDashboard() {
         setInningsRuns((prev) => prev + runs);
         setCurrentOverRuns((prev) => prev + runs);
         setAllBatterStats((prevStats) => {
-          const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+          const curr = prevStats[strikerId] || {
+            runs: 0,
+            balls: 0,
+            fours: 0,
+            sixes: 0,
+          };
           return {
             ...prevStats,
             [strikerId]: { ...curr, balls: curr.balls + 1 },
@@ -756,14 +947,24 @@ export default function ScoreDashboard() {
       // Wicket on a legal delivery
       setInningsWickets((prev) => prev + 1);
       setAllBowlerStats((prevStats) => {
-        const curr = prevStats[bowler] || { overs: 0, maidens: 0, runs: 0, wickets: 0 };
+        const curr = prevStats[bowler] || {
+          overs: 0,
+          maidens: 0,
+          runs: 0,
+          wickets: 0,
+        };
         return {
           ...prevStats,
           [bowler]: { ...curr, wickets: curr.wickets + 1 },
         };
       });
       setAllBatterStats((prevStats) => {
-        const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+        const curr = prevStats[strikerId] || {
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+        };
         return {
           ...prevStats,
           [strikerId]: { ...curr, balls: curr.balls + 1 },
@@ -823,7 +1024,12 @@ export default function ScoreDashboard() {
     // Ball counts to the striker on a legal delivery
     const strikerId = onStrike === "batsman1" ? batsman1 : batsman2;
     setAllBatterStats((prevStats) => {
-      const curr = prevStats[strikerId] || { runs: 0, balls: 0, fours: 0, sixes: 0 };
+      const curr = prevStats[strikerId] || {
+        runs: 0,
+        balls: 0,
+        fours: 0,
+        sixes: 0,
+      };
       return {
         ...prevStats,
         [strikerId]: { ...curr, balls: curr.balls + 1 },
@@ -889,11 +1095,15 @@ export default function ScoreDashboard() {
     ground: currentMatchDetails?.ground || ground || "",
     team1Id: team1Id ?? currentMatch?.team1Id ?? null,
     team1:
-      currentMatchDetails?.team1 || currentMatch?.team1Name || `#${team1Id ?? ""}`,
+      currentMatchDetails?.team1 ||
+      currentMatch?.team1Name ||
+      `#${team1Id ?? ""}`,
     team1Logo: currentMatchDetails?.team1Logo || currentMatch?.team1Logo || "",
     team2Id: team2Id ?? currentMatch?.team2Id ?? null,
     team2:
-      currentMatchDetails?.team2 || currentMatch?.team2Name || `#${team2Id ?? ""}`,
+      currentMatchDetails?.team2 ||
+      currentMatch?.team2Name ||
+      `#${team2Id ?? ""}`,
     team2Logo: currentMatchDetails?.team2Logo || currentMatch?.team2Logo || "",
   });
 
@@ -915,6 +1125,21 @@ export default function ScoreDashboard() {
     }
   }
 
+  // Trigger "FREE HIT" banner (does NOT touch overBallHistory)
+  const triggerFreeHit = async () => {
+    try {
+      await fetch("/api/overlay/fr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          label: "FREE HIT",
+          durationMs: 20000, // optional; overlay auto-hides after 20s
+        }),
+      });
+    } catch (e) {
+      console.warn("Failed to trigger FREE HIT banner:", e);
+    }
+  };
 
   // End current innings
   const handleEndInnings = () => {
@@ -975,7 +1200,6 @@ export default function ScoreDashboard() {
     }
   };
 
-
   // ---------- PUSH SCOREBAR DATA TO BACKEND FOR OBS ----------
   const postOverlay = async () => {
     try {
@@ -984,7 +1208,9 @@ export default function ScoreDashboard() {
       const bpo = Number(overType) || 6;
       const totalOversFloat = overs + (balls / bpo || 0);
       const runRate =
-        totalOversFloat > 0 ? (inningsRuns / totalOversFloat).toFixed(2) : "0.00";
+        totalOversFloat > 0
+          ? (inningsRuns / totalOversFloat).toFixed(2)
+          : "0.00";
 
       await fetch("/api/overlay", {
         method: "POST",
@@ -1006,7 +1232,11 @@ export default function ScoreDashboard() {
           // 👉 NEW: include second-innings target (or null)
           target: chaseTarget ?? null,
 
-          striker: { name: strikerName, runs: strikerRuns, balls: strikerBalls },
+          striker: {
+            name: strikerName,
+            runs: strikerRuns,
+            balls: strikerBalls,
+          },
           nonStriker: {
             name: nonStrikerName,
             runs: nonStrikerRuns,
@@ -1023,7 +1253,6 @@ export default function ScoreDashboard() {
           overBalls: overBallHistory, // e.g., ["1","1","Wd1","Nb0","W","4"]
         }),
       });
-
     } catch (err) {
       console.warn("Failed to push overlay:", err);
     }
@@ -1059,7 +1288,6 @@ export default function ScoreDashboard() {
     overBallHistory,
   ]);
 
-
   // Also push whenever match header loaded (logos/names/ground ready)
   useEffect(() => {
     postOverlay();
@@ -1074,6 +1302,7 @@ export default function ScoreDashboard() {
     return null;
   }, [currentInnings, innings1]);
 
+  // 3x3 scoring table
   // 3x3 scoring table
   const renderTable = (title, items) => (
     <Grid item xs={12} sm={4}>
@@ -1092,7 +1321,10 @@ export default function ScoreDashboard() {
           overflow: "hidden",
           border: "1px solid",
           borderColor: "divider",
-          bgcolor: scoringLocked ? "action.disabledBackground" : "background.paper",
+          bgcolor: scoringLocked
+            ? "action.disabledBackground"
+            : "background.paper",
+          p: 0, // keep tight around table
         }}
       >
         <Table
@@ -1162,6 +1394,100 @@ export default function ScoreDashboard() {
           </TableBody>
         </Table>
       </Paper>
+
+      {/* Extra controls specifically for WIDES */}
+      {title === "Wides" && (
+        <Stack spacing={0.75} mt={1}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700 }}
+          >
+            Run-out on this Wide
+          </Typography>
+
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman1")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#6a1b9a", "&:hover": { bgcolor: "#4a148c" } }}
+          >
+            Batsman 1
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman2")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#8e24aa", "&:hover": { bgcolor: "#6a1b9a" } }}
+          >
+            Batsman 2
+          </Button>
+        </Stack>
+      )}
+
+      {/* Extra controls specifically for NO BALLS (reuse wide-runout handler) */}
+      {title === "No Balls" && (
+        <Stack spacing={0.75} mt={1}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700 }}
+          >
+            Run-out on this No Ball
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman1")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#6a1b9a", "&:hover": { bgcolor: "#4a148c" } }}
+          >
+            Batsman 1
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleWideRunOut("batsman2")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#8e24aa", "&:hover": { bgcolor: "#6a1b9a" } }}
+          >
+            Batsman 2
+          </Button>
+        </Stack>
+      )}
+
+      {/* Extra controls specifically for BYES */}
+      {title === "Byes" && (
+        <Stack spacing={0.75} mt={1}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ fontWeight: 700 }}
+          >
+            Run-out on this Bye
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleByeRunOut("batsman1")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#6a1b9a", "&:hover": { bgcolor: "#4a148c" } }}
+          >
+            Batsman 1
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleByeRunOut("batsman2")}
+            disabled={scoringLocked || currentInnings === "completed"}
+            sx={{ bgcolor: "#8e24aa", "&:hover": { bgcolor: "#6a1b9a" } }}
+          >
+            Batsman 2
+          </Button>
+        </Stack>
+      )}
     </Grid>
   );
 
@@ -1232,7 +1558,10 @@ export default function ScoreDashboard() {
         </TableHead>
         <TableBody>
           {batterStats.map((stats) => {
-            const sr = stats.balls > 0 ? (stats.runs / stats.balls * 100).toFixed(2) : "0.00";
+            const sr =
+              stats.balls > 0
+                ? ((stats.runs / stats.balls) * 100).toFixed(2)
+                : "0.00";
             return (
               <TableRow key={stats.id}>
                 <TableCell>{stats.name}</TableCell>
@@ -1272,7 +1601,8 @@ export default function ScoreDashboard() {
         </TableHead>
         <TableBody>
           {bowlerStats.map((stats) => {
-            const econ = stats.overs > 0 ? (stats.runs / stats.overs).toFixed(2) : "0.00";
+            const econ =
+              stats.overs > 0 ? (stats.runs / stats.overs).toFixed(2) : "0.00";
             return (
               <TableRow key={stats.id}>
                 <TableCell>{stats.name}</TableCell>
@@ -1292,11 +1622,15 @@ export default function ScoreDashboard() {
   const renderFullMatchSummary = () => {
     if (!innings1 || !innings2) return null;
 
-    const firstBattingTeamName = innings1.battingTeamId === team1Id ? team1Name : team2Name;
-    const secondBattingTeamName = innings2.battingTeamId === team1Id ? team1Name : team2Name;
+    const firstBattingTeamName =
+      innings1.battingTeamId === team1Id ? team1Name : team2Name;
+    const secondBattingTeamName =
+      innings2.battingTeamId === team1Id ? team1Name : team2Name;
 
-    const firstBowlingTeamName = innings1.bowlingTeamId === team1Id ? team1Name : team2Name;
-    const secondBowlingTeamName = innings2.bowlingTeamId === team1Id ? team1Name : team2Name;
+    const firstBowlingTeamName =
+      innings1.bowlingTeamId === team1Id ? team1Name : team2Name;
+    const secondBowlingTeamName =
+      innings2.bowlingTeamId === team1Id ? team1Name : team2Name;
 
     return (
       <Card
@@ -1319,17 +1653,31 @@ export default function ScoreDashboard() {
           <Stack spacing={3}>
             <Box>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                1st Innings: {firstBattingTeamName} {innings1.runs}/{innings1.wickets} ({innings1.totalOvers} overs)
+                1st Innings: {firstBattingTeamName} {innings1.runs}/
+                {innings1.wickets} ({innings1.totalOvers} overs)
               </Typography>
-              {renderBattingTable(firstBattingTeamName, innings1.batterStatsWithNames)}
-              {renderBowlingTable(firstBowlingTeamName, innings1.bowlerStatsWithNames)}
+              {renderBattingTable(
+                firstBattingTeamName,
+                innings1.batterStatsWithNames
+              )}
+              {renderBowlingTable(
+                firstBowlingTeamName,
+                innings1.bowlerStatsWithNames
+              )}
             </Box>
             <Box>
               <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                2nd Innings: {secondBattingTeamName} {innings2.runs}/{innings2.wickets} ({innings2.totalOvers} overs)
+                2nd Innings: {secondBattingTeamName} {innings2.runs}/
+                {innings2.wickets} ({innings2.totalOvers} overs)
               </Typography>
-              {renderBattingTable(secondBattingTeamName, innings2.batterStatsWithNames)}
-              {renderBowlingTable(secondBowlingTeamName, innings2.bowlerStatsWithNames)}
+              {renderBattingTable(
+                secondBattingTeamName,
+                innings2.batterStatsWithNames
+              )}
+              {renderBowlingTable(
+                secondBowlingTeamName,
+                innings2.bowlerStatsWithNames
+              )}
             </Box>
           </Stack>
         </CardContent>
@@ -1510,7 +1858,14 @@ export default function ScoreDashboard() {
                 </Box>
 
                 {/* REPLACED: Run Rate block -> now stacked with Target (when 2nd innings) */}
-                <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 120 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    minWidth: 120,
+                  }}
+                >
                   <Typography variant="subtitle1">
                     (RR:{" "}
                     {(() => {
@@ -1526,7 +1881,10 @@ export default function ScoreDashboard() {
                   </Typography>
 
                   {chaseTarget != null && (
-                    <Typography variant="caption" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 700, lineHeight: 1.2 }}
+                    >
                       Target: {chaseTarget}
                     </Typography>
                   )}
@@ -1542,7 +1900,8 @@ export default function ScoreDashboard() {
                 </Typography>
 
                 <Typography variant="subtitle1" sx={{ minWidth: 120 }}>
-                  {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-{bowlerRuns}
+                  {bowlerName.toUpperCase()} {bowlerWickets}-{bowlerOvers}-
+                  {bowlerRuns}
                 </Typography>
 
                 <Box sx={{ display: "flex", alignItems: "center", px: 1 }}>
@@ -1811,8 +2170,17 @@ export default function ScoreDashboard() {
 
             {/* Players */}
             <Box sx={{ mb: 2 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-                <Typography variant="body2" fontWeight={800} color="text.secondary">
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                mb={1}
+              >
+                <Typography
+                  variant="body2"
+                  fontWeight={800}
+                  color="text.secondary"
+                >
                   Players
                 </Typography>
 
@@ -1827,7 +2195,10 @@ export default function ScoreDashboard() {
                       (battingTeamId && String(battingTeamId)) ||
                       (bowlingTeamId && String(bowlingTeamId)) ||
                       "";
-                    setPlayerForm((p) => ({ ...emptyPlayerForm, teamId: defaultTeam }));
+                    setPlayerForm((p) => ({
+                      ...emptyPlayerForm,
+                      teamId: defaultTeam,
+                    }));
                     setFormErrors({});
                     setAddOpen(true);
                   }}
@@ -1839,15 +2210,23 @@ export default function ScoreDashboard() {
               <Grid container spacing={1.25}>
                 {/* Batsman 1 */}
                 <Grid item xs={12} md={4}>
-                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                  <Card
+                    variant="outlined"
+                    sx={{ borderRadius: 3, height: "100%" }}
+                  >
                     <CardHeader
-                      titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
+                      titleTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 700,
+                      }}
                       title="Batsman 1"
                       action={
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={battingTeamId ? `T:${battingTeamId}` : "No team"}
+                          label={
+                            battingTeamId ? `T:${battingTeamId}` : "No team"
+                          }
                         />
                       }
                       sx={{ py: 1, px: 1.25 }}
@@ -1857,7 +2236,9 @@ export default function ScoreDashboard() {
                       <FormControl
                         fullWidth
                         sx={{ mt: 0.25 }}
-                        disabled={!battingTeamId || currentInnings === "completed"}
+                        disabled={
+                          !battingTeamId || currentInnings === "completed"
+                        }
                         size="small"
                       >
                         <InputLabel id="batsman1-label" shrink>
@@ -1901,15 +2282,23 @@ export default function ScoreDashboard() {
 
                 {/* Batsman 2 */}
                 <Grid item xs={12} md={4}>
-                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                  <Card
+                    variant="outlined"
+                    sx={{ borderRadius: 3, height: "100%" }}
+                  >
                     <CardHeader
-                      titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
+                      titleTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 700,
+                      }}
                       title="Batsman 2"
                       action={
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={battingTeamId ? `T:${battingTeamId}` : "No team"}
+                          label={
+                            battingTeamId ? `T:${battingTeamId}` : "No team"
+                          }
                         />
                       }
                       sx={{ py: 1, px: 1.25 }}
@@ -1919,7 +2308,9 @@ export default function ScoreDashboard() {
                       <FormControl
                         fullWidth
                         sx={{ mt: 0.25 }}
-                        disabled={!battingTeamId || currentInnings === "completed"}
+                        disabled={
+                          !battingTeamId || currentInnings === "completed"
+                        }
                         size="small"
                       >
                         <InputLabel id="batsman2-label" shrink>
@@ -1963,15 +2354,23 @@ export default function ScoreDashboard() {
 
                 {/* Bowler */}
                 <Grid item xs={12} md={4}>
-                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                  <Card
+                    variant="outlined"
+                    sx={{ borderRadius: 3, height: "100%" }}
+                  >
                     <CardHeader
-                      titleTypographyProps={{ variant: "body2", fontWeight: 700 }}
+                      titleTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 700,
+                      }}
                       title="Bowler"
                       action={
                         <Chip
                           size="small"
                           variant="outlined"
-                          label={bowlingTeamId ? `T:${bowlingTeamId}` : "No team"}
+                          label={
+                            bowlingTeamId ? `T:${bowlingTeamId}` : "No team"
+                          }
                         />
                       }
                       sx={{ py: 1, px: 1.25 }}
@@ -1981,7 +2380,9 @@ export default function ScoreDashboard() {
                       <FormControl
                         fullWidth
                         sx={{ mt: 0.25 }}
-                        disabled={!bowlingTeamId || currentInnings === "completed"}
+                        disabled={
+                          !bowlingTeamId || currentInnings === "completed"
+                        }
                         size="small"
                       >
                         <InputLabel id="bowler-label" shrink>
@@ -2018,9 +2419,15 @@ export default function ScoreDashboard() {
 
                 {/* Scoring + Wickets */}
                 <Grid item xs={12} md={8}>
-                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                  <Card
+                    variant="outlined"
+                    sx={{ borderRadius: 3, height: "100%" }}
+                  >
                     <CardHeader
-                      titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
+                      titleTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 800,
+                      }}
                       title="Scoring"
                       subheaderTypographyProps={{ variant: "caption" }}
                       subheader={
@@ -2037,7 +2444,7 @@ export default function ScoreDashboard() {
                               label="Locked — change bowler"
                             />
                           )}
-                         
+
                           <Button
                             variant="contained"
                             color="primary"
@@ -2065,9 +2472,15 @@ export default function ScoreDashboard() {
 
                 {/* Wickets */}
                 <Grid item xs={12} md={4}>
-                  <Card variant="outlined" sx={{ borderRadius: 3, height: "100%" }}>
+                  <Card
+                    variant="outlined"
+                    sx={{ borderRadius: 3, height: "100%" }}
+                  >
                     <CardHeader
-                      titleTypographyProps={{ variant: "body2", fontWeight: 800 }}
+                      titleTypographyProps={{
+                        variant: "body2",
+                        fontWeight: 800,
+                      }}
                       title="Wickets"
                       sx={{ py: 1, px: 1.25 }}
                     />
@@ -2078,7 +2491,9 @@ export default function ScoreDashboard() {
                           variant="contained"
                           size="small"
                           fullWidth
-                          disabled={scoringLocked || currentInnings === "completed"}
+                          disabled={
+                            scoringLocked || currentInnings === "completed"
+                          }
                           sx={{
                             bgcolor: "#ef5350",
                             color: "white",
@@ -2093,7 +2508,9 @@ export default function ScoreDashboard() {
                           variant="contained"
                           size="small"
                           fullWidth
-                          disabled={scoringLocked || currentInnings === "completed"}
+                          disabled={
+                            scoringLocked || currentInnings === "completed"
+                          }
                           sx={{
                             bgcolor: "#d32f2f",
                             color: "white",
@@ -2108,7 +2525,9 @@ export default function ScoreDashboard() {
                           variant="contained"
                           size="small"
                           fullWidth
-                          disabled={scoringLocked || currentInnings === "completed"}
+                          disabled={
+                            scoringLocked || currentInnings === "completed"
+                          }
                           sx={{
                             bgcolor: "#b71c1c",
                             color: "white",
@@ -2130,11 +2549,30 @@ export default function ScoreDashboard() {
                             color: "white",
                             "&:hover": { bgcolor: "#16881fff" },
                           }}
-                          disabled={history.length === 0 || currentInnings === "completed"}
+                          disabled={
+                            history.length === 0 ||
+                            currentInnings === "completed"
+                          }
                         >
                           Undo Last Action
                         </Button>
 
+                        <Button
+                          variant="contained"
+                          size="small"
+                          fullWidth
+                          disabled={
+                            scoringLocked || currentInnings === "completed"
+                          }
+                          sx={{
+                            bgcolor: "#fb8c00",
+                            color: "white",
+                            "&:hover": { bgcolor: "#ef6c00" },
+                          }}
+                          onClick={triggerFreeHit}
+                        >
+                          Show FREE-HIT Banner
+                        </Button>
                       </Stack>
                     </CardContent>
                   </Card>
@@ -2185,12 +2623,18 @@ export default function ScoreDashboard() {
                                 battingTeamName,
                                 Object.keys(allBatterStats).map((id) => ({
                                   id,
-                                  name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
+                                  name: getPlayerName(
+                                    batters.find((p) => String(p.id) === id) ||
+                                      {}
+                                  ),
                                   ...allBatterStats[id],
                                 }))
                               )
-                            : innings1 && renderBattingTable(
-                                innings1.battingTeamId === team1Id ? team1Name : team2Name,
+                            : innings1 &&
+                              renderBattingTable(
+                                innings1.battingTeamId === team1Id
+                                  ? team1Name
+                                  : team2Name,
                                 innings1.batterStatsWithNames
                               )}
                         </Grid>
@@ -2200,12 +2644,18 @@ export default function ScoreDashboard() {
                                 bowlingTeamName,
                                 Object.keys(allBowlerStats).map((id) => ({
                                   id,
-                                  name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
+                                  name: getPlayerName(
+                                    bowlers.find((p) => String(p.id) === id) ||
+                                      {}
+                                  ),
                                   ...allBowlerStats[id],
                                 }))
                               )
-                            : innings1 && renderBowlingTable(
-                                innings1.bowlingTeamId === team1Id ? team1Name : team2Name,
+                            : innings1 &&
+                              renderBowlingTable(
+                                innings1.bowlingTeamId === team1Id
+                                  ? team1Name
+                                  : team2Name,
                                 innings1.bowlerStatsWithNames
                               )}
                         </Grid>
@@ -2226,12 +2676,18 @@ export default function ScoreDashboard() {
                                 battingTeamName,
                                 Object.keys(allBatterStats).map((id) => ({
                                   id,
-                                  name: getPlayerName(batters.find((p) => String(p.id) === id) || {}),
+                                  name: getPlayerName(
+                                    batters.find((p) => String(p.id) === id) ||
+                                      {}
+                                  ),
                                   ...allBatterStats[id],
                                 }))
                               )
-                            : innings2 && renderBattingTable(
-                                innings2.battingTeamId === team1Id ? team1Name : team2Name,
+                            : innings2 &&
+                              renderBattingTable(
+                                innings2.battingTeamId === team1Id
+                                  ? team1Name
+                                  : team2Name,
                                 innings2.batterStatsWithNames
                               )}
                         </Grid>
@@ -2241,12 +2697,18 @@ export default function ScoreDashboard() {
                                 bowlingTeamName,
                                 Object.keys(allBowlerStats).map((id) => ({
                                   id,
-                                  name: getPlayerName(bowlers.find((p) => String(p.id) === id) || {}),
+                                  name: getPlayerName(
+                                    bowlers.find((p) => String(p.id) === id) ||
+                                      {}
+                                  ),
                                   ...allBowlerStats[id],
                                 }))
                               )
-                            : innings2 && renderBowlingTable(
-                                innings2.bowlingTeamId === team1Id ? team1Name : team2Name,
+                            : innings2 &&
+                              renderBowlingTable(
+                                innings2.bowlingTeamId === team1Id
+                                  ? team1Name
+                                  : team2Name,
                                 innings2.bowlerStatsWithNames
                               )}
                         </Grid>
@@ -2279,7 +2741,11 @@ export default function ScoreDashboard() {
             sx={{ pt: 1 }}
           >
             {/* TEAM */}
-            <FormControl size="small" fullWidth error={Boolean(formErrors.teamId)}>
+            <FormControl
+              size="small"
+              fullWidth
+              error={Boolean(formErrors.teamId)}
+            >
               <InputLabel id="add-team-label">Team</InputLabel>
               <Select
                 labelId="add-team-label"
@@ -2326,7 +2792,9 @@ export default function ScoreDashboard() {
                       if (n > 11) v = "11";
                     }
                   }
-                  onPlayerField({ target: { name: "position", value: v, type: "text" } });
+                  onPlayerField({
+                    target: { name: "position", value: v, type: "text" },
+                  });
                 }}
                 error={Boolean(formErrors.position)}
                 helperText={formErrors.position}
@@ -2415,7 +2883,6 @@ export default function ScoreDashboard() {
           </Button>
         </DialogActions>
       </Dialog>
-
     </Box>
   );
 }

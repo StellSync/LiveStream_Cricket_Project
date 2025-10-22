@@ -74,6 +74,10 @@ export default function TournamentsPage() {
   // memoize today string
   const todayStr = useMemo(() => todayLocalStr(), []);
 
+
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+
+
   async function load() {
     setLoading(true);
     try {
@@ -152,12 +156,22 @@ export default function TournamentsPage() {
     }));
   }
 
-  async function onDelete(id) {
-    if (confirm("Delete tournament?")) {
-      await deleteTournament(id);
-      load();
-    }
+async function onDelete(id) {
+  if (pendingDeleteId === id) {
+    // User clicked "Confirm Delete"
+    await deleteTournament(id);
+    setPendingDeleteId(null);
+    load();
+  } else {
+    // First click: mark for confirmation
+    setPendingDeleteId(id);
+
+    // Optional: auto-reset after 5 seconds if user doesn't confirm
+    setTimeout(() => {
+      setPendingDeleteId((current) => (current === id ? null : current));
+    }, 3000);
   }
+}
 
   async function handleLogoFile(e) {
     const file = e.target.files?.[0];
@@ -472,12 +486,13 @@ export default function TournamentsPage() {
                             >
                               Edit
                             </button>
-                            <button
-                              className="btn btn-sm btn-outline-danger"
-                              onClick={() => onDelete(t.id)}
+                             <button
+                              className={`btn btn-sm ${pendingDeleteId === (t.id ?? t._id) ? "btn-danger" : "btn-outline-danger"}`}
+                              onClick={() => onDelete(t.id ?? t._id)}
                             >
-                              Delete
+                              {pendingDeleteId === (t.id ?? t._id) ? "Confirm Delete" : "Delete"}
                             </button>
+
                           </td>
                         </tr>
                       ))}
