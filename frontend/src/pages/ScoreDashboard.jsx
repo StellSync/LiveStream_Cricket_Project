@@ -725,6 +725,22 @@ export default function ScoreDashboard() {
     [batters, batsman1, dismissedBatterIds]
   );
 
+  // --- Scoring preconditions ---
+const missingSetupReason = useMemo(() => {
+  if (!battingTeamId) return "Select the batting team first";
+  if (!bowlingTeamId) return "Select the bowling team first";
+  if (!batsman1 || !batsman2) return "Select both batsmen";
+  if (!bowler) return "Select a bowler";
+  return null;
+}, [battingTeamId, bowlingTeamId, batsman1, batsman2, bowler]);
+
+// You can score only if setup is complete and innings not completed
+const canScore = useMemo(
+  () => !missingSetupReason && currentInnings !== "completed",
+  [missingSetupReason, currentInnings]
+);
+
+
   // Ensure two dropdowns never end up with same player
   useEffect(() => {
     if (batsman1 && batsman2 && String(batsman1) === String(batsman2)) {
@@ -786,6 +802,7 @@ export default function ScoreDashboard() {
   const handleScore = (title, value) => {
     if (value === "-") return;
     if (scoringLocked) return; // guard if UI didn't already prevent it
+    if (!canScore) return;
 
     const runs = Number(value);
     const strikerId = onStrike === "batsman1" ? batsman1 : batsman2;
@@ -998,6 +1015,7 @@ export default function ScoreDashboard() {
   // Run-out handler: ball counts, batter out, no bowler wicket or runs
   const handleRunOut = (who /* 'batsman1' | 'batsman2' */) => {
     if (scoringLocked) return;
+    if (!canScore) return;
 
     // Snapshot current state for undo
     const snapshot = {
@@ -1350,20 +1368,20 @@ export default function ScoreDashboard() {
                       sx={{ width: "33.3333%" }}
                     >
                       <Tooltip
-                        title={
-                          scoringLocked
-                            ? "Over complete — change bowler to continue"
-                            : value
-                            ? `Add ${title.toLowerCase()} ${value}`
-                            : ""
-                        }
-                      >
+                          title={
+                            scoringLocked
+                              ? "Over complete — change bowler to continue"
+                              : !value
+                              ? ""
+                              : missingSetupReason || `Add ${title.toLowerCase()} ${value}`
+                          }
+                        >
                         <span>
                           <Button
                             fullWidth
                             size="small"
                             variant="text"
-                            disabled={!value || scoringLocked}
+                            disabled={!value || scoringLocked || !canScore}
                             onClick={() => handleScore(title, value)}
                             sx={{
                               minWidth: 40,
