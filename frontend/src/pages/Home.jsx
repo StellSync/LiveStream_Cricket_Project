@@ -19,7 +19,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 export default function Homs() {
-  // ✅ Always target backend on :5000 (same host)
+  //  Always target backend on :5000 (same host)
   const base = useMemo(() => {
     const { protocol, hostname, port } = window.location;
     // if already on 5000, keep origin; else rewrite to :5000
@@ -28,8 +28,11 @@ export default function Homs() {
   }, []);
 
   const overlays = [
-    { title: "Scorebar green", path: "/overlay/scorebar-tv", desc: "Live ticker with current over bubbles, batters and bowler.", tag: "Live" },
-    { title: "Scorebar orange", path: "/overlay/scorebar-tv-orange", desc: "Neon theme variant of the live ticker.", tag: "Live" },
+    { title: "Scorebar lime", path: "/overlay/scorebar-tv-lime", desc: "Live ticker with current over bubbles, batters and bowler.", tag: "Live" },
+    { title: "Scorebar gold", path: "/overlay/scorebar-tv-gold", desc: "Neon theme variant of the live ticker.", tag: "Live" },
+     { title: "Scorebar sunset", path: "/overlay/scorebar-tv-sunset", desc: "Live ticker with current over bubbles, batters and bowler.", tag: "Live" },
+    { title: "Scorebar aurora", path: "/overlay/scorebar-tv-aurora", desc: "Neon theme variant of the live ticker.", tag: "Live" },
+    { title: "Scorebar blue", path: "/overlay/scorebar-tv-blue", desc: "Neon theme variant of the live ticker.", tag: "Live" },
     { title: "Match Intro", path: "/overlay/match", desc: "Tournament + teams header slate.", tag: "Header" },
     // NEW: Summary Scorecard (served by backend on :5000)
     {
